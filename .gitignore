@@ -31,3 +31,16 @@ Thumbs.db
 *.njsproj
 *.sln
 *.sw?
+
+# Office & Excel Temporary Lock Files
+~$*.xlsx
+~$*.xls
+~$*.xlsm
+*.tmp
+
+# Python & Virtual Environments
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
