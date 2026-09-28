@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Recipe, ProcessNode, FeederStrategy, DownstreamTarget } from '../../types';
 import { calculateSingleDish, sizeAutonomousPump } from '../../services/solver';
-import { getMachineBadgeClass } from '../../utils/machineBadge';
+import { getMachineBadgeClass, chunkTargets } from '../../utils/machineBadge';
 import { Layers, Plus, Trash2, ShieldCheck, Zap, Droplets, Users, Flame, Sparkles, Sprout } from 'lucide-react';
 
 interface ParallelPlannerProps {
@@ -1073,37 +1073,29 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                           );
 
                           if (allSame) {
-                            return firstTargets.length === 1 ? (
-                              <div className="flex items-center space-x-1.5 whitespace-nowrap" title={`連至工序：【${firstTargets[0].processName}】`}>
-                                <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass(firstTargets[0].machine, firstTargets[0].isByproduct)}`}>
-                                  {firstTargets[0].machine}
-                                </span>
-                                <span className={`font-mono font-bold text-xs ${firstTargets[0].isByproduct ? 'text-emerald-400' : 'text-slate-200'}`}>
-                                  {firstTargets[0].ratio}
-                                </span>
-                                {firstTargets[0].isFluid && (
-                                  <span className="text-[10px] text-cyan-400 font-normal font-sans">(1.0 fl/s)</span>
-                                )}
-                                {firstTargets[0].isByproduct && (
-                                  <span className="text-[10px] text-emerald-400 font-normal font-sans">(副產物折抵)</span>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 w-fit">
-                                {firstTargets.map((t, tIdx) => (
-                                  <div key={tIdx} className="flex items-center space-x-1.5 whitespace-nowrap" title={`連至工序：【${t.processName}】`}>
-                                    <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass(t.machine, t.isByproduct)}`}>
-                                      {t.machine}
-                                    </span>
-                                    <span className={`font-mono font-bold text-xs ${t.isByproduct ? 'text-emerald-400' : 'text-slate-200'}`}>
-                                      {t.ratio}
-                                    </span>
-                                    {t.isFluid && (
-                                      <span className="text-[10px] text-cyan-400 font-normal font-sans">(1.0 fl/s)</span>
-                                    )}
-                                    {t.isByproduct && (
-                                      <span className="text-[10px] text-emerald-400 font-normal font-sans">(副產物折抵)</span>
-                                    )}
+                            return (
+                              <div className="flex flex-col gap-y-1.5 w-fit">
+                                {chunkTargets(firstTargets).map((pair, rowIdx) => (
+                                  <div key={rowIdx} className="flex items-center space-x-3 whitespace-nowrap">
+                                    {pair.map((t, tIdx) => (
+                                      <div key={tIdx} className="flex items-center space-x-1.5 whitespace-nowrap" title={`連至工序：【${t.processName}】`}>
+                                        <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass(t.machine, t.isByproduct)}`}>
+                                          {t.machine}
+                                        </span>
+                                        {t.isFluid ? (
+                                          <span className="font-mono font-bold text-xs text-cyan-300">
+                                            {t.note || `${t.ratio}.0 fl/s`}
+                                          </span>
+                                        ) : (
+                                          <span className={`font-mono font-bold text-xs ${t.isByproduct ? 'text-emerald-400' : 'text-slate-200'}`}>
+                                            {t.ratio}
+                                          </span>
+                                        )}
+                                        {t.isByproduct && (
+                                          <span className="text-[10px] text-emerald-400 font-normal font-sans">(副產物折抵)</span>
+                                        )}
+                                      </div>
+                                    ))}
                                   </div>
                                 ))}
                               </div>
@@ -1117,21 +1109,28 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                                   {plannedList.length > 1 && (
                                     <span className="text-slate-400 font-medium text-xs whitespace-nowrap">【{dt.dishName}】</span>
                                   )}
-                                  <div className={dt.targets.length >= 2 ? "grid grid-cols-2 gap-x-4 gap-y-1.5 w-fit" : "flex items-center space-x-1.5 whitespace-nowrap"}>
-                                    {dt.targets.map((t, tIdx) => (
-                                      <div key={tIdx} className="flex items-center space-x-1.5 whitespace-nowrap" title={`連至工序：【${t.processName}】`}>
-                                        <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass(t.machine, t.isByproduct)}`}>
-                                          {t.machine}
-                                        </span>
-                                        <span className={`font-mono font-bold text-xs ${t.isByproduct ? 'text-emerald-400' : 'text-slate-200'}`}>
-                                          {t.ratio}
-                                        </span>
-                                        {t.isFluid && (
-                                          <span className="text-[10px] text-cyan-400 font-normal font-sans">(1.0 fl/s)</span>
-                                        )}
-                                        {t.isByproduct && (
-                                          <span className="text-[10px] text-emerald-400 font-normal font-sans">(副產物折抵)</span>
-                                        )}
+                                  <div className="flex flex-col gap-y-1.5 w-fit">
+                                    {chunkTargets(dt.targets).map((pair, rowIdx) => (
+                                      <div key={rowIdx} className="flex items-center space-x-3 whitespace-nowrap">
+                                        {pair.map((t, tIdx) => (
+                                          <div key={tIdx} className="flex items-center space-x-1.5 whitespace-nowrap" title={`連至工序：【${t.processName}】`}>
+                                            <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass(t.machine, t.isByproduct)}`}>
+                                              {t.machine}
+                                            </span>
+                                            {t.isFluid ? (
+                                              <span className="font-mono font-bold text-xs text-cyan-300">
+                                                {t.note || `${t.ratio}.0 fl/s`}
+                                              </span>
+                                            ) : (
+                                              <span className={`font-mono font-bold text-xs ${t.isByproduct ? 'text-emerald-400' : 'text-slate-200'}`}>
+                                                {t.ratio}
+                                              </span>
+                                            )}
+                                            {t.isByproduct && (
+                                              <span className="text-[10px] text-emerald-400 font-normal font-sans">(副產物折抵)</span>
+                                            )}
+                                          </div>
+                                        ))}
                                       </div>
                                     ))}
                                   </div>

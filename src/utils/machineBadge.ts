@@ -21,3 +21,14 @@ export function getMachineBadgeClass(machine: string, isByproduct?: boolean): st
       return 'bg-slate-800 border-slate-700 text-slate-300';
   }
 }
+
+/**
+ * Chunks downstream targets into groups of 2 for compact paired row display.
+ */
+export function chunkTargets<T>(targets: T[]): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < targets.length; i += 2) {
+    chunks.push(targets.slice(i, i + 2));
+  }
+  return chunks;
+}
