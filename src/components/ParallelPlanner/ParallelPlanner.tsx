@@ -1061,8 +1061,10 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                           {r.topologies.length > 0 ? (
                             r.topologies.length === 1 || r.topologies.every(t => t.text === r.topologies[0].text) ? (
                               <span className={
-                                r.topologies[0].text.includes('大炮') ? 'text-amber-400' :
+                                r.topologies[0].text.includes('大炮') ? 'text-amber-400 font-bold' :
+                                r.topologies[0].text.includes('分流') ? 'text-emerald-300' :
                                 r.topologies[0].text.includes('專線') ? 'text-cyan-300' :
+                                r.topologies[0].text.includes('連至') ? 'text-slate-300' :
                                 r.topologies[0].text.includes('重構') ? 'text-purple-300' :
                                 r.topologies[0].text.includes('轉化') ? 'text-indigo-300' : 'text-slate-400'
                               }>

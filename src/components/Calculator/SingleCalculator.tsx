@@ -519,8 +519,10 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                       </td>
                       <td className="py-3 px-4 text-xs">
                         <span className={`font-medium ${
-                          p.topology.includes('大炮') ? 'text-amber-400' :
+                          p.topology.includes('大炮') ? 'text-amber-400 font-bold' :
+                          p.topology.includes('分流') ? 'text-emerald-300' :
                           p.topology.includes('專線') ? 'text-cyan-300' :
+                          p.topology.includes('連至') ? 'text-slate-300' :
                           p.topology.includes('重構') ? 'text-purple-300' :
                           p.topology.includes('轉化') ? 'text-indigo-300' : 'text-slate-400'
                         }`}>

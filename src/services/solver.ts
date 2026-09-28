@@ -1,5 +1,5 @@
 import { dataService } from './dataService';
-import { CalculationResult, ProcessNode, FluidTierInfo, Item, FeederStrategy } from '../types';
+import { CalculationResult, ProcessNode, FluidTierInfo, Item, FeederStrategy, Recipe, IntermediateRecipe } from '../types';
 import { parseFractionOrNumber, formatFractionOrDecimal, gcdArray } from '../utils/math';
 
 /**
@@ -27,6 +27,210 @@ export function sizeAutonomousPump(demand: number, hasVoid: boolean): FluidTierI
     sludgeManipulators,
     pumpPower
   };
+}
+
+/**
+ * Downstream physical topology routing engine:
+ * Dynamically resolves downstream machine connections and material distribution ratios
+ */
+const COOKED_GROUPS = [
+  ['煮熟的千層麵皮', '千層麵皮', '千層麵'],
+  ['煮熟的義大利麵', '義大利麵'],
+  ['煮熟的通心粉', '通心粉'],
+  ['炸薯條', '薯條'],
+  ['炸多林多滋', '多林多滋', '玉米片'],
+  ['軟質奶酪', '中等熟成奶酪', '硬質奶酪'],
+  ['粉塵底料', '粉塵'],
+  ['蟑螂黃油', '黃油'],
+  ['蟑螂奶油', '奶油'],
+  ['香豆蔻', '豆肉蔻'],
+  ['蛇蛋', '臭蛇蛋'],
+  ['麵包麵團', '麵包麵糰', '發酵麵糰', '發酵麵團', '麵團', '麵糰']
+];
+
+function normalizeMatName(str: string): string {
+  return str.replace(/麵糰/g, '麵團');
+}
+
+function matchMaterial(prodItem: { name: string; isFluid: boolean }, reqItem: { name: string; isFluid: boolean }): boolean {
+  if (prodItem.isFluid !== reqItem.isFluid) return false;
+  const pNorm = normalizeMatName(prodItem.name);
+  const rNorm = normalizeMatName(reqItem.name);
+  if (pNorm === rNorm) return true;
+
+  for (const group of COOKED_GROUPS) {
+    const inProd = group.some(g => pNorm === normalizeMatName(g));
+    const inReq = group.some(g => rNorm === normalizeMatName(g));
+    if (inProd && inReq) return true;
+  }
+  return false;
+}
+
+function getProcessOutputItem(
+  p: ProcessNode,
+  dishName: string,
+  intermediateRecipes: IntermediateRecipe[],
+  allItems: Set<string>
+): { name: string; isFluid: boolean } {
+  if (p.machine === '自動廚師機') return { name: dishName, isFluid: false };
+  if (p.processName.includes('底料作物採集') || p.processName.includes('底料專供')) {
+    return { name: '重構底料', isFluid: false };
+  }
+
+  if (p.machine === '攪拌機') {
+    const sauceName = p.processName.replace(/^(攪拌)/, '').replace(/\(.*\)/, '').trim();
+    return { name: sauceName, isFluid: true };
+  }
+  if (p.machine === '注入機') {
+    const injName = p.processName.replace(/^(注入|環境原位轉化)/, '').trim();
+    return { name: injName, isFluid: true };
+  }
+
+  const stripped = p.processName.replace(/^(採收|採掘|開採|重構|物質操縱|研磨|混和|混合|水煮|擠出|油炸|烘烤|注入|發酵|切片|壓榨|離心|煎烤|熬煮|烹煮|絞碎|剝皮|攪拌)/, '').trim();
+
+  if (p.machine === '煮鍋') {
+    const cookedName = '煮熟的' + stripped;
+    if (allItems.has(cookedName)) return { name: cookedName, isFluid: false };
+    if (allItems.has(cookedName + '皮')) return { name: cookedName + '皮', isFluid: false };
+    const found = intermediateRecipes.find(r => r.machine === '煮鍋' && (r.name.includes(stripped) || stripped.includes(r.name)));
+    if (found) return { name: found.name, isFluid: false };
+  }
+
+  if (p.machine === '擠出機') {
+    const cleanP = stripped.replace('皮', '');
+    const rawName = '生' + cleanP;
+    if (allItems.has(rawName)) return { name: rawName, isFluid: false };
+    if (p.processName.includes('鷹身女妖')) return { name: '生鷹身女妖肉', isFluid: false };
+    const found = intermediateRecipes.find(r => r.machine === '擠出機' && (r.name.includes(cleanP) || cleanP.includes(r.name)));
+    if (found) return { name: found.name, isFluid: false };
+    return { name: rawName, isFluid: false };
+  }
+
+  if (p.machine === '研磨機') {
+    if (p.processName.includes('史萊姆')) return { name: '史萊姆肉餡', isFluid: false };
+    if (p.processName.includes('骨粉')) return { name: '骨粉', isFluid: false };
+    if (p.processName.includes('麵包糠')) return { name: '麵包糠', isFluid: false };
+    if (p.processName.includes('粉塵')) return { name: '粉塵', isFluid: false };
+    if (p.processName.includes('芝士碎')) return { name: '芝士碎', isFluid: false };
+  }
+
+  if (p.machine === '混合機') {
+    if (p.processName.includes('義大利麵團') || (p.processName.includes('麵團') && !p.processName.includes('麵包'))) {
+      return { name: '義大利麵團', isFluid: false };
+    }
+    if (p.processName.includes('麵包麵團')) return { name: '麵包麵團', isFluid: false };
+    if (p.processName.includes('塔瑪茄泥')) return { name: '塔瑪茄泥', isFluid: false };
+    if (p.processName.includes('黃油')) return { name: '蟑螂黃油', isFluid: false };
+    if (p.processName.includes('奶油')) return { name: '蟑螂奶油', isFluid: false };
+    if (p.processName.includes('蒜泥蛋醬')) return { name: '蒜泥蛋醬', isFluid: false };
+  }
+
+  if (p.machine === '烤箱') {
+    if (p.processName.includes('麵包')) return { name: '麵包', isFluid: false };
+  }
+
+  if (p.machine === '發酵罐') {
+    if (p.processName.includes('奶酪')) return { name: '軟質奶酪', isFluid: false };
+  }
+
+  if (p.machine === '油炸鍋') {
+    if (p.processName.includes('多林多滋')) return { name: '多林多滋', isFluid: false };
+    if (p.processName.includes('薯條')) return { name: '薯條', isFluid: false };
+  }
+
+  const inter = intermediateRecipes.find(r => (r.name === stripped || r.name === p.processName) && r.machine === p.machine);
+  if (inter) return { name: inter.name, isFluid: false };
+
+  return { name: stripped, isFluid: false };
+}
+
+function getProcessInputItems(
+  p: ProcessNode,
+  dishName: string,
+  dishProcesses: ProcessNode[],
+  recipes: Recipe[],
+  intermediateRecipes: IntermediateRecipe[]
+): { name: string; count: number; isFluid: boolean }[] {
+  if (p.machine === '自動廚師機') {
+    const dishRecipe = recipes.find(r => r.name === dishName);
+    if (!dishRecipe) return [];
+    const inputs = (dishRecipe.inputs || []).filter(i => i.name && i.name !== '無').map(i => ({ name: i.name, count: i.count, isFluid: false }));
+    if (dishRecipe.fluidType && dishRecipe.fluidType !== '無') {
+      inputs.push({ name: dishRecipe.fluidType, count: dishRecipe.fluidRate || 1, isFluid: true });
+    }
+    return inputs;
+  }
+
+  if (p.machine === '收割機' || p.machine === '採掘機') return [];
+  if (p.machine === '物質操縱機') return [{ name: '重構底料', count: 1, isFluid: false }];
+
+  const stripped = p.processName.replace(/^(採收|採掘|開採|重構|物質操縱|研磨|混和|混合|水煮|擠出|油炸|烘烤|注入|發酵|切片|壓榨|離心|煎烤|熬煮|烹煮|絞碎|剝皮|攪拌)/, '').trim();
+  const cleanP = stripped.replace('皮', '');
+
+  if (p.processName.includes('麵糊')) {
+    const hasSnake = dishProcesses.some(dp => dp.processName.includes('蛇蛋'));
+    const eggName = hasSnake ? '蛇蛋' : '蜘蛛蛋';
+    return [{ name: '骨粉', count: 1, isFluid: false }, { name: eggName, count: 1, isFluid: false }];
+  }
+
+  let candidates = intermediateRecipes.filter(r => 
+    r.name === p.processName || r.name === stripped || r.name === cleanP ||
+    r.name.includes(cleanP) || cleanP.includes(r.name)
+  );
+
+  if (candidates.some(c => c.machine === p.machine)) {
+    candidates = candidates.filter(c => c.machine === p.machine);
+  }
+
+  let best: IntermediateRecipe | null = null;
+  if (candidates.length === 1) {
+    best = candidates[0];
+  } else if (candidates.length > 1) {
+    let bestScore = -1;
+    for (const c of candidates) {
+      let score = c.machine === p.machine ? 10 : 0;
+      const inps = (c.inputs || []).filter(i => i.name && i.name !== '無');
+      inps.forEach(inp => {
+        if (dishProcesses.some(dp => dp.processName.includes(inp.name) || inp.name.includes(dp.processName))) score += 5;
+      });
+      if (score > bestScore) {
+        bestScore = score;
+        best = c;
+      }
+    }
+  }
+
+  if (best) {
+    const inputs = (best.inputs || []).filter(i => i.name && i.name !== '無').map(i => ({ name: i.name, count: i.count, isFluid: false }));
+    if (best.fluidType && best.fluidType !== '無') {
+      inputs.push({ name: best.fluidType, count: best.fluidRate || 1, isFluid: true });
+    }
+    return inputs;
+  }
+
+  // Fallbacks
+  if (p.machine === '煮鍋') {
+    return [{ name: '生' + cleanP, count: 1, isFluid: false }, { name: '水', count: 1, isFluid: true }];
+  }
+  if (p.machine === '油炸鍋') {
+    if (p.processName.includes('薯條')) return [{ name: '生薯條', count: 1, isFluid: false }, { name: '油', count: 1, isFluid: true }];
+    if (p.processName.includes('多林多滋')) return [{ name: '生多林多滋', count: 1, isFluid: false }, { name: '油', count: 1, isFluid: true }];
+  }
+  if (p.machine === '擠出機') {
+    if (p.processName.includes('鷹身女妖')) return [{ name: '鷹身女妖翅膀', count: 1, isFluid: false }];
+    if (p.processName.includes('薯條')) return [{ name: '土豆', count: 1, isFluid: false }, { name: '鹽', count: 1, isFluid: false }];
+    return [{ name: '義大利麵團', count: 1, isFluid: false }];
+  }
+  if (p.machine === '研磨機') {
+    if (p.processName.includes('史萊姆')) return [{ name: '綠色史萊姆', count: 1, isFluid: false }];
+    if (p.processName.includes('粉塵')) return [{ name: '粉塵底料', count: 1, isFluid: false }];
+    if (p.processName.includes('芝士碎')) return [{ name: '軟質奶酪', count: 1, isFluid: false }];
+  }
+  if (p.machine === '烤箱') {
+    return [{ name: '麵包麵團', count: 1, isFluid: false }];
+  }
+
+  return [];
 }
 
 export function calculateSingleDish(
@@ -93,25 +297,76 @@ export function calculateSingleDish(
     });
   }
 
-  // 2. Integer Ratios (GCD) and Topology Advice
+  // 2. Integer Ratios (GCD) and Dynamic Downstream Routing Topology
   const counts = processNodes.map(p => p.countRounded);
   const commonGcd = gcdArray(counts);
   processNodes.forEach(p => {
     p.integerRatio = commonGcd > 0 ? p.countRounded / commonGcd : p.countRounded;
-    if (p.machine === '自動廚師機') {
-      p.topology = '終端出餐 (大炮發射)';
-    } else if (p.machine === '攪拌機') {
-      p.topology = p.integerRatio === 1 ? '1:1 專線通液 (1.0 fl/s)' : `雙路/多路專線 (各 1.0 fl/s)`;
-    } else if (p.machine === '物質操縱機') {
-      p.topology = `異界重構 (需配 ${p.countRounded} 台底料收割機)`;
-    } else if (p.machine === '注入機') {
-      p.topology = '環境原位轉化 (需專屬抽取泵機)';
-    } else if (p.integerRatio === 1) {
-      p.topology = '1:1 對等直連';
-    } else if (p.integerRatio === 2) {
-      p.topology = '1分2均等分流 (自帶雙輸出口)';
+  });
+
+  const allItemsSet = new Set<string>();
+  items.forEach(i => allItemsSet.add(i.name));
+  recipes.forEach(r => {
+    allItemsSet.add(r.name);
+    (r.inputs || []).forEach(inp => { if (inp.name && inp.name !== '無') allItemsSet.add(inp.name); });
+    if (r.fluidType && r.fluidType !== '無') allItemsSet.add(r.fluidType);
+  });
+  intermediateRecipes.forEach(r => {
+    allItemsSet.add(r.name);
+    (r.inputs || []).forEach(inp => { if (inp.name && inp.name !== '無') allItemsSet.add(inp.name); });
+    if (r.fluidType && r.fluidType !== '無') allItemsSet.add(r.fluidType);
+  });
+
+  // Map each process node to its output product and input requirements
+  const nodeContexts = processNodes.map(p => ({
+    node: p,
+    output: getProcessOutputItem(p, dishName, intermediateRecipes, allItemsSet),
+    inputs: getProcessInputItems(p, dishName, processNodes, recipes, intermediateRecipes)
+  }));
+
+  nodeContexts.forEach(curr => {
+    if (curr.node.machine === '自動廚師機') {
+      curr.node.topology = '終端出餐 (大炮發射)';
+      return;
+    }
+
+    // Find downstream consumer processes
+    const consumers: { target: ProcessNode; reqCount: number; isFluid: boolean }[] = [];
+    nodeContexts.forEach(other => {
+      if (other === curr) return;
+      const matchingInput = other.inputs.find(inp => matchMaterial(curr.output, inp));
+      if (matchingInput) {
+        consumers.push({
+          target: other.node,
+          reqCount: matchingInput.count || 1,
+          isFluid: matchingInput.isFluid
+        });
+      }
+    });
+
+    if (consumers.length === 0) {
+      if (curr.output.isFluid) {
+        curr.node.topology = `專線直供【終端組裝】(自動廚師機) (1.0 fl/s)`;
+      } else if (curr.node.processName.includes('底料作物採集') || curr.node.processName.includes('底料專供')) {
+        curr.node.topology = '直供【物質操縱機】(重構底料)';
+      } else {
+        curr.node.topology = '連至【終端組裝】(自動廚師機)';
+      }
+    } else if (consumers.length === 1) {
+      const c = consumers[0];
+      if (c.isFluid) {
+        curr.node.topology = `專線直供【${c.target.processName}】(${c.target.machine}) (1.0 fl/s)`;
+      } else {
+        curr.node.topology = `連至【${c.target.processName}】(${c.target.machine})`;
+      }
     } else {
-      p.topology = `專用分流器拓撲 (${p.integerRatio}等分)`;
+      const reqCounts = consumers.map(c => c.reqCount);
+      const g = gcdArray(reqCounts);
+      const ratioStr = reqCounts.map(c => c / g).join(' : ');
+      const desc = consumers.length === 2
+        ? `【${consumers[0].target.processName}】(${consumers[0].target.machine}) 與【${consumers[1].target.processName}】(${consumers[1].target.machine})`
+        : consumers.slice(0, -1).map(c => `【${c.target.processName}】(${c.target.machine})`).join('、') + ` 與【${consumers[consumers.length - 1].target.processName}】(${consumers[consumers.length - 1].target.machine})`;
+      curr.node.topology = `分流至${desc} 配比 ${ratioStr}`;
     }
   });
 
