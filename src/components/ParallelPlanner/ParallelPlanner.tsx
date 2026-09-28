@@ -14,7 +14,7 @@ interface PlannedDish {
 }
 
 export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => {
-  const [powerMode, setPowerMode] = useState<'regular' | 'overclock'>('regular');
+  const [powerMode, setPowerMode] = useState<'regular' | 'overclock'>('overclock');
   const [feederStrategy, setFeederStrategy] = useState<FeederStrategy>('dedicated');
   const [plannedList, setPlannedList] = useState<PlannedDish[]>([
     { id: '1', dishName: '哀嚎肉丸', rate: 0.2 },
@@ -272,6 +272,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
     let totalOilDemand = 0;
     let totalProcessVoid = 0;
     const allTransformations: { name: string; fluid: string; demand: number }[] = [];
+    const allSauces: { name: string; rate: number; dedicatedPipes: number; dishName: string }[] = [];
 
     individualResults.forEach(item => {
       if (!item.calc) return;
@@ -283,6 +284,14 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
           name: t.name,
           fluid: t.fluid,
           demand: t.demand
+        });
+      });
+      item.calc.fluids.sauces.forEach(s => {
+        allSauces.push({
+          name: s.name,
+          rate: s.rate,
+          dedicatedPipes: s.dedicatedPipes,
+          dishName: item.dishName
         });
       });
     });
@@ -361,6 +370,10 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
 
     // Power Grid 2:1 Balance Calculation
     const baseForFurnace = totalMainPower + totalPlantPumpPower;
+    const baseFeederRow = list.find(r => r.isBaseFeeder);
+    const totalBaseFeederPower = baseFeederRow ? baseFeederRow.parallelRounded * 1.0 : 0;
+    const totalPureMainPower = list.filter(r => !r.isBaseFeeder).reduce((acc, r) => acc + r.parallelRounded * r.powerPerUnit, 0);
+
     let furnaces = 0;
     let coalMiners = 0;
     let coalRate = 0;
@@ -398,11 +411,15 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
       totalParallel,
       totalSavedMachines,
       totalMainPower,
+      totalPureMainPower,
+      totalBaseFeederPower,
+      baseFeederSummary: baseFeederRow?.baseFeederSummary,
       totalMainGoblins,
       plantWater,
       plantOil,
       plantVoid,
       sizedTransformations,
+      allSauces,
       hasVoidFacility,
       totalPlantRegularPumps,
       totalPlantOverclockPumps,
@@ -522,7 +539,9 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                   className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 font-medium focus:outline-none focus:ring-1 focus:ring-amber-500"
                 >
                   {recipes.map(r => (
-                    <option key={r.name} value={r.name}>{r.name}</option>
+                    <option key={r.name} value={r.name}>
+                      {r.name} {r.fluidType && r.fluidType !== '無' ? `(+${r.fluidType})` : ''}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -650,6 +669,29 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
               </div>
             )}
 
+            {/* Sauces (1:1 dedicated pipes) */}
+            {consolidated.allSauces.length > 0 && (
+              <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 space-y-2">
+                <div className="font-bold text-slate-200 flex items-center justify-between whitespace-nowrap">
+                  <div className="flex items-center space-x-1.5">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>
+                    <span>廠內調配醬汁 (1:1 專線直供)</span>
+                  </div>
+                  <span className="text-[10px] text-amber-400 font-mono">嚴禁混管合流</span>
+                </div>
+                {consolidated.allSauces.map((s, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-[11px] border-t border-slate-800 pt-1.5">
+                    <span className="text-slate-300 whitespace-nowrap">
+                      {plannedList.length > 1 ? `【${s.dishName}】：` : ''}{s.name} ({s.rate.toFixed(1)} fl/s)
+                    </span>
+                    <span className="font-mono text-amber-300 font-bold whitespace-nowrap">
+                      {s.dedicatedPipes} 條直供專線
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Void Pump */}
             <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 flex items-center justify-between">
               <div>
@@ -687,6 +729,21 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                 )}
               </div>
             </div>
+
+            {/* Total pumps & manipulators summary */}
+            <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 space-y-1">
+              <div className="text-slate-300 font-bold whitespace-nowrap flex items-center justify-between">
+                <span>全廠泵機與操縱機總計:</span>
+                <span className="text-cyan-300 font-mono font-bold whitespace-nowrap">
+                  {consolidated.totalPlantRegularPumps} 常規泵 + {consolidated.totalPlantOverclockPumps} 超頻泵 + {consolidated.totalPlantSludgeManipulators} 操縱機
+                </span>
+              </div>
+              {consolidated.genSludgeManipulators > 0 && (
+                <div className="text-[10px] text-purple-400 font-sans whitespace-nowrap text-right">
+                  (含電廠 2:1:1 模組供汙泥操縱機 {consolidated.genSludgeManipulators} 台)
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -697,9 +754,15 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
               <Zap className="w-4 h-4 text-amber-400" />
               <span>全廠電網負載與小妖精總結算</span>
             </h3>
-            <span className="text-xs text-slate-400 font-mono whitespace-nowrap">
-              2:1:1 閉環發電模組
-            </span>
+            <div className="flex items-center space-x-2">
+              <span className="text-xs text-slate-400 font-mono whitespace-nowrap">
+                實需主設備: <strong className="text-cyan-300 font-bold">{consolidated.totalParallel}</strong> 台
+              </span>
+              <span className="text-xs text-slate-500 font-mono">|</span>
+              <span className="text-xs text-slate-400 font-mono whitespace-nowrap">
+                {powerMode === 'overclock' ? '2:1:1 閉環發電模組 (16 FV/s)' : '4 FV/s 常規發電模組'}
+              </span>
+            </div>
           </div>
 
           <div className="space-y-3 text-xs">
@@ -726,17 +789,28 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
 
             {/* Four-way Power Breakdown */}
             <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 space-y-1.5 text-[11px]">
-              <div className="font-bold text-slate-300 mb-1 whitespace-nowrap">電網四重垂直累加負載</div>
+              <div className="font-bold text-slate-300 mb-1 whitespace-nowrap">電網垂直累加負載</div>
               <div className="flex justify-between items-center text-slate-400">
                 <span className="whitespace-nowrap">1. 主要生產設備負載：</span>
-                <span className="font-mono text-slate-200 font-bold whitespace-nowrap">{consolidated.totalMainPower.toFixed(1)} FV/s</span>
+                <span className="font-mono text-slate-200 font-bold whitespace-nowrap">{consolidated.totalPureMainPower.toFixed(1)} FV/s</span>
               </div>
               <div className="flex justify-between items-center text-slate-400">
                 <span className="whitespace-nowrap">2. 流體泵機與操縱機自耗：</span>
                 <span className="font-mono text-slate-200 font-bold whitespace-nowrap">{consolidated.totalPlantPumpPower.toFixed(1)} FV/s</span>
               </div>
               <div className="flex justify-between items-center text-slate-400">
-                <span className="whitespace-nowrap">3. 採煤機運行負載：</span>
+                <span className="whitespace-nowrap">3. 重構底料作物收割機：</span>
+                <div className="flex items-center space-x-1.5 whitespace-nowrap">
+                  {consolidated.baseFeederSummary && consolidated.baseFeederSummary.offsetCount > 0 && (
+                    <span className="text-[10px] px-1 py-0.5 rounded bg-emerald-900/60 text-emerald-300 font-bold">
+                      折抵 {consolidated.baseFeederSummary.offsetCount} 台
+                    </span>
+                  )}
+                  <span className="font-mono text-slate-200 font-bold">{consolidated.totalBaseFeederPower.toFixed(1)} FV/s</span>
+                </div>
+              </div>
+              <div className="flex justify-between items-center text-slate-400">
+                <span className="whitespace-nowrap">4. 採煤機運行負載：</span>
                 <span className="font-mono text-slate-200 font-bold whitespace-nowrap">{(consolidated.coalMiners * 1.0).toFixed(1)} FV/s</span>
               </div>
               <div className="flex justify-between items-center border-t border-slate-800 pt-1 font-bold text-amber-400">
