@@ -232,40 +232,40 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                 </div>
 
                 <div className="space-y-2 text-xs">
-                  <div className="flex justify-between text-slate-400">
-                    <span>主設備電力 (純料理):</span>
-                    <span className="font-mono text-slate-200">{result.powerGrid.mainEquipmentPower} FV/s</span>
+                  <div className="flex justify-between items-center text-slate-400">
+                    <span className="whitespace-nowrap">主設備電力 (純料理):</span>
+                    <span className="font-mono text-slate-200 whitespace-nowrap">{result.powerGrid.mainEquipmentPower} FV/s</span>
                   </div>
-                  <div className="flex justify-between text-slate-400">
-                    <span>泵機與操縱機電力 (Q13):</span>
-                    <span className="font-mono text-cyan-300">{result.powerGrid.pumpManipulatorPower} FV/s</span>
+                  <div className="flex justify-between items-center text-slate-400">
+                    <span className="whitespace-nowrap">泵機與操縱機電力 (Q13):</span>
+                    <span className="font-mono text-cyan-300 whitespace-nowrap">{result.powerGrid.pumpManipulatorPower} FV/s</span>
                   </div>
                   
                   {/* 重構底料機耗電 */}
-                  <div className={`flex justify-between px-2 py-1 rounded-lg border ${
+                  <div className={`flex justify-between items-center px-2 py-1 rounded-lg border ${
                     result.baseFeeders.offsetCount > 0
                       ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20'
                       : 'text-purple-300 bg-purple-500/10 border-purple-500/20'
                   }`}>
-                    <div className="flex items-center space-x-1.5">
+                    <div className="flex items-center space-x-1.5 whitespace-nowrap">
                       <span>重構底料機耗電 ({result.baseFeeders.count} 台):</span>
                       {result.baseFeeders.offsetCount > 0 && (
-                        <span className="text-[10px] px-1 py-0.2 rounded bg-emerald-900/60 text-emerald-300 font-bold">
+                        <span className="text-[10px] px-1 py-0.5 rounded bg-emerald-900/60 text-emerald-300 font-bold whitespace-nowrap">
                           已折抵 {result.baseFeeders.offsetCount} 台
                         </span>
                       )}
                     </div>
-                    <span className="font-mono font-bold">{result.powerGrid.baseFeederPower} FV/s</span>
+                    <span className="font-mono font-bold whitespace-nowrap">{result.powerGrid.baseFeederPower} FV/s</span>
                   </div>
 
-                  <div className="flex justify-between text-slate-400">
-                    <span>採煤機耗電 ({result.powerGrid.coalMiners} 台):</span>
-                    <span className="font-mono text-slate-200">{result.powerGrid.coalMinerPower} FV/s</span>
+                  <div className="flex justify-between items-center text-slate-400">
+                    <span className="whitespace-nowrap">採煤機耗電 ({result.powerGrid.coalMiners} 台):</span>
+                    <span className="font-mono text-slate-200 whitespace-nowrap">{result.powerGrid.coalMinerPower} FV/s</span>
                   </div>
 
                   <div className="border-t border-slate-800 pt-2 flex justify-between items-center text-sm font-bold text-amber-400">
-                    <span>⚡ 全廠總電力負載:</span>
-                    <span className="font-mono text-base">{result.powerGrid.totalLoad} FV/s</span>
+                    <span className="whitespace-nowrap">⚡ 全廠總電力負載:</span>
+                    <span className="font-mono text-base whitespace-nowrap">{result.powerGrid.totalLoad} FV/s</span>
                   </div>
                 </div>
               </div>
@@ -445,16 +445,18 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
               </div>
 
               {/* Total pumps & manipulators summary */}
-              <div className="mt-3 pt-2.5 border-t border-slate-800 text-[11px] text-slate-400 flex justify-between items-center font-mono">
-                <span>全廠泵機與操縱機總計:</span>
-                <div className="text-right">
-                  <span className="text-cyan-300 font-bold">
+              <div className="mt-3 pt-2.5 border-t border-slate-800 space-y-1 text-[11px]">
+                <div className="font-bold text-slate-300 whitespace-nowrap">
+                  全廠泵機與操縱機總計:
+                </div>
+                <div className="bg-slate-950 p-2 rounded-xl border border-slate-800/80 space-y-0.5">
+                  <div className="text-cyan-300 font-bold font-mono whitespace-nowrap overflow-x-auto scrollbar-none">
                     {result.fluids.totals.regularPumps} 常規泵 + {result.fluids.totals.overclockPumps} 超頻泵 + {result.fluids.totals.sludgeManipulators} 操縱機
-                  </span>
+                  </div>
                   {result.powerGrid.generatorSludgeManipulators > 0 && (
-                    <span className="text-[10px] text-purple-400 block font-sans">
+                    <div className="text-[10px] text-purple-400 font-sans whitespace-nowrap">
                       (含電廠 2:1:1 模組供汙泥操縱機 {result.powerGrid.generatorSludgeManipulators} 台)
-                    </span>
+                    </div>
                   )}
                 </div>
               </div>
@@ -480,15 +482,15 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
               <table className="w-full text-left border-collapse text-sm">
                 <thead>
                   <tr className="bg-slate-950/70 text-slate-400 border-b border-slate-800 text-xs">
-                    <th className="py-3 px-4">工序名稱</th>
-                    <th className="py-3 px-4">使用設備</th>
-                    <th className="py-3 px-4 text-right">單台基準速率</th>
-                    <th className="py-3 px-4 text-right">需求流率</th>
-                    <th className="py-3 px-4 text-right font-bold text-amber-300">實需台數</th>
-                    <th className="py-3 px-4 text-center">最簡整數比</th>
-                    <th className="py-3 px-4 text-right">電力 (FV/s)</th>
-                    <th className="py-3 px-4 text-right">妖精</th>
-                    <th className="py-3 px-4">分流拓撲與物理說明</th>
+                    <th className="py-3 px-4 whitespace-nowrap">工序名稱</th>
+                    <th className="py-3 px-4 whitespace-nowrap">使用設備</th>
+                    <th className="py-3 px-4 text-right whitespace-nowrap">單台基準速率</th>
+                    <th className="py-3 px-4 text-right whitespace-nowrap">需求流率</th>
+                    <th className="py-3 px-4 text-right font-bold text-amber-300 whitespace-nowrap">實需台數</th>
+                    <th className="py-3 px-4 text-center whitespace-nowrap">最簡整數比</th>
+                    <th className="py-3 px-4 text-right whitespace-nowrap">電力 (FV/s)</th>
+                    <th className="py-3 px-4 text-right whitespace-nowrap">妖精</th>
+                    <th className="py-3 px-4 min-w-[240px]">分流拓撲與物理說明</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
@@ -497,18 +499,18 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                       <td className="py-3 px-4 font-medium text-slate-100">
                         <span>{p.processName}</span>
                         {p.feederRole === 'donor' && p.feederNote && (
-                          <span className="text-[11px] text-emerald-400 block font-normal mt-0.5">
+                          <span className="text-[11px] text-emerald-400 block font-normal mt-0.5 whitespace-nowrap">
                             ⚡ {p.feederNote}
                           </span>
                         )}
                         {p.feederRole === 'recipient' && p.feederNote && (
-                          <span className="text-[11px] text-purple-300 block font-normal mt-0.5">
+                          <span className="text-[11px] text-purple-300 block font-normal mt-0.5 whitespace-nowrap">
                             🌱 {p.feederNote}
                           </span>
                         )}
                       </td>
-                      <td className="py-3 px-4">
-                        <span className={`inline-block px-2 py-0.5 rounded border text-xs font-mono ${
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${
                           p.machine === '物質操縱機'
                             ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
                             : p.machine === '注入機'
@@ -518,22 +520,22 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                           {p.machine}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-right font-mono text-slate-300">
+                      <td className="py-3 px-4 text-right font-mono text-slate-300 whitespace-nowrap">
                         {p.baseRateDisplay} <span className="text-xs text-slate-400">/s</span>
                       </td>
-                      <td className="py-3 px-4 text-right font-mono text-slate-400">
+                      <td className="py-3 px-4 text-right font-mono text-slate-400 whitespace-nowrap">
                         {p.countExact.toFixed(2)} 台
                       </td>
-                      <td className="py-3 px-4 text-right font-mono text-base font-bold text-amber-400">
+                      <td className="py-3 px-4 text-right font-mono text-base font-bold text-amber-400 whitespace-nowrap">
                         {p.countRounded} 台
                       </td>
-                      <td className="py-3 px-4 text-center font-mono font-bold text-cyan-300">
+                      <td className="py-3 px-4 text-center font-mono font-bold text-cyan-300 whitespace-nowrap">
                         {p.integerRatio}
                       </td>
-                      <td className="py-3 px-4 text-right font-mono text-slate-300">
+                      <td className="py-3 px-4 text-right font-mono text-slate-300 whitespace-nowrap">
                         {p.power.toFixed(1)}
                       </td>
-                      <td className="py-3 px-4 text-right font-mono text-slate-300">
+                      <td className="py-3 px-4 text-right font-mono text-slate-300 whitespace-nowrap">
                         {p.goblins}
                       </td>
                       <td className="py-3 px-4 text-xs">
@@ -556,12 +558,12 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                         ? 'bg-emerald-950/20 text-emerald-300 border-emerald-500/30'
                         : 'bg-purple-950/20 text-purple-300 border-purple-500/30'
                     }`}>
-                      <td className="py-3 px-4 font-bold flex items-center space-x-1.5">
-                        <Sprout className={`w-4 h-4 ${result.baseFeeders.count === 0 ? 'text-emerald-400' : 'text-purple-400'}`} />
+                      <td className="py-3 px-4 font-bold flex items-center space-x-1.5 whitespace-nowrap">
+                        <Sprout className={`w-4 h-4 shrink-0 ${result.baseFeeders.count === 0 ? 'text-emerald-400' : 'text-purple-400'}`} />
                         <span>重構底料作物採集</span>
                       </td>
-                      <td className="py-3 px-4">
-                        <span className={`px-2 py-0.5 rounded border text-xs font-mono ${
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        <span className={`px-2 py-0.5 rounded border text-xs font-mono whitespace-nowrap inline-block ${
                           result.baseFeeders.count === 0
                             ? 'bg-emerald-900/40 border-emerald-500/40 text-emerald-200'
                             : 'bg-purple-900/40 border-purple-500/40 text-purple-200'
@@ -569,18 +571,18 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                           收割機 (底料專供)
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-right font-mono">0.20 /s</td>
-                      <td className="py-3 px-4 text-right font-mono">{result.baseFeeders.count.toFixed(2)} 台</td>
-                      <td className={`py-3 px-4 text-right font-mono font-bold text-base ${
+                      <td className="py-3 px-4 text-right font-mono whitespace-nowrap">0.20 /s</td>
+                      <td className="py-3 px-4 text-right font-mono whitespace-nowrap">{result.baseFeeders.count.toFixed(2)} 台</td>
+                      <td className={`py-3 px-4 text-right font-mono font-bold text-base whitespace-nowrap ${
                         result.baseFeeders.count === 0 ? 'text-emerald-400' : 'text-purple-300'
                       }`}>
                         {result.baseFeeders.count} 台
                       </td>
-                      <td className="py-3 px-4 text-center font-mono font-bold text-cyan-300">
+                      <td className="py-3 px-4 text-center font-mono font-bold text-cyan-300 whitespace-nowrap">
                         {result.baseFeeders.count === 0 ? '-' : '1'}
                       </td>
-                      <td className="py-3 px-4 text-right font-mono">{result.baseFeeders.power.toFixed(1)}</td>
-                      <td className="py-3 px-4 text-right font-mono">{result.baseFeeders.goblins}</td>
+                      <td className="py-3 px-4 text-right font-mono whitespace-nowrap">{result.baseFeeders.power.toFixed(1)}</td>
+                      <td className="py-3 px-4 text-right font-mono whitespace-nowrap">{result.baseFeeders.goblins}</td>
                       <td className="py-3 px-4 text-xs">
                         {result.baseFeeders.offsetCount > 0 ? (
                           <span className="text-emerald-300 font-medium">

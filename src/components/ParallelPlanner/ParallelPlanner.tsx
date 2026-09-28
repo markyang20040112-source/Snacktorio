@@ -596,17 +596,17 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
           <table className="w-full text-left border-collapse text-sm">
             <thead>
               <tr className="bg-slate-950/70 text-slate-400 border-b border-slate-800 text-xs">
-                <th className="py-3 px-4">工序項目</th>
-                <th className="py-3 px-4">設備</th>
+                <th className="py-3 px-4 whitespace-nowrap">工序項目</th>
+                <th className="py-3 px-4 whitespace-nowrap">設備</th>
                 {plannedList.map(p => (
-                  <th key={p.id} className="py-3 px-4 text-right">
+                  <th key={p.id} className="py-3 px-4 text-right whitespace-nowrap">
                     {p.dishName} 需求
                   </th>
                 ))}
-                <th className="py-3 px-4 text-right">並聯總需求</th>
-                <th className="py-3 px-4 text-right text-slate-400">獨立合計</th>
-                <th className="py-3 px-4 text-right font-bold text-cyan-300">並聯實需</th>
-                <th className="py-3 px-4 text-center text-emerald-400 font-bold">節省設備</th>
+                <th className="py-3 px-4 text-right whitespace-nowrap">並聯總需求</th>
+                <th className="py-3 px-4 text-right text-slate-400 whitespace-nowrap">獨立合計</th>
+                <th className="py-3 px-4 text-right font-bold text-cyan-300 whitespace-nowrap">並聯實需</th>
+                <th className="py-3 px-4 text-center text-emerald-400 font-bold whitespace-nowrap">節省設備</th>
                 <th className="py-3 px-4 min-w-[280px]">物料關聯與拓撲說明</th>
               </tr>
             </thead>
@@ -628,7 +628,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                   >
                     {/* 1. 工序項目 */}
                     <td className="py-3 px-4 font-medium text-slate-100">
-                      <div className="flex items-center space-x-1.5">
+                      <div className="flex items-center space-x-1.5 whitespace-nowrap">
                         {isBaseFeeder && (
                           <Sprout className={`w-4 h-4 shrink-0 ${isFullyOffsetFeeder ? 'text-emerald-400' : 'text-purple-400'}`} />
                         )}
@@ -639,7 +639,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                       {r.feederRoles.filter(fr => fr.role === 'donor').length > 0 && (
                         <div className="flex flex-col gap-0.5 mt-1">
                           {r.feederRoles.filter(fr => fr.role === 'donor').map((fr, fIdx) => (
-                            <span key={fIdx} className="inline-flex items-center space-x-1 text-[11px] text-emerald-400 font-normal">
+                            <span key={fIdx} className="inline-flex items-center space-x-1 text-[11px] text-emerald-400 font-normal whitespace-nowrap">
                               <Zap className="w-3 h-3 text-emerald-400 inline shrink-0" />
                               <span>{plannedList.length > 1 ? `【${fr.dishName}】：` : ''}{fr.note}</span>
                             </span>
@@ -651,7 +651,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                       {r.feederRoles.filter(fr => fr.role === 'recipient').length > 0 && (
                         <div className="flex flex-col gap-0.5 mt-1">
                           {r.feederRoles.filter(fr => fr.role === 'recipient').map((fr, fIdx) => (
-                            <span key={fIdx} className="inline-flex items-center space-x-1 text-[11px] text-purple-300 font-normal">
+                            <span key={fIdx} className="inline-flex items-center space-x-1 text-[11px] text-purple-300 font-normal whitespace-nowrap">
                               <Sprout className="w-3 h-3 text-purple-400 inline shrink-0" />
                               <span>{plannedList.length > 1 ? `【${fr.dishName}】：` : ''}{fr.note}</span>
                             </span>
@@ -661,14 +661,14 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
 
                       {/* Base Feeder summary tag */}
                       {isBaseFeeder && r.baseFeederSummary && (
-                        <div className="mt-1 text-[11px] font-normal">
+                        <div className="mt-1 text-[11px] font-normal whitespace-nowrap">
                           {r.baseFeederSummary.offsetCount > 0 ? (
-                            <span className="text-emerald-300 flex items-center space-x-1">
+                            <span className="text-emerald-300 flex items-center space-x-1 whitespace-nowrap">
                               <Sparkles className="w-3 h-3 text-emerald-400 inline shrink-0" />
                               <span>全廠由副產物折抵 {r.baseFeederSummary.offsetCount} 台底料收割機</span>
                             </span>
                           ) : (
-                            <span className="text-purple-300/80">
+                            <span className="text-purple-300/80 whitespace-nowrap">
                               每台物質操縱機 1:1 獨立配屬作物收割機
                             </span>
                           )}
@@ -677,8 +677,8 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                     </td>
 
                     {/* 2. 設備 */}
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-0.5 rounded text-xs font-mono border ${
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded text-xs font-mono border ${
                         isFullyOffsetFeeder
                           ? 'bg-emerald-900/40 border-emerald-500/40 text-emerald-200'
                           : isBaseFeeder
@@ -697,18 +697,18 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                     {plannedList.map(p => {
                       const found = r.dishDemands.find(d => d.dishName === p.dishName);
                       return (
-                        <td key={p.id} className="py-3 px-4 text-right font-mono text-xs text-slate-300">
+                        <td key={p.id} className="py-3 px-4 text-right font-mono text-xs text-slate-300 whitespace-nowrap">
                           {found ? (
                             <div>
-                              <div>{found.demand.toFixed(2)} 台</div>
+                              <div className="whitespace-nowrap">{found.demand.toFixed(2)} 台</div>
                               {found.feederRole === 'donor' && (
-                                <span className="text-[10px] text-emerald-400 block font-normal font-sans">⚡ 過剩供給</span>
+                                <span className="text-[10px] text-emerald-400 block font-normal font-sans whitespace-nowrap">⚡ 過剩供給</span>
                               )}
                               {found.feederRole === 'recipient' && (
-                                <span className="text-[10px] text-purple-300 block font-normal font-sans">🌱 接收底料</span>
+                                <span className="text-[10px] text-purple-300 block font-normal font-sans whitespace-nowrap">🌱 接收底料</span>
                               )}
                               {isBaseFeeder && found.offsetCount && found.offsetCount > 0 ? (
-                                <span className="text-[10px] text-emerald-400 block font-normal font-sans">
+                                <span className="text-[10px] text-emerald-400 block font-normal font-sans whitespace-nowrap">
                                   (已折抵 {found.offsetCount} 台)
                                 </span>
                               ) : null}
@@ -721,17 +721,17 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                     })}
 
                     {/* 4. 並聯總需求 */}
-                    <td className="py-3 px-4 text-right font-mono text-slate-300">
+                    <td className="py-3 px-4 text-right font-mono text-slate-300 whitespace-nowrap">
                       {r.totalDemandRate.toFixed(2)} 台
                     </td>
 
                     {/* 5. 獨立合計 */}
-                    <td className="py-3 px-4 text-right font-mono text-slate-400">
+                    <td className="py-3 px-4 text-right font-mono text-slate-400 whitespace-nowrap">
                       {r.independentSum} 台
                     </td>
 
                     {/* 6. 並聯實需 */}
-                    <td className="py-3 px-4 text-right font-mono font-bold text-base">
+                    <td className="py-3 px-4 text-right font-mono font-bold text-base whitespace-nowrap">
                       {isFullyOffsetFeeder ? (
                         <span className="text-emerald-400">0 台</span>
                       ) : (
@@ -740,13 +740,13 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                     </td>
 
                     {/* 7. 節省設備 */}
-                    <td className="py-3 px-4 text-center font-mono font-bold">
+                    <td className="py-3 px-4 text-center font-mono font-bold whitespace-nowrap">
                       {isBaseFeeder && r.baseFeederSummary && r.baseFeederSummary.offsetCount > 0 ? (
-                        <span className="inline-block px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold">
+                        <span className="inline-block px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold whitespace-nowrap">
                           折抵 {r.baseFeederSummary.offsetCount} 台
                         </span>
                       ) : r.savedCount > 0 ? (
-                        <span className="inline-block px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs">
+                        <span className="inline-block px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs whitespace-nowrap">
                           節省 {r.savedCount} 台
                         </span>
                       ) : (
@@ -841,32 +841,32 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
             {/* Water Pump */}
             <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 flex items-center justify-between">
               <div>
-                <div className="font-bold text-slate-200 flex items-center space-x-1.5">
-                  <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+                <div className="font-bold text-slate-200 flex items-center space-x-1.5 whitespace-nowrap">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 shrink-0"></span>
                   <span>全廠水資源外採</span>
                 </div>
-                <div className="text-slate-400 mt-0.5">
+                <div className="text-slate-400 mt-0.5 whitespace-nowrap">
                   需量：<span className="font-mono text-cyan-300 font-bold">{consolidated.plantWater.demand}</span> fl/s
                 </div>
               </div>
               <div className="text-right">
-                <div className="font-mono text-slate-200 font-bold">
+                <div className="font-mono text-slate-200 font-bold whitespace-nowrap">
                   {consolidated.plantWater.overclockPumps > 0 && (
-                    <span className="px-1.5 py-0.5 bg-purple-900/50 text-purple-300 rounded mr-1">
+                    <span className="px-1.5 py-0.5 bg-purple-900/50 text-purple-300 rounded mr-1 whitespace-nowrap inline-block">
                       超頻泵 {consolidated.plantWater.overclockPumps} 台
                     </span>
                   )}
                   {consolidated.plantWater.regularPumps > 0 && (
-                    <span className="px-1.5 py-0.5 bg-cyan-900/50 text-cyan-300 rounded">
+                    <span className="px-1.5 py-0.5 bg-cyan-900/50 text-cyan-300 rounded whitespace-nowrap inline-block">
                       常規泵 {consolidated.plantWater.regularPumps} 台
                     </span>
                   )}
                   {consolidated.plantWater.overclockPumps === 0 && consolidated.plantWater.regularPumps === 0 && (
-                    <span className="text-slate-500">無需外採</span>
+                    <span className="text-slate-500 whitespace-nowrap">無需外採</span>
                   )}
                 </div>
                 {consolidated.plantWater.sludgeManipulators > 0 && (
-                  <div className="text-[11px] text-purple-400 mt-1">
+                  <div className="text-[11px] text-purple-400 mt-1 whitespace-nowrap">
                     附帶汙泥操縱機：{consolidated.plantWater.sludgeManipulators} 台
                   </div>
                 )}
@@ -876,32 +876,32 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
             {/* Oil Pump */}
             <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 flex items-center justify-between">
               <div>
-                <div className="font-bold text-slate-200 flex items-center space-x-1.5">
-                  <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                <div className="font-bold text-slate-200 flex items-center space-x-1.5 whitespace-nowrap">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>
                   <span>全廠油資源外採</span>
                 </div>
-                <div className="text-slate-400 mt-0.5">
+                <div className="text-slate-400 mt-0.5 whitespace-nowrap">
                   需量：<span className="font-mono text-amber-300 font-bold">{consolidated.plantOil.demand}</span> fl/s
                 </div>
               </div>
               <div className="text-right">
-                <div className="font-mono text-slate-200 font-bold">
+                <div className="font-mono text-slate-200 font-bold whitespace-nowrap">
                   {consolidated.plantOil.overclockPumps > 0 && (
-                    <span className="px-1.5 py-0.5 bg-purple-900/50 text-purple-300 rounded mr-1">
+                    <span className="px-1.5 py-0.5 bg-purple-900/50 text-purple-300 rounded mr-1 whitespace-nowrap inline-block">
                       超頻泵 {consolidated.plantOil.overclockPumps} 台
                     </span>
                   )}
                   {consolidated.plantOil.regularPumps > 0 && (
-                    <span className="px-1.5 py-0.5 bg-amber-900/50 text-amber-300 rounded">
+                    <span className="px-1.5 py-0.5 bg-amber-900/50 text-amber-300 rounded whitespace-nowrap inline-block">
                       常規泵 {consolidated.plantOil.regularPumps} 台
                     </span>
                   )}
                   {consolidated.plantOil.overclockPumps === 0 && consolidated.plantOil.regularPumps === 0 && (
-                    <span className="text-slate-500">無需外採</span>
+                    <span className="text-slate-500 whitespace-nowrap">無需外採</span>
                   )}
                 </div>
                 {consolidated.plantOil.sludgeManipulators > 0 && (
-                  <div className="text-[11px] text-purple-400 mt-1">
+                  <div className="text-[11px] text-purple-400 mt-1 whitespace-nowrap">
                     附帶汙泥操縱機：{consolidated.plantOil.sludgeManipulators} 台
                   </div>
                 )}
@@ -911,14 +911,14 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
             {/* In-situ Transformations */}
             {consolidated.sizedTransformations.length > 0 && (
               <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 space-y-2">
-                <div className="font-bold text-slate-200 flex items-center space-x-1.5">
-                  <span className="w-2 h-2 rounded-full bg-rose-400"></span>
+                <div className="font-bold text-slate-200 flex items-center space-x-1.5 whitespace-nowrap">
+                  <span className="w-2 h-2 rounded-full bg-rose-400 shrink-0"></span>
                   <span>原位轉化專屬抽取泵機</span>
                 </div>
                 {consolidated.sizedTransformations.map((t, idx) => (
                   <div key={idx} className="flex items-center justify-between text-[11px] border-t border-slate-800 pt-1.5">
-                    <span className="text-slate-300">{t.name} ({t.fluid})</span>
-                    <span className="font-mono text-slate-200 font-bold">
+                    <span className="text-slate-300 whitespace-nowrap">{t.name} ({t.fluid})</span>
+                    <span className="font-mono text-slate-200 font-bold whitespace-nowrap">
                       {t.overclockPumps > 0 ? `超頻泵 ${t.overclockPumps} 台` : `常規泵 ${t.regularPumps} 台`}
                     </span>
                   </div>
@@ -929,35 +929,35 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
             {/* Void Pump */}
             <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 flex items-center justify-between">
               <div>
-                <div className="font-bold text-slate-200 flex items-center space-x-1.5">
-                  <span className="w-2 h-2 rounded-full bg-purple-400"></span>
+                <div className="font-bold text-slate-200 flex items-center space-x-1.5 whitespace-nowrap">
+                  <span className="w-2 h-2 rounded-full bg-purple-400 shrink-0"></span>
                   <span>全廠虛空流體總需量</span>
                 </div>
-                <div className="text-slate-400 mt-0.5">
+                <div className="text-slate-400 mt-0.5 whitespace-nowrap">
                   總閉環需量：<span className="font-mono text-purple-300 font-bold">{consolidated.plantVoid.demand}</span> fl/s
                 </div>
-                <div className="text-[10px] text-slate-500 mt-0.5">
+                <div className="text-[10px] text-slate-500 mt-0.5 whitespace-nowrap">
                   工藝: {consolidated.plantVoid.breakdown.processVoid} | 泵自耗: {consolidated.plantVoid.breakdown.pumpSludgeVoid} | 發電自耗: {consolidated.plantVoid.breakdown.generatorSludgeVoid}
                 </div>
               </div>
               <div className="text-right">
-                <div className="font-mono text-slate-200 font-bold">
+                <div className="font-mono text-slate-200 font-bold whitespace-nowrap">
                   {consolidated.plantVoid.overclockPumps > 0 && (
-                    <span className="px-1.5 py-0.5 bg-purple-900/50 text-purple-300 rounded mr-1">
+                    <span className="px-1.5 py-0.5 bg-purple-900/50 text-purple-300 rounded mr-1 whitespace-nowrap inline-block">
                       超頻泵 {consolidated.plantVoid.overclockPumps} 台
                     </span>
                   )}
                   {consolidated.plantVoid.regularPumps > 0 && (
-                    <span className="px-1.5 py-0.5 bg-slate-800 text-slate-300 rounded">
+                    <span className="px-1.5 py-0.5 bg-slate-800 text-slate-300 rounded whitespace-nowrap inline-block">
                       常規泵 {consolidated.plantVoid.regularPumps} 台
                     </span>
                   )}
                   {consolidated.plantVoid.overclockPumps === 0 && consolidated.plantVoid.regularPumps === 0 && (
-                    <span className="text-slate-500">無需外採</span>
+                    <span className="text-slate-500 whitespace-nowrap">無需外採</span>
                   )}
                 </div>
                 {consolidated.plantVoid.sludgeManipulators > 0 && (
-                  <div className="text-[11px] text-purple-400 mt-1">
+                  <div className="text-[11px] text-purple-400 mt-1 whitespace-nowrap">
                     附帶汙泥操縱機：{consolidated.plantVoid.sludgeManipulators} 台
                   </div>
                 )}
@@ -973,7 +973,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
               <Zap className="w-4 h-4 text-amber-400" />
               <span>全廠電網負載與小妖精總結算</span>
             </h3>
-            <span className="text-xs text-slate-400 font-mono">
+            <span className="text-xs text-slate-400 font-mono whitespace-nowrap">
               2:1:1 閉環發電模組
             </span>
           </div>
@@ -982,42 +982,42 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
             {/* Furnace and Coal Miner */}
             <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 space-y-2">
               <div className="flex items-center justify-between">
-                <div className="font-bold text-slate-200 flex items-center space-x-1.5">
-                  <Flame className="w-3.5 h-3.5 text-amber-400" />
+                <div className="font-bold text-slate-200 flex items-center space-x-1.5 whitespace-nowrap">
+                  <Flame className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                   <span>發電熔爐與採煤機配比</span>
                 </div>
-                <span className="text-xs font-mono font-bold text-amber-300">
+                <span className="text-xs font-mono font-bold text-amber-300 whitespace-nowrap">
                   {consolidated.furnaces} 熔爐 : {consolidated.coalMiners} 採煤機
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-2 text-slate-400 text-[11px] border-t border-slate-800 pt-2">
-                <div>淨發電總量：<span className="font-mono text-amber-300 font-bold">{consolidated.netPower} FV/s</span></div>
-                <div>電網盈餘：<span className="font-mono text-emerald-400 font-bold">+{consolidated.surplusPower} FV/s</span></div>
-                <div>煤炭消耗率：<span className="font-mono text-slate-200 font-bold">{consolidated.coalRate} 塊/秒</span></div>
+                <div className="whitespace-nowrap">淨發電總量：<span className="font-mono text-amber-300 font-bold">{consolidated.netPower} FV/s</span></div>
+                <div className="whitespace-nowrap">電網盈餘：<span className="font-mono text-emerald-400 font-bold">+{consolidated.surplusPower} FV/s</span></div>
+                <div className="whitespace-nowrap">煤炭消耗率：<span className="font-mono text-slate-200 font-bold">{consolidated.coalRate} 塊/秒</span></div>
                 {powerMode === 'overclock' && (
-                  <div>汙泥操縱機：<span className="font-mono text-purple-300 font-bold">{consolidated.genSludgeManipulators} 台</span></div>
+                  <div className="whitespace-nowrap">汙泥操縱機：<span className="font-mono text-purple-300 font-bold">{consolidated.genSludgeManipulators} 台</span></div>
                 )}
               </div>
             </div>
 
             {/* Four-way Power Breakdown */}
             <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 space-y-1.5 text-[11px]">
-              <div className="font-bold text-slate-300 mb-1">電網四重垂直累加負載</div>
-              <div className="flex justify-between text-slate-400">
-                <span>1. 主要生產設備負載：</span>
-                <span className="font-mono text-slate-200 font-bold">{consolidated.totalMainPower.toFixed(1)} FV/s</span>
+              <div className="font-bold text-slate-300 mb-1 whitespace-nowrap">電網四重垂直累加負載</div>
+              <div className="flex justify-between items-center text-slate-400">
+                <span className="whitespace-nowrap">1. 主要生產設備負載：</span>
+                <span className="font-mono text-slate-200 font-bold whitespace-nowrap">{consolidated.totalMainPower.toFixed(1)} FV/s</span>
               </div>
-              <div className="flex justify-between text-slate-400">
-                <span>2. 流體泵機與操縱機自耗：</span>
-                <span className="font-mono text-slate-200 font-bold">{consolidated.totalPlantPumpPower.toFixed(1)} FV/s</span>
+              <div className="flex justify-between items-center text-slate-400">
+                <span className="whitespace-nowrap">2. 流體泵機與操縱機自耗：</span>
+                <span className="font-mono text-slate-200 font-bold whitespace-nowrap">{consolidated.totalPlantPumpPower.toFixed(1)} FV/s</span>
               </div>
-              <div className="flex justify-between text-slate-400">
-                <span>3. 採煤機運行負載：</span>
-                <span className="font-mono text-slate-200 font-bold">{(consolidated.coalMiners * 1.0).toFixed(1)} FV/s</span>
+              <div className="flex justify-between items-center text-slate-400">
+                <span className="whitespace-nowrap">3. 採煤機運行負載：</span>
+                <span className="font-mono text-slate-200 font-bold whitespace-nowrap">{(consolidated.coalMiners * 1.0).toFixed(1)} FV/s</span>
               </div>
-              <div className="flex justify-between border-t border-slate-800 pt-1 font-bold text-amber-400">
-                <span>全廠實時總負載：</span>
-                <span className="font-mono">{consolidated.totalPlantPowerLoad.toFixed(1)} FV/s</span>
+              <div className="flex justify-between items-center border-t border-slate-800 pt-1 font-bold text-amber-400">
+                <span className="whitespace-nowrap">全廠實時總負載：</span>
+                <span className="font-mono whitespace-nowrap">{consolidated.totalPlantPowerLoad.toFixed(1)} FV/s</span>
               </div>
             </div>
 
