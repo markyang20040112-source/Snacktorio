@@ -43,7 +43,7 @@
 
 ## 四、 核心資產參考路徑
 - 遊戲資料庫：`./Snacktorio 遊戲資料庫與生產規劃表.xlsx`
-- 系統總指南：`./Snacktorio 產線規劃 AI 核心職責與系統總指南.docx`
-- 核心邏輯手冊：`./Snacktorio 產線規劃核心邏輯規範手冊.docx`
-- 動態公式手冊：`./Snacktorio 產線計算機動態公式與實作手冊.docx`
-- 架構維護手冊：`./Snacktorio 試算表架構維護與資料寫入規範手冊.docx`
+- 知識庫總覽：`./docs/README.md`
+- 核心邏輯手冊：`./docs/01_production_logic_and_physics.md`
+- 動態公式手冊：`./docs/02_spreadsheet_architecture_and_formulas.md`
+- 食譜登錄與 SOP：`./docs/03_recipe_ingestion_sop_and_case_studies.md`
