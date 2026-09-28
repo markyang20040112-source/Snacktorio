@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Recipe, ProcessNode } from '../../types';
+import { Recipe, ProcessNode, FeederStrategy } from '../../types';
 import { calculateSingleDish, sizeAutonomousPump } from '../../services/solver';
-import { Layers, Plus, Trash2, ShieldCheck, Zap, Droplets, Users, Flame } from 'lucide-react';
+import { Layers, Plus, Trash2, ShieldCheck, Zap, Droplets, Users, Flame, Sparkles } from 'lucide-react';
 
 interface ParallelPlannerProps {
   recipes: Recipe[];
@@ -15,6 +15,7 @@ interface PlannedDish {
 
 export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => {
   const [powerMode, setPowerMode] = useState<'regular' | 'overclock'>('regular');
+  const [feederStrategy, setFeederStrategy] = useState<FeederStrategy>('dedicated');
   const [plannedList, setPlannedList] = useState<PlannedDish[]>([
     { id: '1', dishName: '哀嚎肉丸', rate: 0.2 },
     { id: '2', dishName: '鮮紅濃湯', rate: 0.2 },
@@ -40,9 +41,9 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
   const individualResults = useMemo(() => {
     return plannedList.map(p => ({
       ...p,
-      calc: calculateSingleDish(p.dishName, p.rate, powerMode)
+      calc: calculateSingleDish(p.dishName, p.rate, powerMode, feederStrategy)
     }));
-  }, [plannedList, powerMode]);
+  }, [plannedList, powerMode, feederStrategy]);
 
   // Aggregate and deduplicate common processes across dishes
   const consolidated = useMemo(() => {
@@ -311,6 +312,33 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                 }`}
               >
                 超頻發電 (16 FV/s)
+              </button>
+            </div>
+
+            {/* Base Feeder Strategy Toggle */}
+            <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800">
+              <button
+                onClick={() => setFeederStrategy('dedicated')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  feederStrategy === 'dedicated'
+                    ? 'bg-purple-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title="每台物質操縱機配屬 1 台專用收割機直供底料 (最安全防呆、零死鎖)"
+              >
+                獨立專供底料
+              </button>
+              <button
+                onClick={() => setFeederStrategy('recycle')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1 ${
+                  feederStrategy === 'recycle'
+                    ? 'bg-emerald-500 text-slate-950 shadow-sm'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+                title="自動利用研磨骨粉、發酵物等產線過剩副產物作為底料，節省收割機台數"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>副產物折抵</span>
               </button>
             </div>
 

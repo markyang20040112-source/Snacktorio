@@ -1,5 +1,5 @@
 import { dataService } from './dataService';
-import { CalculationResult, ProcessNode, FluidTierInfo, Item } from '../types';
+import { CalculationResult, ProcessNode, FluidTierInfo, Item, FeederStrategy } from '../types';
 import { parseFractionOrNumber, formatFractionOrDecimal, gcdArray } from '../utils/math';
 
 /**
@@ -32,7 +32,8 @@ export function sizeAutonomousPump(demand: number, hasVoid: boolean): FluidTierI
 export function calculateSingleDish(
   dishName: string,
   targetRate: number, // dishes/s (e.g. 0.2)
-  powerMode: 'regular' | 'overclock' = 'regular'
+  powerMode: 'regular' | 'overclock' = 'regular',
+  feederStrategy: FeederStrategy = 'dedicated'
 ): CalculationResult | null {
   const calcDb = dataService.getCalculatorDb();
   const machines = dataService.getMachines();
@@ -114,15 +115,58 @@ export function calculateSingleDish(
   });
 
   // 3. 重構底料收割機 (Matter Manipulator Base Feeder Harvesters)
-  // Each active matter manipulator in process table requires 1 base feeder harvester
   const matterManipulatorsCount = processNodes
     .filter(p => p.machine === '物質操縱機')
     .reduce((sum, p) => sum + p.countRounded, 0);
 
+  let offsetCount = 0;
+  let offsetSource = '';
+
+  if (feederStrategy === 'recycle' && matterManipulatorsCount > 0) {
+    // 檢查產線中是否有具備過剩產能的固體中間加工工序 (研磨機、混合機、發酵罐、擠出機、烤箱等)
+    const candidateNodes = processNodes.filter(p => 
+      ['研磨機', '混合機', '發酵罐', '擠出機', '烤箱'].includes(p.machine) &&
+      p.countRounded > p.demandRate
+    );
+
+    let totalOffsetAvailable = 0;
+    const sources: string[] = [];
+
+    candidateNodes.forEach(p => {
+      const baseRateNum = parseFractionOrNumber(p.baseRate);
+      const surplusRate = (p.countRounded - p.demandRate) * (baseRateNum > 0 ? baseRateNum : 0.2);
+      // 每 0.2/s 過剩流率等同於 1 台收割機之產能
+      if (surplusRate >= 0.15) {
+        const potential = Math.floor((surplusRate + 0.05) / 0.2);
+        if (potential > 0) {
+          totalOffsetAvailable += potential;
+          sources.push(`【${p.processName}】過剩 ${surplusRate.toFixed(2)}/s`);
+        }
+      }
+    });
+
+    if (totalOffsetAvailable > 0) {
+      // 若過剩來源依賴物質操縱機產物 (如巫妖骸骨->骨粉)，必須保留至少 1 台底料收割機供起始操縱機啟動
+      const hasManipulatorChain = candidateNodes.some(c => 
+        c.processName.includes('骨粉') || c.processName.includes('肉') || c.processName.includes('蛋') || c.processName.includes('仙子')
+      );
+      const maxAllowed = hasManipulatorChain ? Math.max(0, matterManipulatorsCount - 1) : matterManipulatorsCount;
+      offsetCount = Math.min(totalOffsetAvailable, maxAllowed);
+      if (offsetCount > 0) {
+        offsetSource = `由${sources.join('、')}分流直供 (折抵 ${offsetCount} 台)`;
+      }
+    }
+  }
+
+  const finalFeederCount = Math.max(0, matterManipulatorsCount - offsetCount);
   const baseFeeders = {
-    count: matterManipulatorsCount,
-    power: matterManipulatorsCount * 1.0, // 1 FV/s per feeder
-    goblins: matterManipulatorsCount * 1.0 // 1 goblin per feeder
+    strategy: feederStrategy,
+    grossRequired: matterManipulatorsCount,
+    offsetCount,
+    count: finalFeederCount,
+    offsetSource: offsetSource || undefined,
+    power: finalFeederCount * 1.0, // 1 FV/s per feeder
+    goblins: finalFeederCount * 1.0 // 1 goblin per feeder
   };
 
   // 4. Fluids System (Four-Quadrant Dashboard Structure)
@@ -400,6 +444,7 @@ function assembleResult(params: any): CalculationResult {
     targetRate,
     targetRateMin: Math.round(targetRate * 60),
     powerMode,
+    feederStrategy: baseFeeders.strategy,
     processes: processNodes,
     baseFeeders,
     fluids: {

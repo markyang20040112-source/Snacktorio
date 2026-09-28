@@ -90,16 +90,23 @@ export interface FluidTierInfo {
   pumpPower: number;
 }
 
+export type FeederStrategy = 'dedicated' | 'recycle';
+
 export interface CalculationResult {
   dishName: string;
   targetRate: number; // dishes/s
   targetRateMin: number; // dishes/min
   powerMode: 'regular' | 'overclock'; // 4 FV/s vs 16 FV/s
+  feederStrategy: FeederStrategy;
   processes: ProcessNode[];
   
   // Base feeder harvesters for matter manipulators
   baseFeeders: {
+    strategy: FeederStrategy;
+    grossRequired: number;
+    offsetCount: number;
     count: number;
+    offsetSource?: string;
     power: number;
     goblins: number;
   };

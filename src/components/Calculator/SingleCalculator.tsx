@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { calculateSingleDish } from '../../services/solver';
-import { Recipe } from '../../types';
+import { Recipe, FeederStrategy } from '../../types';
 import { 
   Zap, Droplet, Users, Cog, ShieldAlert,
-  Pipette, Sprout, ArrowRight, Activity
+  Pipette, Sprout, ArrowRight, Activity, Sparkles
 } from 'lucide-react';
 
 interface SingleCalculatorProps {
@@ -15,14 +15,15 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
   const [targetRate, setTargetRate] = useState<number>(0.2); // dishes/s
   const [rateUnit, setRateUnit] = useState<'sec' | 'min'>('sec');
   const [powerMode, setPowerMode] = useState<'regular' | 'overclock'>('overclock');
+  const [feederStrategy, setFeederStrategy] = useState<FeederStrategy>('dedicated');
 
   // Rate in dishes/s
   const actualRateSec = rateUnit === 'min' ? targetRate / 60 : targetRate;
 
   // Calculation Result
   const result = useMemo(() => {
-    return calculateSingleDish(selectedDish, actualRateSec, powerMode);
-  }, [selectedDish, actualRateSec, powerMode]);
+    return calculateSingleDish(selectedDish, actualRateSec, powerMode, feederStrategy);
+  }, [selectedDish, actualRateSec, powerMode, feederStrategy]);
 
   // Group recipes by island
   const islandGroups = useMemo(() => {
@@ -39,7 +40,7 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
     <div className="space-y-6">
       {/* Control Panel */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
           {/* Dish Selector */}
           <div>
             <label className="block text-sm font-semibold text-slate-300 mb-2">
@@ -154,6 +155,43 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
               </button>
             </div>
           </div>
+
+          {/* Base Feeder Strategy Toggle */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-300 mb-2 flex items-center justify-between">
+              <span>🌱 重構底料供給策略</span>
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setFeederStrategy('dedicated')}
+                className={`flex flex-col items-center justify-center p-2 rounded-xl border text-xs font-bold transition-all ${
+                  feederStrategy === 'dedicated'
+                    ? 'bg-purple-500/20 border-purple-500 text-purple-300 shadow-sm'
+                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-850'
+                }`}
+                title="每台物質操縱機配屬 1 台專用收割機直供底料 (最安全防呆、零死鎖)"
+              >
+                <span>獨立專供</span>
+                <span className="font-normal text-[10px] text-slate-400 font-sans">(安全防呆)</span>
+              </button>
+
+              <button
+                onClick={() => setFeederStrategy('recycle')}
+                className={`flex flex-col items-center justify-center p-2 rounded-xl border text-xs font-bold transition-all ${
+                  feederStrategy === 'recycle'
+                    ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 shadow-sm'
+                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-850'
+                }`}
+                title="自動利用研磨骨粉、發酵物等產線過剩副產物作為底料，節省收割機台數"
+              >
+                <span className="flex items-center space-x-1">
+                  <Sparkles className="w-3 h-3 text-emerald-400 inline" />
+                  <span>副產物折抵</span>
+                </span>
+                <span className="font-normal text-[10px] text-emerald-400 font-mono">(智慧循環)</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -204,8 +242,19 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                   </div>
                   
                   {/* 重構底料機耗電 */}
-                  <div className="flex justify-between text-purple-300 bg-purple-500/10 px-2 py-1 rounded-lg border border-purple-500/20">
-                    <span>重構底料機耗電 ({result.baseFeeders.count} 台):</span>
+                  <div className={`flex justify-between px-2 py-1 rounded-lg border ${
+                    result.baseFeeders.offsetCount > 0
+                      ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20'
+                      : 'text-purple-300 bg-purple-500/10 border-purple-500/20'
+                  }`}>
+                    <div className="flex items-center space-x-1.5">
+                      <span>重構底料機耗電 ({result.baseFeeders.count} 台):</span>
+                      {result.baseFeeders.offsetCount > 0 && (
+                        <span className="text-[10px] px-1 py-0.2 rounded bg-emerald-900/60 text-emerald-300 font-bold">
+                          已折抵 {result.baseFeeders.offsetCount} 台
+                        </span>
+                      )}
+                    </div>
                     <span className="font-mono font-bold">{result.powerGrid.baseFeederPower} FV/s</span>
                   </div>
 
@@ -491,25 +540,50 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                   ))}
 
                   {/* Explicit Feeder Harvesters Row (重構底料收割機實體展示) */}
-                  {result.baseFeeders.count > 0 && (
-                    <tr className="bg-purple-950/20 text-purple-300 border-t border-purple-500/30">
+                  {(result.baseFeeders.count > 0 || result.baseFeeders.offsetCount > 0) && (
+                    <tr className={`border-t transition-colors ${
+                      result.baseFeeders.count === 0
+                        ? 'bg-emerald-950/20 text-emerald-300 border-emerald-500/30'
+                        : 'bg-purple-950/20 text-purple-300 border-purple-500/30'
+                    }`}>
                       <td className="py-3 px-4 font-bold flex items-center space-x-1.5">
-                        <Sprout className="w-4 h-4 text-purple-400" />
+                        <Sprout className={`w-4 h-4 ${result.baseFeeders.count === 0 ? 'text-emerald-400' : 'text-purple-400'}`} />
                         <span>重構底料作物採集</span>
                       </td>
                       <td className="py-3 px-4">
-                        <span className="px-2 py-0.5 rounded bg-purple-900/40 border border-purple-500/40 text-xs font-mono text-purple-200">
+                        <span className={`px-2 py-0.5 rounded border text-xs font-mono ${
+                          result.baseFeeders.count === 0
+                            ? 'bg-emerald-900/40 border-emerald-500/40 text-emerald-200'
+                            : 'bg-purple-900/40 border-purple-500/40 text-purple-200'
+                        }`}>
                           收割機 (底料專供)
                         </span>
                       </td>
                       <td className="py-3 px-4 text-right font-mono">0.20 /s</td>
-                      <td className="py-3 px-4 text-right font-mono">{result.baseFeeders.count}.00 台</td>
-                      <td className="py-3 px-4 text-right font-mono font-bold text-base text-purple-300">{result.baseFeeders.count} 台</td>
-                      <td className="py-3 px-4 text-center font-mono font-bold text-cyan-300">1</td>
+                      <td className="py-3 px-4 text-right font-mono">{result.baseFeeders.count.toFixed(2)} 台</td>
+                      <td className={`py-3 px-4 text-right font-mono font-bold text-base ${
+                        result.baseFeeders.count === 0 ? 'text-emerald-400' : 'text-purple-300'
+                      }`}>
+                        {result.baseFeeders.count} 台
+                      </td>
+                      <td className="py-3 px-4 text-center font-mono font-bold text-cyan-300">
+                        {result.baseFeeders.count === 0 ? '-' : '1'}
+                      </td>
                       <td className="py-3 px-4 text-right font-mono">{result.baseFeeders.power.toFixed(1)}</td>
                       <td className="py-3 px-4 text-right font-mono">{result.baseFeeders.goblins}</td>
-                      <td className="py-3 px-4 text-xs text-purple-300">
-                        專線直供物質操縱機，每秒消耗 1 份作物底料完成異界質量重構
+                      <td className="py-3 px-4 text-xs">
+                        {result.baseFeeders.offsetCount > 0 ? (
+                          <span className="text-emerald-300 font-medium">
+                            {result.baseFeeders.count === 0 ? '🎉 ' : '⚡ '}
+                            {result.baseFeeders.offsetSource || `已由產線過剩副產物折抵 ${result.baseFeeders.offsetCount} 台`}
+                            {result.baseFeeders.count > 0 && `；剩餘 ${result.baseFeeders.count} 台需 1:1 直供專線`}
+                            {' (需配置優先分流器防缺料)'}
+                          </span>
+                        ) : (
+                          <span className="text-purple-300">
+                            專線直供物質操縱機，每秒消耗 1 份作物底料完成異界質量重構 (1:1 防堵專線)
+                          </span>
+                        )}
                       </td>
                     </tr>
                   )}
