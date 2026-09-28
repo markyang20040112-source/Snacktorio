@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Recipe, ProcessNode, FeederStrategy } from '../../types';
 import { calculateSingleDish, sizeAutonomousPump } from '../../services/solver';
-import { Layers, Plus, Trash2, ShieldCheck, Zap, Droplets, Users, Flame, Sparkles } from 'lucide-react';
+import { Layers, Plus, Trash2, ShieldCheck, Zap, Droplets, Users, Flame, Sparkles, Sprout } from 'lucide-react';
 
 interface ParallelPlannerProps {
   recipes: Recipe[];
@@ -47,17 +47,40 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
 
   // Aggregate and deduplicate common processes across dishes
   const consolidated = useMemo(() => {
-    const processMap = new Map<string, {
+    interface ProcessDemandItem {
+      dishName: string;
+      demand: number;
+      countRounded: number;
+      feederRole?: 'donor' | 'recipient';
+      feederNote?: string;
+      isOffset?: boolean;
+      offsetCount?: number;
+      offsetSource?: string;
+    }
+
+    interface ConsolidatedProcessRecord {
       processName: string;
       machine: string;
-      dishDemands: { dishName: string; demand: number }[];
+      baseRate: number;
+      dishDemands: ProcessDemandItem[];
       totalDemandRate: number;
       independentSum: number;
       parallelRounded: number;
       savedCount: number;
       powerPerUnit: number;
       goblinsPerUnit: number;
-    }>();
+      topologies: { dishName: string; text: string }[];
+      feederRoles: { dishName: string; role: 'donor' | 'recipient'; note: string }[];
+      isBaseFeeder?: boolean;
+      baseFeederSummary?: {
+        grossRequired: number;
+        offsetCount: number;
+        finalCount: number;
+        offsetDetails: string[];
+      };
+    }
+
+    const processMap = new Map<string, ConsolidatedProcessRecord>();
 
     individualResults.forEach(item => {
       if (!item.calc) return;
@@ -68,6 +91,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
           processMap.set(p.processName, {
             processName: p.processName,
             machine: p.machine,
+            baseRate: p.baseRate || 0.2,
             dishDemands: [],
             totalDemandRate: 0,
             independentSum: 0,
@@ -75,36 +99,88 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
             savedCount: 0,
             powerPerUnit: p.countRounded > 0 ? p.power / p.countRounded : 0,
             goblinsPerUnit: p.countRounded > 0 ? p.goblins / p.countRounded : 0,
+            topologies: [],
+            feederRoles: []
           });
         }
         const record = processMap.get(p.processName)!;
-        record.dishDemands.push({ dishName: item.dishName, demand: p.demandRate });
+        record.dishDemands.push({
+          dishName: item.dishName,
+          demand: p.demandRate,
+          countRounded: p.countRounded,
+          feederRole: p.feederRole,
+          feederNote: p.feederNote
+        });
         record.totalDemandRate += p.demandRate;
         record.independentSum += p.countRounded;
-      });
 
-      // 2. Base Feeder Harvester for matter manipulators
-      if (item.calc.baseFeeders && item.calc.baseFeeders.count > 0) {
-        const feederKey = '重構底料作物採集 (收割機 底料專供)';
-        if (!processMap.has(feederKey)) {
-          processMap.set(feederKey, {
-            processName: feederKey,
-            machine: '收割機',
-            dishDemands: [],
-            totalDemandRate: 0,
-            independentSum: 0,
-            parallelRounded: 0,
-            savedCount: 0,
-            powerPerUnit: 1.0,
-            goblinsPerUnit: 1.0,
+        if (p.topology) {
+          record.topologies.push({ dishName: item.dishName, text: p.topology });
+        }
+        if (p.feederRole && p.feederNote) {
+          record.feederRoles.push({
+            dishName: item.dishName,
+            role: p.feederRole,
+            note: p.feederNote
           });
         }
-        const record = processMap.get(feederKey)!;
-        record.dishDemands.push({ dishName: item.dishName, demand: item.calc.baseFeeders.count });
-        record.totalDemandRate += item.calc.baseFeeders.count;
-        record.independentSum += item.calc.baseFeeders.count;
-      }
+      });
     });
+
+    // 2. Base Feeder Harvester for matter manipulators
+    const dishesWithManipulators = individualResults.filter(
+      item => item.calc && (item.calc.baseFeeders.grossRequired > 0 || item.calc.baseFeeders.count > 0)
+    );
+
+    if (dishesWithManipulators.length > 0) {
+      const feederKey = '重構底料作物採集 (收割機 底料專供)';
+      const feederRecord: ConsolidatedProcessRecord = {
+        processName: feederKey,
+        machine: '收割機 (底料專供)',
+        baseRate: 0.2,
+        dishDemands: [],
+        totalDemandRate: 0,
+        independentSum: 0,
+        parallelRounded: 0,
+        savedCount: 0,
+        powerPerUnit: 1.0,
+        goblinsPerUnit: 1.0,
+        topologies: [{ dishName: '全廠', text: '1:1 防堵專線直供物質操縱機' }],
+        feederRoles: [],
+        isBaseFeeder: true,
+        baseFeederSummary: {
+          grossRequired: 0,
+          offsetCount: 0,
+          finalCount: 0,
+          offsetDetails: []
+        }
+      };
+
+      dishesWithManipulators.forEach(item => {
+        const bf = item.calc!.baseFeeders;
+        feederRecord.dishDemands.push({
+          dishName: item.dishName,
+          demand: bf.count,
+          countRounded: bf.count,
+          isOffset: bf.offsetCount > 0,
+          offsetCount: bf.offsetCount,
+          offsetSource: bf.offsetSource
+        });
+        feederRecord.totalDemandRate += bf.count;
+        feederRecord.independentSum += bf.count;
+
+        feederRecord.baseFeederSummary!.grossRequired += bf.grossRequired;
+        feederRecord.baseFeederSummary!.offsetCount += bf.offsetCount;
+        feederRecord.baseFeederSummary!.finalCount += bf.count;
+        if (bf.offsetSource) {
+          feederRecord.baseFeederSummary!.offsetDetails.push(
+            `【${item.dishName}】：${bf.offsetSource}`
+          );
+        }
+      });
+
+      processMap.set(feederKey, feederRecord);
+    }
 
     const list = Array.from(processMap.values()).map(record => {
       const parallelRounded = Math.ceil(record.totalDemandRate);
@@ -115,6 +191,75 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
         savedCount
       };
     });
+
+    // 3. Cross-Dish Surplus Offsetting in Parallel (when feederStrategy === 'recycle')
+    if (feederStrategy === 'recycle') {
+      const feederRow = list.find(r => r.isBaseFeeder);
+      if (feederRow && feederRow.baseFeederSummary && feederRow.parallelRounded > 0) {
+        const bfSummary = feederRow.baseFeederSummary;
+        const needyDishes = feederRow.dishDemands.filter(d => d.demand > 0);
+
+        if (needyDishes.length > 0) {
+          list.forEach(proc => {
+            if (proc.isBaseFeeder || proc.machine === '自動廚師機' || proc.machine === '物質操縱機') return;
+            const isSolidProcessing = proc.machine === '研磨機' || proc.machine === '混合機' || proc.machine === '發酵桶' || proc.machine === '切片機';
+            if (!isSolidProcessing) return;
+
+            const baseRateNum = proc.baseRate || 0.2;
+            const grossCapacity = proc.parallelRounded * baseRateNum;
+            const grossDemand = proc.totalDemandRate * baseRateNum;
+            const totalSurplus = grossCapacity - grossDemand;
+
+            // Subtract intra-dish offsets already given
+            const intraOffsetsGiven = proc.feederRoles.filter(fr => fr.role === 'donor').length;
+            const netSurplus = totalSurplus - intraOffsetsGiven * 0.2;
+
+            if (netSurplus >= 0.15) {
+              let availableSlots = Math.floor((netSurplus + 0.05) / 0.2);
+
+              for (const needy of needyDishes) {
+                if (availableSlots <= 0 || feederRow.parallelRounded <= 0 || needy.demand <= 0) break;
+
+                const donorDishName = proc.dishDemands[0]?.dishName || '其他料理';
+                const isSameDishRoot = (needy.dishName === donorDishName) && (proc.processName.includes('骨粉') || proc.processName.includes('肉'));
+                if (isSameDishRoot) continue;
+
+                // Allocate 1 cross-dish offset
+                availableSlots -= 1;
+                needy.demand -= 1;
+                needy.offsetCount = (needy.offsetCount || 0) + 1;
+                feederRow.totalDemandRate = Math.max(0, feederRow.totalDemandRate - 1);
+                feederRow.parallelRounded = Math.ceil(feederRow.totalDemandRate);
+                bfSummary.offsetCount += 1;
+                bfSummary.finalCount = feederRow.parallelRounded;
+
+                const crossDetail = `由【${donorDishName}】之【${proc.processName}】跨料理過剩直供【${needy.dishName}】之操縱機 (折抵 1 台)`;
+                bfSummary.offsetDetails.push(crossDetail);
+
+                proc.feederRoles.push({
+                  dishName: donorDishName,
+                  role: 'donor',
+                  note: `跨料理過剩分流直供【${needy.dishName}】物質操縱機作為底料 (0.20/s)`
+                });
+
+                const recipientManipulator = list.find(r =>
+                  r.machine === '物質操縱機' &&
+                  r.dishDemands.some(dd => dd.dishName === needy.dishName) &&
+                  !r.feederRoles.some(fr => fr.role === 'recipient')
+                );
+                if (recipientManipulator) {
+                  recipientManipulator.feederRoles.push({
+                    dishName: needy.dishName,
+                    role: 'recipient',
+                    note: `底料由【${donorDishName}】之【${proc.processName}】跨料理過剩產能直供 (省 1 底料機)`
+                  });
+                }
+              }
+            }
+          });
+        }
+      }
+    }
 
     const totalIndependent = list.reduce((acc, r) => acc + r.independentSum, 0);
     const totalParallel = list.reduce((acc, r) => acc + r.parallelRounded, 0);
@@ -462,56 +607,208 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                 <th className="py-3 px-4 text-right text-slate-400">獨立合計</th>
                 <th className="py-3 px-4 text-right font-bold text-cyan-300">並聯實需</th>
                 <th className="py-3 px-4 text-center text-emerald-400 font-bold">節省設備</th>
+                <th className="py-3 px-4 min-w-[280px]">物料關聯與拓撲說明</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
               {consolidated.processes.map((r, idx) => {
-                const isBaseFeeder = r.processName.includes('重構底料');
+                const isBaseFeeder = r.isBaseFeeder || r.processName.includes('重構底料');
+                const isFullyOffsetFeeder = isBaseFeeder && r.parallelRounded === 0;
+
                 return (
                   <tr
                     key={idx}
                     className={`transition-colors ${
-                      isBaseFeeder
-                        ? 'bg-purple-950/20 text-purple-200 hover:bg-purple-950/30'
+                      isFullyOffsetFeeder
+                        ? 'bg-emerald-950/20 text-emerald-200 border-t border-b border-emerald-500/30 hover:bg-emerald-950/30'
+                        : isBaseFeeder
+                        ? 'bg-purple-950/20 text-purple-200 border-t border-b border-purple-500/30 hover:bg-purple-950/30'
                         : 'hover:bg-slate-800/40'
                     }`}
                   >
+                    {/* 1. 工序項目 */}
                     <td className="py-3 px-4 font-medium text-slate-100">
-                      {r.processName}
+                      <div className="flex items-center space-x-1.5">
+                        {isBaseFeeder && (
+                          <Sprout className={`w-4 h-4 shrink-0 ${isFullyOffsetFeeder ? 'text-emerald-400' : 'text-purple-400'}`} />
+                        )}
+                        <span>{r.processName}</span>
+                      </div>
+
+                      {/* Donors */}
+                      {r.feederRoles.filter(fr => fr.role === 'donor').length > 0 && (
+                        <div className="flex flex-col gap-0.5 mt-1">
+                          {r.feederRoles.filter(fr => fr.role === 'donor').map((fr, fIdx) => (
+                            <span key={fIdx} className="inline-flex items-center space-x-1 text-[11px] text-emerald-400 font-normal">
+                              <Zap className="w-3 h-3 text-emerald-400 inline shrink-0" />
+                              <span>{plannedList.length > 1 ? `【${fr.dishName}】：` : ''}{fr.note}</span>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Recipients */}
+                      {r.feederRoles.filter(fr => fr.role === 'recipient').length > 0 && (
+                        <div className="flex flex-col gap-0.5 mt-1">
+                          {r.feederRoles.filter(fr => fr.role === 'recipient').map((fr, fIdx) => (
+                            <span key={fIdx} className="inline-flex items-center space-x-1 text-[11px] text-purple-300 font-normal">
+                              <Sprout className="w-3 h-3 text-purple-400 inline shrink-0" />
+                              <span>{plannedList.length > 1 ? `【${fr.dishName}】：` : ''}{fr.note}</span>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Base Feeder summary tag */}
+                      {isBaseFeeder && r.baseFeederSummary && (
+                        <div className="mt-1 text-[11px] font-normal">
+                          {r.baseFeederSummary.offsetCount > 0 ? (
+                            <span className="text-emerald-300 flex items-center space-x-1">
+                              <Sparkles className="w-3 h-3 text-emerald-400 inline shrink-0" />
+                              <span>全廠由副產物折抵 {r.baseFeederSummary.offsetCount} 台底料收割機</span>
+                            </span>
+                          ) : (
+                            <span className="text-purple-300/80">
+                              每台物質操縱機 1:1 獨立配屬作物收割機
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </td>
+
+                    {/* 2. 設備 */}
                     <td className="py-3 px-4">
-                      <span className={`px-2 py-0.5 rounded text-xs font-mono ${
-                        isBaseFeeder
-                          ? 'bg-purple-900/50 text-purple-300'
-                          : 'bg-slate-800 text-slate-300'
+                      <span className={`px-2 py-0.5 rounded text-xs font-mono border ${
+                        isFullyOffsetFeeder
+                          ? 'bg-emerald-900/40 border-emerald-500/40 text-emerald-200'
+                          : isBaseFeeder
+                          ? 'bg-purple-900/50 border-purple-500/40 text-purple-200'
+                          : r.machine === '物質操縱機'
+                          ? 'bg-purple-500/20 border-purple-500/30 text-purple-300'
+                          : r.machine === '注入機'
+                          ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-300'
+                          : 'bg-slate-800 border-slate-700 text-slate-300'
                       }`}>
                         {r.machine}
                       </span>
                     </td>
+
+                    {/* 3. 各料理需求 */}
                     {plannedList.map(p => {
                       const found = r.dishDemands.find(d => d.dishName === p.dishName);
                       return (
-                        <td key={p.id} className="py-3 px-4 text-right font-mono text-xs text-slate-400">
-                          {found ? `${found.demand.toFixed(2)} 台` : '-'}
+                        <td key={p.id} className="py-3 px-4 text-right font-mono text-xs text-slate-300">
+                          {found ? (
+                            <div>
+                              <div>{found.demand.toFixed(2)} 台</div>
+                              {found.feederRole === 'donor' && (
+                                <span className="text-[10px] text-emerald-400 block font-normal font-sans">⚡ 過剩供給</span>
+                              )}
+                              {found.feederRole === 'recipient' && (
+                                <span className="text-[10px] text-purple-300 block font-normal font-sans">🌱 接收底料</span>
+                              )}
+                              {isBaseFeeder && found.offsetCount && found.offsetCount > 0 ? (
+                                <span className="text-[10px] text-emerald-400 block font-normal font-sans">
+                                  (已折抵 {found.offsetCount} 台)
+                                </span>
+                              ) : null}
+                            </div>
+                          ) : (
+                            <span className="text-slate-500">-</span>
+                          )}
                         </td>
                       );
                     })}
+
+                    {/* 4. 並聯總需求 */}
                     <td className="py-3 px-4 text-right font-mono text-slate-300">
                       {r.totalDemandRate.toFixed(2)} 台
                     </td>
+
+                    {/* 5. 獨立合計 */}
                     <td className="py-3 px-4 text-right font-mono text-slate-400">
                       {r.independentSum} 台
                     </td>
-                    <td className="py-3 px-4 text-right font-mono font-bold text-cyan-300 text-base">
-                      {r.parallelRounded} 台
+
+                    {/* 6. 並聯實需 */}
+                    <td className="py-3 px-4 text-right font-mono font-bold text-base">
+                      {isFullyOffsetFeeder ? (
+                        <span className="text-emerald-400">0 台</span>
+                      ) : (
+                        <span className="text-cyan-300">{r.parallelRounded} 台</span>
+                      )}
                     </td>
+
+                    {/* 7. 節省設備 */}
                     <td className="py-3 px-4 text-center font-mono font-bold">
-                      {r.savedCount > 0 ? (
+                      {isBaseFeeder && r.baseFeederSummary && r.baseFeederSummary.offsetCount > 0 ? (
+                        <span className="inline-block px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold">
+                          折抵 {r.baseFeederSummary.offsetCount} 台
+                        </span>
+                      ) : r.savedCount > 0 ? (
                         <span className="inline-block px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs">
                           節省 {r.savedCount} 台
                         </span>
                       ) : (
                         <span className="text-slate-500 text-xs">-</span>
+                      )}
+                    </td>
+
+                    {/* 8. 物料關聯與拓撲說明 */}
+                    <td className="py-3 px-4 text-xs">
+                      {isBaseFeeder ? (
+                        r.baseFeederSummary && r.baseFeederSummary.offsetCount > 0 ? (
+                          <span className="text-emerald-300 font-medium leading-relaxed">
+                            🎉 智慧折抵：{r.baseFeederSummary.offsetDetails.join('；')}
+                            {r.parallelRounded > 0
+                              ? `；剩餘 ${r.parallelRounded} 台需 1:1 直供專線`
+                              : '；全廠底料收割機全額免建'}
+                            {' (需配置優先分流器防缺料)'}
+                          </span>
+                        ) : (
+                          <span className="text-purple-300 leading-relaxed">
+                            專線直供物質操縱機，每秒消耗 1 份作物底料完成異界質量重構 (1:1 防堵專線)
+                          </span>
+                        )
+                      ) : r.feederRoles.length > 0 ? (
+                        <div className="space-y-1">
+                          {r.feederRoles.map((fr, fIdx) => (
+                            <div
+                              key={fIdx}
+                              className={fr.role === 'donor' ? 'text-emerald-300 font-medium' : 'text-purple-300'}
+                            >
+                              <span className="font-bold">{fr.role === 'donor' ? '⚡ 產能分流：' : '🌱 底料來源：'}</span>
+                              {plannedList.length > 1 && <span className="text-slate-300 font-bold">【{fr.dishName}】</span>}
+                              <span>{fr.note}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-slate-400">
+                          {r.topologies.length > 0 ? (
+                            r.topologies.length === 1 || r.topologies.every(t => t.text === r.topologies[0].text) ? (
+                              <span className={
+                                r.topologies[0].text.includes('大炮') ? 'text-amber-400' :
+                                r.topologies[0].text.includes('專線') ? 'text-cyan-300' :
+                                r.topologies[0].text.includes('重構') ? 'text-purple-300' :
+                                r.topologies[0].text.includes('轉化') ? 'text-indigo-300' : 'text-slate-400'
+                              }>
+                                {r.topologies[0].text}
+                              </span>
+                            ) : (
+                              <div className="space-y-0.5">
+                                {r.topologies.map((t, tIdx) => (
+                                  <div key={tIdx} className="text-slate-400">
+                                    <span className="text-slate-300 font-medium">【{t.dishName}】</span>
+                                    <span>{t.text}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )
+                          ) : (
+                            <span className="text-slate-500">標準傳送帶供給</span>
+                          )}
+                        </div>
                       )}
                     </td>
                   </tr>

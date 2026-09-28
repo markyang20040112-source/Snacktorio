@@ -496,6 +496,16 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                     <tr key={idx} className="hover:bg-slate-800/40 transition-colors">
                       <td className="py-3 px-4 font-medium text-slate-100">
                         <span>{p.processName}</span>
+                        {p.feederRole === 'donor' && p.feederNote && (
+                          <span className="text-[11px] text-emerald-400 block font-normal mt-0.5">
+                            ⚡ {p.feederNote}
+                          </span>
+                        )}
+                        {p.feederRole === 'recipient' && p.feederNote && (
+                          <span className="text-[11px] text-purple-300 block font-normal mt-0.5">
+                            🌱 {p.feederNote}
+                          </span>
+                        )}
                       </td>
                       <td className="py-3 px-4">
                         <span className={`inline-block px-2 py-0.5 rounded border text-xs font-mono ${

@@ -80,6 +80,8 @@ export interface ProcessNode {
   fluidType: string;
   topology: string;
   warnings: string[];
+  feederRole?: 'donor' | 'recipient';
+  feederNote?: string;
 }
 
 export interface FluidTierInfo {

@@ -154,6 +154,34 @@ export function calculateSingleDish(
       offsetCount = Math.min(totalOffsetAvailable, maxAllowed);
       if (offsetCount > 0) {
         offsetSource = `由${sources.join('、')}分流直供 (折抵 ${offsetCount} 台)`;
+
+        // 標記提供過剩產能的供給設備 (Donor) 與接收底料的操縱機 (Recipient)
+        const donorNodes = candidateNodes.filter(p => {
+          const baseRateNum = parseFractionOrNumber(p.baseRate);
+          const surplusRate = (p.countRounded - p.demandRate) * (baseRateNum > 0 ? baseRateNum : 0.2);
+          return surplusRate >= 0.15;
+        });
+
+        const manipulators = processNodes.filter(p => p.machine === '物質操縱機');
+        const rootManipulator = manipulators.find(m => 
+          m.processName.includes('骸骨') || m.processName.includes('肉') || m.processName.includes('仙子')
+        ) || manipulators[0];
+
+        const recipientManipulators = manipulators.filter(m => m !== rootManipulator).slice(0, offsetCount);
+        // 若只有 1 台操縱機且是由獨立農作/加工過剩折抵
+        const activeRecipients = recipientManipulators.length > 0 ? recipientManipulators : manipulators.slice(0, offsetCount);
+
+        donorNodes.forEach(d => {
+          d.feederRole = 'donor';
+          const recNames = activeRecipients.map(r => `【${r.processName}】`).join('、');
+          d.feederNote = `產能過剩，分流直供${recNames || '物質操縱機'}作為底料`;
+        });
+
+        activeRecipients.forEach(r => {
+          r.feederRole = 'recipient';
+          const donNames = donorNodes.map(d => `【${d.processName}】`).join('、');
+          r.feederNote = `底料由${donNames}過剩產能分流直供 (省 1 底料機)`;
+        });
       }
     }
   }
