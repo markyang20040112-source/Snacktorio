@@ -120,7 +120,7 @@ export interface CalculationResult {
         pumpSludgeVoid: number;
       };
     };
-    // 全廠泵機與操機匯總 (Q12, Q13)
+    // 全廠泵機與操縱機匯總 (Q12, Q13)
     totals: {
       regularPumps: number;
       overclockPumps: number;

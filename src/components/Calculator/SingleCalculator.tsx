@@ -199,7 +199,7 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                     <span className="font-mono text-slate-200">{result.powerGrid.mainEquipmentPower} FV/s</span>
                   </div>
                   <div className="flex justify-between text-slate-400">
-                    <span>泵機與操機電力 (Q13):</span>
+                    <span>泵機與操縱機電力 (Q13):</span>
                     <span className="font-mono text-cyan-300">{result.powerGrid.pumpManipulatorPower} FV/s</span>
                   </div>
                   
@@ -397,10 +397,17 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
 
               {/* Total pumps & manipulators summary */}
               <div className="mt-3 pt-2.5 border-t border-slate-800 text-[11px] text-slate-400 flex justify-between items-center font-mono">
-                <span>全廠泵機/操機總計:</span>
-                <span className="text-cyan-300 font-bold">
-                  {result.fluids.totals.regularPumps} 常規 + {result.fluids.totals.overclockPumps} 超頻 + {result.fluids.totals.sludgeManipulators} 操機
-                </span>
+                <span>全廠泵機與操縱機總計:</span>
+                <div className="text-right">
+                  <span className="text-cyan-300 font-bold">
+                    {result.fluids.totals.regularPumps} 常規泵 + {result.fluids.totals.overclockPumps} 超頻泵 + {result.fluids.totals.sludgeManipulators} 操縱機
+                  </span>
+                  {result.powerGrid.generatorSludgeManipulators > 0 && (
+                    <span className="text-[10px] text-purple-400 block font-sans">
+                      (含電廠 2:1:1 模組供汙泥操縱機 {result.powerGrid.generatorSludgeManipulators} 台)
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
 
