@@ -78,7 +78,16 @@ export interface ProcessNode {
   integerRatio: number;
   fluidRate: number;
   fluidType: string;
+  topology: string;
   warnings: string[];
+}
+
+export interface FluidTierInfo {
+  demand: number;
+  regularPumps: number;
+  overclockPumps: number;
+  sludgeManipulators: number;
+  pumpPower: number;
 }
 
 export interface CalculationResult {
@@ -87,25 +96,68 @@ export interface CalculationResult {
   targetRateMin: number; // dishes/min
   powerMode: 'regular' | 'overclock'; // 4 FV/s vs 16 FV/s
   processes: ProcessNode[];
-  totalMachineCount: number;
-  totalPower: number;
-  totalGoblins: number;
-  fluids: {
-    sauces: { name: string; rate: number; dedicatedPipes: number }[];
-    inSituTransformations: { name: string; fluid: string; pumpsNeeded: number; rate: number }[];
-    water: { demand: number; regularPumps: number; overclockPumps: number; pumpPower: number };
-    oil: { demand: number; regularPumps: number; overclockPumps: number; pumpPower: number };
-    voidFluid: { demand: number; regularPumps: number; overclockPumps: number; pumpPower: number; sludgeSelfLoss: number };
+  
+  // Base feeder harvesters for matter manipulators
+  baseFeeders: {
+    count: number;
+    power: number;
+    goblins: number;
   };
-  powerSupply: {
+
+  // Four-Quadrant Fluid Dashboard
+  fluids: {
+    // Quadrant 2: 調配醬汁 (1:1 dedicated pipes)
+    sauces: { name: string; rate: number; dedicatedPipes: number }[];
+    // Quadrant 3: 轉化流體專屬抽取泵機 (In-situ transformation pumps)
+    transformations: (FluidTierInfo & { name: string; fluid: string })[];
+    // Quadrant 4: 外採流體 (水、油、虛空)
+    water: FluidTierInfo;
+    oil: FluidTierInfo;
+    voidFluid: FluidTierInfo & {
+      breakdown: {
+        processVoid: number;
+        generatorSludgeVoid: number;
+        pumpSludgeVoid: number;
+      };
+    };
+    // 全廠泵機與操機匯總 (Q12, Q13)
+    totals: {
+      regularPumps: number;
+      overclockPumps: number;
+      sludgeManipulators: number;
+      totalPower: number;
+      totalGoblins: number;
+    };
+  };
+
+  // Quadrant 1: 全廠電網與發電總結算
+  powerGrid: {
+    mainEquipmentPower: number;
+    pumpManipulatorPower: number;
+    baseFeederPower: number;
+    coalMinerPower: number;
+    totalLoad: number;
     furnaces: number;
     coalMiners: number;
-    sludgeManipulators: number;
+    generatorSludgeManipulators: number;
     coalRate: number;
-    grossFV: number;
-    netFV: number;
-    surplusFV: number;
+    grossPower: number;
+    netPower: number;
+    surplusPower: number;
   };
+
+  // 小妖精詳細分項
+  goblinsBreakdown: {
+    mainEquipment: number;
+    baseFeeders: number;
+    pumpsAndManipulators: number;
+    furnaces: number;
+    coalMiners: number;
+    total: number;
+  };
+
+  totalMachineCount: number;
+
   biochemicalWarnings: {
     item: string;
     type: string;

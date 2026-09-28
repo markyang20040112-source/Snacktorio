@@ -2,7 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { calculateSingleDish } from '../../services/solver';
 import { Recipe } from '../../types';
 import { 
-  Zap, Droplet, Users, Cog, Flame, ShieldAlert
+  Zap, Droplet, Users, Cog, ShieldAlert,
+  Pipette, Sprout, ArrowRight, Activity
 } from 'lucide-react';
 
 interface SingleCalculatorProps {
@@ -10,10 +11,10 @@ interface SingleCalculatorProps {
 }
 
 export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) => {
-  const [selectedDish, setSelectedDish] = useState<string>(recipes[0]?.name || '哀嚎肉丸');
+  const [selectedDish, setSelectedDish] = useState<string>(recipes[0]?.name || '驚嚇醃薑');
   const [targetRate, setTargetRate] = useState<number>(0.2); // dishes/s
   const [rateUnit, setRateUnit] = useState<'sec' | 'min'>('sec');
-  const [powerMode, setPowerMode] = useState<'regular' | 'overclock'>('regular');
+  const [powerMode, setPowerMode] = useState<'regular' | 'overclock'>('overclock');
 
   // Rate in dishes/s
   const actualRateSec = rateUnit === 'min' ? targetRate / 60 : targetRate;
@@ -158,61 +159,7 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
 
       {result ? (
         <>
-          {/* KPI Dashboard */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
-              <div className="flex items-center justify-between text-slate-400 text-xs mb-1">
-                <span>實需主設備總數</span>
-                <Cog className="w-4 h-4 text-amber-400" />
-              </div>
-              <div className="text-2xl font-bold text-slate-100 font-mono">
-                {result.totalMachineCount} <span className="text-sm font-normal text-slate-400">台</span>
-              </div>
-              <div className="text-xs text-slate-400 mt-1">
-                含收割、研磨、攪拌、廚師機等
-              </div>
-            </div>
-
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
-              <div className="flex items-center justify-between text-slate-400 text-xs mb-1">
-                <span>總電力負載</span>
-                <Zap className="w-4 h-4 text-cyan-400" />
-              </div>
-              <div className="text-2xl font-bold text-cyan-300 font-mono">
-                {result.totalPower.toFixed(1)} <span className="text-sm font-normal text-slate-400">FV/s</span>
-              </div>
-              <div className="text-xs text-slate-400 mt-1">
-                需 {result.powerSupply.furnaces} 熔爐 : {result.powerSupply.coalMiners} 採煤機
-              </div>
-            </div>
-
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
-              <div className="flex items-center justify-between text-slate-400 text-xs mb-1">
-                <span>外採泵機流體</span>
-                <Droplet className="w-4 h-4 text-sky-400" />
-              </div>
-              <div className="text-sm font-bold text-slate-200 mt-1 space-y-0.5 font-mono">
-                <div>水: {result.fluids.water.demand} fl/s ({result.fluids.water.regularPumps + result.fluids.water.overclockPumps} 泵)</div>
-                <div>油: {result.fluids.oil.demand} fl/s ({result.fluids.oil.regularPumps + result.fluids.oil.overclockPumps} 泵)</div>
-                <div>虛空: {result.fluids.voidFluid.demand} fl/s ({result.fluids.voidFluid.regularPumps + result.fluids.voidFluid.overclockPumps} 泵)</div>
-              </div>
-            </div>
-
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
-              <div className="flex items-center justify-between text-slate-400 text-xs mb-1">
-                <span>打工小妖精資本</span>
-                <Users className="w-4 h-4 text-emerald-400" />
-              </div>
-              <div className="text-2xl font-bold text-emerald-300 font-mono">
-                {result.totalGoblins} <span className="text-sm font-normal text-slate-400">個</span>
-              </div>
-              <div className="text-xs text-slate-400 mt-1">
-                固定建造佔地 1x1
-              </div>
-            </div>
-          </div>
-
-          {/* Biochemical Warnings */}
+          {/* Biochemical Warnings Banner */}
           {result.biochemicalWarnings.length > 0 && (
             <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4">
               <div className="flex items-center space-x-2 text-red-400 font-bold mb-2">
@@ -230,17 +177,246 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
             </div>
           )}
 
-          {/* Main Process Table */}
+          {/* Standard Four-Quadrant Dashboard (Row 7~13 完整標準重現) */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+            
+            {/* Quadrant 1 (左區 A~D 欄): 全廠綜合總結算 */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between shadow-xl">
+              <div>
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
+                  <span className="font-bold text-slate-100 text-xs flex items-center space-x-1.5">
+                    <Zap className="w-4 h-4 text-amber-400" />
+                    <span>【全廠綜合總結算】</span>
+                  </span>
+                  <span className="text-[11px] font-mono text-slate-400">
+                    實需主設備: {result.totalMachineCount} 台
+                  </span>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between text-slate-400">
+                    <span>主設備電力 (純料理):</span>
+                    <span className="font-mono text-slate-200">{result.powerGrid.mainEquipmentPower} FV/s</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>泵機與操機電力 (Q13):</span>
+                    <span className="font-mono text-cyan-300">{result.powerGrid.pumpManipulatorPower} FV/s</span>
+                  </div>
+                  
+                  {/* 重構底料機耗電 */}
+                  <div className="flex justify-between text-purple-300 bg-purple-500/10 px-2 py-1 rounded-lg border border-purple-500/20">
+                    <span>重構底料機耗電 ({result.baseFeeders.count} 台):</span>
+                    <span className="font-mono font-bold">{result.powerGrid.baseFeederPower} FV/s</span>
+                  </div>
+
+                  <div className="flex justify-between text-slate-400">
+                    <span>採煤機耗電 ({result.powerGrid.coalMiners} 台):</span>
+                    <span className="font-mono text-slate-200">{result.powerGrid.coalMinerPower} FV/s</span>
+                  </div>
+
+                  <div className="border-t border-slate-800 pt-2 flex justify-between items-center text-sm font-bold text-amber-400">
+                    <span>⚡ 全廠總電力負載:</span>
+                    <span className="font-mono text-base">{result.powerGrid.totalLoad} FV/s</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Power supply generator specs & total goblins */}
+              <div className="mt-4 pt-3 border-t border-slate-800 text-xs space-y-1.5 bg-slate-950/70 p-3 rounded-xl border border-slate-850">
+                <div className="flex justify-between items-center text-slate-300">
+                  <span>所需虛空熔爐:</span>
+                  <span className="font-mono font-bold text-amber-300">
+                    {result.powerGrid.furnaces} 台 <span className="font-normal text-[10px] text-slate-400">({powerMode === 'overclock' ? '16 FV/s 模組' : '4 FV/s'})</span>
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-slate-400">
+                  <span>煤炭消耗速率:</span>
+                  <span className="font-mono">{result.powerGrid.coalRate} 個/秒</span>
+                </div>
+                <div className="flex justify-between items-center text-slate-300 pt-1 border-t border-slate-850 font-bold">
+                  <span className="flex items-center space-x-1">
+                    <Users className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>👥 全廠總小妖精:</span>
+                  </span>
+                  <span className="font-mono text-emerald-300 text-sm">
+                    {result.goblinsBreakdown.total} 個
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Quadrant 2 (中區一 E~G 欄): 廠內調配醬汁清單 */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between shadow-xl">
+              <div>
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
+                  <span className="font-bold text-slate-100 text-xs flex items-center space-x-1.5">
+                    <Pipette className="w-4 h-4 text-amber-400" />
+                    <span>【廠內調配醬汁清單】</span>
+                  </span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-bold border border-amber-500/30">
+                    1:1 專線 (嚴禁合流)
+                  </span>
+                </div>
+
+                {result.fluids.sauces.length > 0 ? (
+                  <div className="space-y-2">
+                    {result.fluids.sauces.map((s, idx) => (
+                      <div key={idx} className="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs space-y-1">
+                        <div className="flex justify-between items-center font-bold text-slate-200">
+                          <span>{s.name}</span>
+                          <span className="font-mono text-cyan-300">{s.rate.toFixed(1)} fl/s</span>
+                        </div>
+                        <div className="text-[11px] text-slate-400 flex items-center justify-between">
+                          <span>來源: 攪拌機專線 (1:1)</span>
+                          <span className="font-mono text-amber-400">{s.dedicatedPipes} 條專線</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-6 text-center text-slate-500 text-xs">
+                    無廠內攪拌調配醬汁
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-3 text-[11px] text-slate-500 bg-slate-950/50 p-2.5 rounded-xl border border-slate-850">
+                💡 實體鐵律：多台攪拌機嚴禁合流為單管，必須各鋪設 1:1 專線直供需求端。
+              </div>
+            </div>
+
+            {/* Quadrant 3 (中區二 H~L 欄): 轉化流體專屬抽取泵機與超頻階梯配置 */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between shadow-xl">
+              <div>
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
+                  <span className="font-bold text-slate-100 text-xs flex items-center space-x-1.5">
+                    <Activity className="w-4 h-4 text-purple-400" />
+                    <span>【原位轉化流體抽取泵】</span>
+                  </span>
+                  <span className="text-[10px] text-slate-400">注入機專屬</span>
+                </div>
+
+                {result.fluids.transformations.length > 0 ? (
+                  <div className="space-y-2">
+                    {result.fluids.transformations.map((t, idx) => (
+                      <div key={idx} className="bg-slate-950 p-2.5 rounded-xl border border-purple-500/20 text-xs space-y-1.5">
+                        <div className="flex justify-between items-center font-bold text-purple-200">
+                          <span>{t.fluid} ({t.name})</span>
+                          <span className="font-mono text-cyan-300">{t.demand.toFixed(1)} fl/s</span>
+                        </div>
+                        <div className="text-[11px] text-slate-400 flex justify-between">
+                          <span>專屬抽取泵機:</span>
+                          <span className="font-mono text-slate-200 font-bold">
+                            {t.overclockPumps > 0 ? `${t.overclockPumps} 超頻泵 (8fl/s)` : `${t.regularPumps} 常規泵 (2fl/s)`}
+                          </span>
+                        </div>
+                        <div className="text-[10px] text-slate-400 flex items-center space-x-1 text-slate-500">
+                          <span>池中原位轉化</span>
+                          <ArrowRight className="w-3 h-3 text-purple-400" />
+                          <span className="text-purple-300">泵機抽取供液</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-6 text-center text-slate-500 text-xs">
+                    本料理未涉及原位轉化
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-3 text-[11px] text-slate-500 bg-slate-950/50 p-2.5 rounded-xl border border-slate-850">
+                💡 原位轉化鐵律：轉化後之流體池必須在工序中配置專屬虛空泵機抽取，不計入外採常規管線。
+              </div>
+            </div>
+
+            {/* Quadrant 4 (右區 M~Q 欄): 外採泵機流體與超頻階梯配置 */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between shadow-xl">
+              <div>
+                <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
+                  <span className="font-bold text-slate-100 text-xs flex items-center space-x-1.5">
+                    <Droplet className="w-4 h-4 text-cyan-400" />
+                    <span>【外採流體智慧泵機組】</span>
+                  </span>
+                  <span className="text-[10px] text-cyan-400 font-mono">自主判定超頻</span>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  {/* Water */}
+                  <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 flex justify-between items-center">
+                    <div>
+                      <span className="text-slate-300 font-bold">外採水: </span>
+                      <span className="font-mono text-cyan-300">{result.fluids.water.demand} fl/s</span>
+                    </div>
+                    <div className="text-[11px] font-mono text-slate-400">
+                      {result.fluids.water.overclockPumps > 0 ? (
+                        <span className="text-purple-400 font-bold">{result.fluids.water.overclockPumps} 超頻泵</span>
+                      ) : result.fluids.water.regularPumps > 0 ? (
+                        <span>{result.fluids.water.regularPumps} 常規泵</span>
+                      ) : (
+                        <span className="text-slate-600">0 泵</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Oil */}
+                  <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 flex justify-between items-center">
+                    <div>
+                      <span className="text-slate-300 font-bold">外採油: </span>
+                      <span className="font-mono text-amber-300">{result.fluids.oil.demand} fl/s</span>
+                    </div>
+                    <div className="text-[11px] font-mono text-slate-400">
+                      {result.fluids.oil.overclockPumps > 0 ? (
+                        <span className="text-purple-400 font-bold">{result.fluids.oil.overclockPumps} 超頻泵</span>
+                      ) : result.fluids.oil.regularPumps > 0 ? (
+                        <span>{result.fluids.oil.regularPumps} 常規泵</span>
+                      ) : (
+                        <span className="text-slate-600">0 泵</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Void */}
+                  <div className="bg-slate-950 p-2 rounded-xl border border-purple-500/30 flex justify-between items-center">
+                    <div>
+                      <span className="text-purple-300 font-bold">外採虛空: </span>
+                      <span className="font-mono text-purple-200">{result.fluids.voidFluid.demand} fl/s</span>
+                    </div>
+                    <div className="text-[11px] font-mono text-slate-400">
+                      {result.fluids.voidFluid.overclockPumps > 0 ? (
+                        <span className="text-purple-400 font-bold">{result.fluids.voidFluid.overclockPumps} 淨7超頻泵</span>
+                      ) : result.fluids.voidFluid.regularPumps > 0 ? (
+                        <span className="text-purple-300">{result.fluids.voidFluid.regularPumps} 常規泵</span>
+                      ) : (
+                        <span className="text-slate-600">0 泵</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Total pumps & manipulators summary */}
+              <div className="mt-3 pt-2.5 border-t border-slate-800 text-[11px] text-slate-400 flex justify-between items-center font-mono">
+                <span>全廠泵機/操機總計:</span>
+                <span className="text-cyan-300 font-bold">
+                  {result.fluids.totals.regularPumps} 常規 + {result.fluids.totals.overclockPumps} 超頻 + {result.fluids.totals.sludgeManipulators} 操機
+                </span>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Main Process Table (Rows 16+) */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
             <div className="px-5 py-4 border-b border-slate-800 flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <Cog className="w-5 h-5 text-amber-400" />
                 <h3 className="font-bold text-slate-200">
-                  動態工序平衡展開表（零停機、零溢流推導）
+                  【產線工序設備清單 (動態展開)】
                 </h3>
               </div>
               <span className="text-xs text-slate-400">
-                傳送帶固定速度 1 格/秒，吞吐無上限
+                傳送帶固定速度 1 格/秒 · 吞吐無上限 · 自動廚師機 1:1:1:1
               </span>
             </div>
 
@@ -248,7 +424,7 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
               <table className="w-full text-left border-collapse text-sm">
                 <thead>
                   <tr className="bg-slate-950/70 text-slate-400 border-b border-slate-800 text-xs">
-                    <th className="py-3 px-4">工序 / 產出項目</th>
+                    <th className="py-3 px-4">工序名稱</th>
                     <th className="py-3 px-4">使用設備</th>
                     <th className="py-3 px-4 text-right">單台基準速率</th>
                     <th className="py-3 px-4 text-right">需求流率</th>
@@ -256,22 +432,28 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                     <th className="py-3 px-4 text-center">最簡整數比</th>
                     <th className="py-3 px-4 text-right">電力 (FV/s)</th>
                     <th className="py-3 px-4 text-right">妖精</th>
-                    <th className="py-3 px-4">佈線拓撲與特殊說明</th>
+                    <th className="py-3 px-4">分流拓撲與物理說明</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
                   {result.processes.map((p, idx) => (
                     <tr key={idx} className="hover:bg-slate-800/40 transition-colors">
-                      <td className="py-3 px-4 font-medium text-slate-100 flex items-center space-x-1.5">
+                      <td className="py-3 px-4 font-medium text-slate-100">
                         <span>{p.processName}</span>
                       </td>
                       <td className="py-3 px-4">
-                        <span className="inline-block px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-xs text-slate-300 font-mono">
+                        <span className={`inline-block px-2 py-0.5 rounded border text-xs font-mono ${
+                          p.machine === '物質操縱機'
+                            ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+                            : p.machine === '注入機'
+                            ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
+                            : 'bg-slate-800 border-slate-700 text-slate-300'
+                        }`}>
                           {p.machine}
                         </span>
                       </td>
                       <td className="py-3 px-4 text-right font-mono text-slate-300">
-                        {p.baseRateDisplay} <span className="text-xs text-slate-400">份/秒</span>
+                        {p.baseRateDisplay} <span className="text-xs text-slate-400">/s</span>
                       </td>
                       <td className="py-3 px-4 text-right font-mono text-slate-400">
                         {p.countExact.toFixed(2)} 台
@@ -289,147 +471,43 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                         {p.goblins}
                       </td>
                       <td className="py-3 px-4 text-xs">
-                        {p.warnings.length > 0 ? (
-                          <div className="space-y-1">
-                            {p.warnings.map((w, wIdx) => (
-                              <span key={wIdx} className="inline-block bg-amber-500/10 text-amber-300 border border-amber-500/20 px-2 py-0.5 rounded">
-                                {w}
-                              </span>
-                            ))}
-                          </div>
-                        ) : p.integerRatio === 1 ? (
-                          <span className="text-slate-400">1:1 直連輸送帶</span>
-                        ) : (
-                          <span className="text-cyan-400">專用分流器 (Splitter) 比例分配</span>
-                        )}
+                        <span className={`font-medium ${
+                          p.topology.includes('大炮') ? 'text-amber-400' :
+                          p.topology.includes('專線') ? 'text-cyan-300' :
+                          p.topology.includes('重構') ? 'text-purple-300' :
+                          p.topology.includes('轉化') ? 'text-indigo-300' : 'text-slate-400'
+                        }`}>
+                          {p.topology}
+                        </span>
                       </td>
                     </tr>
                   ))}
+
+                  {/* Explicit Feeder Harvesters Row (重構底料收割機實體展示) */}
+                  {result.baseFeeders.count > 0 && (
+                    <tr className="bg-purple-950/20 text-purple-300 border-t border-purple-500/30">
+                      <td className="py-3 px-4 font-bold flex items-center space-x-1.5">
+                        <Sprout className="w-4 h-4 text-purple-400" />
+                        <span>重構底料作物採集</span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="px-2 py-0.5 rounded bg-purple-900/40 border border-purple-500/40 text-xs font-mono text-purple-200">
+                          收割機 (底料專供)
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-right font-mono">0.20 /s</td>
+                      <td className="py-3 px-4 text-right font-mono">{result.baseFeeders.count}.00 台</td>
+                      <td className="py-3 px-4 text-right font-mono font-bold text-base text-purple-300">{result.baseFeeders.count} 台</td>
+                      <td className="py-3 px-4 text-center font-mono font-bold text-cyan-300">1</td>
+                      <td className="py-3 px-4 text-right font-mono">{result.baseFeeders.power.toFixed(1)}</td>
+                      <td className="py-3 px-4 text-right font-mono">{result.baseFeeders.goblins}</td>
+                      <td className="py-3 px-4 text-xs text-purple-300">
+                        專線直供物質操縱機，每秒消耗 1 份作物底料完成異界質量重構
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
-            </div>
-          </div>
-
-          {/* Deep-Dive Grid: Fluids and Power */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Fluids Breakdown */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-              <div className="flex items-center space-x-2 text-cyan-400 font-bold">
-                <Droplet className="w-5 h-5" />
-                <h3>連續流體管網與泵機配置 (fl/s)</h3>
-              </div>
-
-              {/* Sauces 1:1 dedicated pipes */}
-              <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
-                <div className="text-xs font-bold text-amber-400 flex items-center justify-between">
-                  <span>廠內調配醬汁（1:1 獨立專線直連）</span>
-                  <span>嚴禁合流</span>
-                </div>
-                {result.fluids.sauces.length > 0 ? (
-                  result.fluids.sauces.map((s, sIdx) => (
-                    <div key={sIdx} className="flex items-center justify-between text-xs py-1 border-b border-slate-850 last:border-0">
-                      <span className="text-slate-300">{s.name}</span>
-                      <span className="font-mono text-cyan-300">
-                        {s.dedicatedPipes} 條獨立專線 ({s.rate.toFixed(1)} fl/s)
-                      </span>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-xs text-slate-400">本料理無廠內攪拌醬汁</div>
-                )}
-              </div>
-
-              {/* External Fluids */}
-              <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2 text-xs">
-                <div className="font-bold text-slate-300 mb-1">外採流體階梯配置（智慧泵機組）</div>
-                
-                <div className="flex items-center justify-between py-1">
-                  <span className="text-slate-400">外採水需量：</span>
-                  <span className="font-mono font-bold text-slate-200">
-                    {result.fluids.water.demand} fl/s 
-                    <span className="text-slate-400 font-normal ml-2">
-                      ({result.fluids.water.regularPumps} 常規泵 / {result.fluids.water.overclockPumps} 超頻泵)
-                    </span>
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between py-1">
-                  <span className="text-slate-400">外採油需量：</span>
-                  <span className="font-mono font-bold text-slate-200">
-                    {result.fluids.oil.demand} fl/s 
-                    <span className="text-slate-400 font-normal ml-2">
-                      ({result.fluids.oil.regularPumps} 常規泵 / {result.fluids.oil.overclockPumps} 超頻泵)
-                    </span>
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between py-1">
-                  <span className="text-slate-400">外採虛空需量：</span>
-                  <span className="font-mono font-bold text-purple-300">
-                    {result.fluids.voidFluid.demand} fl/s 
-                    <span className="text-slate-400 font-normal ml-2">
-                      ({result.fluids.voidFluid.regularPumps} 常規泵 / {result.fluids.voidFluid.overclockPumps} 超頻淨7泵)
-                    </span>
-                  </span>
-                </div>
-
-                {result.fluids.voidFluid.sludgeSelfLoss > 0 && (
-                  <div className="p-2 bg-purple-500/10 border border-purple-500/20 rounded-lg text-purple-300 mt-2">
-                    🔄 閉環自耗回算：啟用超頻泵機，供汙泥操機額外自耗虛空 {result.fluids.voidFluid.sludgeSelfLoss.toFixed(1)} fl/s（已計入總需量）。
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Power & Generator Balance */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-              <div className="flex items-center space-x-2 text-amber-400 font-bold">
-                <Flame className="w-5 h-5" />
-                <h3>即時電網平衡與發電熔爐 2:1 配置</h3>
-              </div>
-
-              <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2.5 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-400">運作模式：</span>
-                  <span className="font-bold text-amber-300">
-                    {powerMode === 'regular' ? '常規模式 (4 FV/s 淨 3.5 FV/s)' : '超頻模式 (16 FV/s 2:1:1 閉環模組)'}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-400">發電熔爐需量：</span>
-                  <span className="font-mono font-bold text-slate-100 text-sm">
-                    {result.powerSupply.furnaces} 台
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-400">採煤機配比 (2:1 平衡)：</span>
-                  <span className="font-mono font-bold text-slate-100 text-sm">
-                    {result.powerSupply.coalMiners} 台 (耗煤 {result.powerSupply.coalRate} 個/秒)
-                  </span>
-                </div>
-
-                {powerMode === 'overclock' && (
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-400">供汙泥操機 (2:1:1 模組)：</span>
-                    <span className="font-mono font-bold text-purple-300 text-sm">
-                      {result.powerSupply.sludgeManipulators} 台 (空載凝結免底料)
-                    </span>
-                  </div>
-                )}
-
-                <div className="border-t border-slate-800 pt-2 flex items-center justify-between font-mono">
-                  <span className="text-slate-400">電網淨發電 / 盈餘：</span>
-                  <span className="text-emerald-400 font-bold">
-                    淨發電 {result.powerSupply.netFV} FV/s (盈餘 +{result.powerSupply.surplusFV} FV/s)
-                  </span>
-                </div>
-              </div>
-
-              <div className="text-xs text-slate-400 p-2.5 rounded-xl bg-slate-950/60 border border-slate-800">
-                💡 物理守恆原則：電力採即時連續流平衡，無蓄電池緩衝。採煤機與供汙泥操機自身能耗已 100% 於系統內閉環結算。
-              </div>
             </div>
           </div>
         </>
