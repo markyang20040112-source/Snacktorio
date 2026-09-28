@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+package-lock.json.log
+
+# Expo & React Native Build artifacts
+.expo/
+dist/
+web-build/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# Environment & Local Configuration
+.env
+.env.local
+.env.*.local
+*.log
+
+# Editor & System Files
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
