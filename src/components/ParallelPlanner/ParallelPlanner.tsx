@@ -201,9 +201,9 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
 
         if (needyDishes.length > 0) {
           list.forEach(proc => {
-            if (proc.isBaseFeeder || proc.machine === '自動廚師機' || proc.machine === '物質操縱機') return;
-            const isSolidProcessing = proc.machine === '研磨機' || proc.machine === '混合機' || proc.machine === '發酵桶' || proc.machine === '切片機';
-            if (!isSolidProcessing) return;
+            if (proc.isBaseFeeder) return;
+            const nonDonorMachines = ['自動廚師機', '物質操縱機', '攪拌機', '注入機', '虛空熔爐', '虛空泵機'];
+            if (nonDonorMachines.includes(proc.machine)) return;
 
             const baseRateNum = proc.baseRate || 0.2;
             const grossCapacity = proc.parallelRounded * baseRateNum;
@@ -221,8 +221,8 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                 if (availableSlots <= 0 || feederRow.parallelRounded <= 0 || needy.demand <= 0) break;
 
                 const donorDishName = proc.dishDemands[0]?.dishName || '其他料理';
-                const isSameDishRoot = (needy.dishName === donorDishName) && (proc.processName.includes('骨粉') || proc.processName.includes('肉'));
-                if (isSameDishRoot) continue;
+                // 同一道料理內部的折抵已在單料理計算時由 solver 完備處理，並聯階段專注跨料理分配
+                if (needy.dishName === donorDishName) continue;
 
                 // Allocate 1 cross-dish offset
                 availableSlots -= 1;

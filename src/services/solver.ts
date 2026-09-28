@@ -39,6 +39,7 @@ export function calculateSingleDish(
   const machines = dataService.getMachines();
   const items = dataService.getItems();
   const recipes = dataService.getRecipes();
+  const intermediateRecipes = dataService.getIntermediateRecipes();
 
   // 1. Get processes for this dish
   const processesRaw = calcDb.processes.filter(p => p.dish === dishName);
@@ -123,9 +124,10 @@ export function calculateSingleDish(
   let offsetSource = '';
 
   if (feederStrategy === 'recycle' && matterManipulatorsCount > 0) {
-    // 檢查產線中是否有具備過剩產能的固體中間加工工序 (研磨機、混合機、發酵罐、擠出機、烤箱等)
+    // 檢查產線中是否有具備過剩產能的固體中間加工工序 (排除終端組裝、純流體與發電機)
+    const nonDonorMachines = ['自動廚師機', '物質操縱機', '攪拌機', '注入機', '虛空熔爐', '虛空泵機'];
     const candidateNodes = processNodes.filter(p => 
-      ['研磨機', '混合機', '發酵罐', '擠出機', '烤箱'].includes(p.machine) &&
+      !nonDonorMachines.includes(p.machine) &&
       p.countRounded > p.demandRate
     );
 
@@ -146,12 +148,25 @@ export function calculateSingleDish(
     });
 
     if (totalOffsetAvailable > 0) {
-      // 若過剩來源依賴物質操縱機產物 (如巫妖骸骨->骨粉)，必須保留至少 1 台底料收割機供起始操縱機啟動
-      const hasManipulatorChain = candidateNodes.some(c => 
-        c.processName.includes('骨粉') || c.processName.includes('肉') || c.processName.includes('蛋') || c.processName.includes('仙子')
-      );
+      const manipulators = processNodes.filter(p => p.machine === '物質操縱機');
+
+      // 動態分析：判斷是否有候選過剩工序的原料鏈向上依賴本料理中的某台物質操縱機產物 (Chicken-and-Egg 死鎖防護)
+      // 若依賴某台物質操縱機，該操縱機即為「起始啟動機 (Progenitor)」，必須保留其專屬底料收割機啟動鏈條
+      const progenitorManipulators = manipulators.filter(m => {
+        const mProduct = m.processName.replace('重構', '').replace('物質操縱', '').trim();
+        return candidateNodes.some(c => {
+          const rec = intermediateRecipes.find(r => 
+            r.name === c.processName || c.processName.includes(r.name) || r.name.includes(c.processName)
+          );
+          return rec ? rec.inputs.some(inp => inp.name.includes(mProduct) || mProduct.includes(inp.name)) : false;
+        });
+      });
+
+      const hasManipulatorChain = progenitorManipulators.length > 0;
+      const rootManipulator = progenitorManipulators[0] || manipulators[0];
       const maxAllowed = hasManipulatorChain ? Math.max(0, matterManipulatorsCount - 1) : matterManipulatorsCount;
       offsetCount = Math.min(totalOffsetAvailable, maxAllowed);
+
       if (offsetCount > 0) {
         offsetSource = `由${sources.join('、')}分流直供 (折抵 ${offsetCount} 台)`;
 
@@ -162,22 +177,18 @@ export function calculateSingleDish(
           return surplusRate >= 0.15;
         });
 
-        const manipulators = processNodes.filter(p => p.machine === '物質操縱機');
-        const rootManipulator = manipulators.find(m => 
-          m.processName.includes('骸骨') || m.processName.includes('肉') || m.processName.includes('仙子')
-        ) || manipulators[0];
-
-        const recipientManipulators = manipulators.filter(m => m !== rootManipulator).slice(0, offsetCount);
-        // 若只有 1 台操縱機且是由獨立農作/加工過剩折抵
-        const activeRecipients = recipientManipulators.length > 0 ? recipientManipulators : manipulators.slice(0, offsetCount);
+        // 接收端優先分配給非起始操縱機 (若無起始依賴，則可分配給任意操縱機)
+        const recipientManipulators = hasManipulatorChain
+          ? manipulators.filter(m => m !== rootManipulator).slice(0, offsetCount)
+          : manipulators.slice(0, offsetCount);
 
         donorNodes.forEach(d => {
           d.feederRole = 'donor';
-          const recNames = activeRecipients.map(r => `【${r.processName}】`).join('、');
+          const recNames = recipientManipulators.map(r => `【${r.processName}】`).join('、');
           d.feederNote = `產能過剩，分流直供${recNames || '物質操縱機'}作為底料`;
         });
 
-        activeRecipients.forEach(r => {
+        recipientManipulators.forEach(r => {
           r.feederRole = 'recipient';
           const donNames = donorNodes.map(d => `【${d.processName}】`).join('、');
           r.feederNote = `底料由${donNames}過剩產能分流直供 (省 1 底料機)`;
