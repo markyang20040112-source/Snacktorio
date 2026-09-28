@@ -10,22 +10,22 @@ interface ParallelPlannerProps {
 interface PlannedDish {
   id: string;
   dishName: string;
-  rate: number; // dishes/s
+  rateMin: number; // dishes/min (e.g. 12 份/分 = 0.2 份/秒)
 }
 
 export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => {
   const [powerMode, setPowerMode] = useState<'regular' | 'overclock'>('overclock');
   const [feederStrategy, setFeederStrategy] = useState<FeederStrategy>('dedicated');
   const [plannedList, setPlannedList] = useState<PlannedDish[]>([
-    { id: '1', dishName: '哀嚎肉丸', rate: 0.2 },
-    { id: '2', dishName: '鮮紅濃湯', rate: 0.2 },
+    { id: '1', dishName: '哀嚎肉丸', rateMin: 12 },
+    { id: '2', dishName: '鮮紅濃湯', rateMin: 12 },
   ]);
 
   const addDish = () => {
     if (plannedList.length >= 3) return;
     const remaining = recipes.find(r => !plannedList.some(p => p.dishName === r.name));
     if (remaining) {
-      setPlannedList([...plannedList, { id: Date.now().toString(), dishName: remaining.name, rate: 0.2 }]);
+      setPlannedList([...plannedList, { id: Date.now().toString(), dishName: remaining.name, rateMin: 12 }]);
     }
   };
 
@@ -37,11 +37,11 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
     setPlannedList(plannedList.map(p => p.id === id ? { ...p, ...updates } : p));
   };
 
-  // Compute individual calculation results
+  // Compute individual calculation results (rate converted to dishes/s for solver)
   const individualResults = useMemo(() => {
     return plannedList.map(p => ({
       ...p,
-      calc: calculateSingleDish(p.dishName, p.rate, powerMode, feederStrategy)
+      calc: calculateSingleDish(p.dishName, p.rateMin / 60, powerMode, feederStrategy)
     }));
   }, [plannedList, powerMode, feederStrategy]);
 
@@ -464,7 +464,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
           )}
         </div>
 
-        {/* Global Strategy & Power Control Bar (與產線計算機樣式 100% 對齊，寬幅佈局拒絕折行) */}
+        {/* Global Strategy & Power Control Bar (與產線計算機樣式 100% 對齊，雙行防溢出防折行) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Power Mode Toggle */}
           <div>
@@ -474,26 +474,26 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => setPowerMode('regular')}
-                className={`flex items-center justify-center space-x-1.5 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all whitespace-nowrap ${
+                className={`flex flex-col items-center justify-center p-2 rounded-xl border text-xs font-bold transition-all ${
                   powerMode === 'regular'
                     ? 'bg-amber-500/20 border-amber-500 text-amber-300 shadow-sm'
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-850 hover:text-slate-200'
                 }`}
               >
                 <span className="whitespace-nowrap">一級常規</span>
-                <span className="font-mono text-slate-400 whitespace-nowrap">(4 FV/s)</span>
+                <span className="font-mono text-slate-400 text-[10px] whitespace-nowrap">(4 FV/s)</span>
               </button>
 
               <button
                 onClick={() => setPowerMode('overclock')}
-                className={`flex items-center justify-center space-x-1.5 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all whitespace-nowrap ${
+                className={`flex flex-col items-center justify-center p-2 rounded-xl border text-xs font-bold transition-all ${
                   powerMode === 'overclock'
                     ? 'bg-purple-500/20 border-purple-500 text-purple-300 shadow-sm'
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-850 hover:text-slate-200'
                 }`}
               >
                 <span className="whitespace-nowrap">二級超頻 2:1:1</span>
-                <span className="font-mono text-purple-400 whitespace-nowrap">(16 FV/s)</span>
+                <span className="font-mono text-purple-400 text-[10px] whitespace-nowrap">(16 FV/s)</span>
               </button>
             </div>
           </div>
@@ -506,7 +506,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => setFeederStrategy('dedicated')}
-                className={`flex items-center justify-center space-x-1.5 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all whitespace-nowrap ${
+                className={`flex flex-col items-center justify-center p-2 rounded-xl border text-xs font-bold transition-all ${
                   feederStrategy === 'dedicated'
                     ? 'bg-purple-500/20 border-purple-500 text-purple-300 shadow-sm'
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-850 hover:text-slate-200'
@@ -519,15 +519,17 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
 
               <button
                 onClick={() => setFeederStrategy('recycle')}
-                className={`flex items-center justify-center space-x-1.5 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all whitespace-nowrap ${
+                className={`flex flex-col items-center justify-center p-2 rounded-xl border text-xs font-bold transition-all ${
                   feederStrategy === 'recycle'
                     ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 shadow-sm'
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-850 hover:text-slate-200'
                 }`}
                 title="自動利用研磨骨粉、發酵物等產線過剩副產物作為底料，節省收割機台數"
               >
-                <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span className="whitespace-nowrap">副產物折抵</span>
+                <span className="flex items-center space-x-1 whitespace-nowrap">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0 inline" />
+                  <span>副產物折抵</span>
+                </span>
                 <span className="font-normal text-[10px] text-emerald-400 font-sans whitespace-nowrap">(智慧循環)</span>
               </button>
             </div>
@@ -564,13 +566,13 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
               </div>
 
               <div className="flex items-center space-x-2">
-                <label className="text-xs text-slate-400 whitespace-nowrap">目標速率 (份/秒):</label>
+                <label className="text-xs text-slate-400 whitespace-nowrap">目標速率 (份/分):</label>
                 <input
                   type="number"
-                  step="0.05"
-                  min="0.01"
-                  value={item.rate}
-                  onChange={(e) => updateDish(item.id, { rate: parseFloat(e.target.value) || 0.1 })}
+                  step="1"
+                  min="0.1"
+                  value={item.rateMin}
+                  onChange={(e) => updateDish(item.id, { rateMin: parseFloat(e.target.value) || 0 })}
                   className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-100 font-mono font-bold focus:outline-none focus:ring-1 focus:ring-amber-500"
                 />
               </div>
@@ -856,7 +858,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                 <th className="py-3 px-4 whitespace-nowrap">設備</th>
                 {plannedList.map(p => (
                   <th key={p.id} className="py-3 px-4 text-right whitespace-nowrap">
-                    {p.dishName} 需求
+                    {p.dishName} ({p.rateMin} 份/分)
                   </th>
                 ))}
                 <th className="py-3 px-4 text-right whitespace-nowrap">並聯總需求</th>

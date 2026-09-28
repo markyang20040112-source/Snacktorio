@@ -165,8 +165,8 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
                       <span className="text-slate-500">無流體</span>
                     )}
                   </td>
-                  <td className="py-3 px-4 text-right font-mono text-amber-300 font-bold">
-                    0.20 <span className="text-[10px] text-slate-400">份/秒</span>
+                  <td className="py-3 px-4 text-right font-mono text-amber-300 font-bold whitespace-nowrap">
+                    12 <span className="text-[10px] text-slate-400">份/分</span>
                   </td>
                   <td className="py-3 px-4 text-xs text-slate-400 max-w-xs truncate" title={r.notes}>
                     {r.notes || '-'}

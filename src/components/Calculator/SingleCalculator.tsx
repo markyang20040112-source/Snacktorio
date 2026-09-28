@@ -12,13 +12,12 @@ interface SingleCalculatorProps {
 
 export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) => {
   const [selectedDish, setSelectedDish] = useState<string>(recipes[0]?.name || '驚嚇醃薑');
-  const [targetRate, setTargetRate] = useState<number>(0.2); // dishes/s
-  const [rateUnit, setRateUnit] = useState<'sec' | 'min'>('sec');
+  const [targetRateMin, setTargetRateMin] = useState<number>(12); // dishes/min (12 份/分 = 0.2 份/秒)
   const [powerMode, setPowerMode] = useState<'regular' | 'overclock'>('overclock');
   const [feederStrategy, setFeederStrategy] = useState<FeederStrategy>('dedicated');
 
-  // Rate in dishes/s
-  const actualRateSec = rateUnit === 'min' ? targetRate / 60 : targetRate;
+  // Rate in dishes/s for physical solver calculation
+  const actualRateSec = targetRateMin / 60;
 
   // Calculation Result
   const result = useMemo(() => {
@@ -63,56 +62,30 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
             </select>
           </div>
 
-          {/* Target Rate Input */}
+          {/* Target Rate Input (份/分) */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-semibold text-slate-300">
-                ⏱️ 目標出餐速率
-              </label>
-              <div className="flex items-center space-x-1 bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-xs">
-                <button
-                  onClick={() => {
-                    if (rateUnit === 'min') {
-                      setTargetRate(Number((targetRate / 60).toFixed(2)));
-                      setRateUnit('sec');
-                    }
-                  }}
-                  className={`px-2 py-0.5 rounded ${rateUnit === 'sec' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400'}`}
-                >
-                  份/秒
-                </button>
-                <button
-                  onClick={() => {
-                    if (rateUnit === 'sec') {
-                      setTargetRate(Math.round(targetRate * 60));
-                      setRateUnit('min');
-                    }
-                  }}
-                  className={`px-2 py-0.5 rounded ${rateUnit === 'min' ? 'bg-amber-500 text-slate-950 font-bold' : 'text-slate-400'}`}
-                >
-                  份/分
-                </button>
-              </div>
-            </div>
+            <label className="block text-sm font-semibold text-slate-300 mb-2 flex items-center justify-between whitespace-nowrap">
+              <span>⏱️ 目標出餐速率</span>
+              <span className="text-xs text-amber-400 font-mono font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                份/分
+              </span>
+            </label>
             <div className="flex space-x-2">
               <input
                 type="number"
-                step={rateUnit === 'sec' ? '0.05' : '1'}
-                min="0.01"
-                value={targetRate}
-                onChange={(e) => setTargetRate(parseFloat(e.target.value) || 0)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono font-bold"
+                step="1"
+                min="0.1"
+                value={targetRateMin}
+                onChange={(e) => setTargetRateMin(parseFloat(e.target.value) || 0)}
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono font-bold text-sm"
               />
               <div className="flex space-x-1">
-                {[0.1, 0.2, 0.4].map(val => (
+                {[6, 12, 18, 24].map(val => (
                   <button
                     key={val}
-                    onClick={() => {
-                      setRateUnit('sec');
-                      setTargetRate(val);
-                    }}
-                    className={`px-2.5 py-1 text-xs rounded-lg border transition-all ${
-                      rateUnit === 'sec' && targetRate === val
+                    onClick={() => setTargetRateMin(val)}
+                    className={`px-2.5 py-1 text-xs rounded-lg border transition-all whitespace-nowrap ${
+                      targetRateMin === val
                         ? 'bg-amber-500/20 border-amber-500 text-amber-300 font-bold'
                         : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
                     }`}
@@ -132,26 +105,26 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => setPowerMode('regular')}
-                className={`flex flex-col xl:flex-row items-center justify-center xl:space-x-1.5 p-2 xl:py-2.5 rounded-xl border text-xs font-bold transition-all whitespace-nowrap ${
+                className={`flex flex-col items-center justify-center p-2 rounded-xl border text-xs font-bold transition-all ${
                   powerMode === 'regular'
                     ? 'bg-amber-500/20 border-amber-500 text-amber-300 shadow-sm'
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-850 hover:text-slate-200'
                 }`}
               >
                 <span className="whitespace-nowrap">一級常規</span>
-                <span className="font-mono text-[10px] xl:text-xs text-slate-400 whitespace-nowrap">(4 FV/s)</span>
+                <span className="font-mono text-[10px] text-slate-400 whitespace-nowrap">(4 FV/s)</span>
               </button>
 
               <button
                 onClick={() => setPowerMode('overclock')}
-                className={`flex flex-col xl:flex-row items-center justify-center xl:space-x-1.5 p-2 xl:py-2.5 rounded-xl border text-xs font-bold transition-all whitespace-nowrap ${
+                className={`flex flex-col items-center justify-center p-2 rounded-xl border text-xs font-bold transition-all ${
                   powerMode === 'overclock'
                     ? 'bg-purple-500/20 border-purple-500 text-purple-300 shadow-sm'
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-850 hover:text-slate-200'
                 }`}
               >
                 <span className="whitespace-nowrap">二級超頻 2:1:1</span>
-                <span className="font-mono text-[10px] xl:text-xs text-purple-400 whitespace-nowrap">(16 FV/s)</span>
+                <span className="font-mono text-[10px] text-purple-400 whitespace-nowrap">(16 FV/s)</span>
               </button>
             </div>
           </div>
@@ -164,7 +137,7 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => setFeederStrategy('dedicated')}
-                className={`flex flex-col xl:flex-row items-center justify-center xl:space-x-1.5 p-2 xl:py-2.5 rounded-xl border text-xs font-bold transition-all whitespace-nowrap ${
+                className={`flex flex-col items-center justify-center p-2 rounded-xl border text-xs font-bold transition-all ${
                   feederStrategy === 'dedicated'
                     ? 'bg-purple-500/20 border-purple-500 text-purple-300 shadow-sm'
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-850 hover:text-slate-200'
@@ -172,12 +145,12 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                 title="每台物質操縱機配屬 1 台專用收割機直供底料 (最安全防呆、零死鎖)"
               >
                 <span className="whitespace-nowrap">獨立專供</span>
-                <span className="font-normal text-[10px] xl:text-xs text-slate-400 font-sans whitespace-nowrap">(安全防呆)</span>
+                <span className="font-normal text-[10px] text-slate-400 font-sans whitespace-nowrap">(安全防呆)</span>
               </button>
 
               <button
                 onClick={() => setFeederStrategy('recycle')}
-                className={`flex flex-col xl:flex-row items-center justify-center xl:space-x-1.5 p-2 xl:py-2.5 rounded-xl border text-xs font-bold transition-all whitespace-nowrap ${
+                className={`flex flex-col items-center justify-center p-2 rounded-xl border text-xs font-bold transition-all ${
                   feederStrategy === 'recycle'
                     ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 shadow-sm'
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-850 hover:text-slate-200'
@@ -188,7 +161,7 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                   <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0 inline" />
                   <span>副產物折抵</span>
                 </span>
-                <span className="font-normal text-[10px] xl:text-xs text-slate-400 font-sans whitespace-nowrap">(智慧循環)</span>
+                <span className="font-normal text-[10px] text-slate-400 font-sans whitespace-nowrap">(智慧循環)</span>
               </button>
             </div>
           </div>
