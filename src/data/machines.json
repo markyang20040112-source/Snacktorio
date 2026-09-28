@@ -1,0 +1,202 @@
+[
+  {
+    "category": "必備機器",
+    "name": "虛空熔爐",
+    "goblins": 1.0,
+    "power": 0.0,
+    "fluidType": "無",
+    "fluidRate": 0,
+    "baseRate": "4 FV/s (常規) / 16 FV/s (汙泥增效)",
+    "notes": "供給機器運轉；燃燒煤炭(0.1/s)常規發電 4 FV/s；每10秒多消耗1個虛空汙泥(0.1/s)可提升發電量至 16 FV/s。"
+  },
+  {
+    "category": "必備機器",
+    "name": "分撿機",
+    "goblins": 0.0,
+    "power": 1.0,
+    "fluidType": "無",
+    "fluidRate": 0,
+    "baseRate": "-",
+    "notes": "負責將物品/食材分類、送往不同方向"
+  },
+  {
+    "category": "必備機器",
+    "name": "裝配機",
+    "goblins": 0.0,
+    "power": 1.0,
+    "fluidType": "無",
+    "fluidRate": 0,
+    "baseRate": "-",
+    "notes": "用於傳輸物品/液體/電力等"
+  },
+  {
+    "category": "必備機器",
+    "name": "送餐大炮",
+    "goblins": 0.0,
+    "power": 1.0,
+    "fluidType": "無",
+    "fluidRate": 0,
+    "baseRate": "-",
+    "notes": "將料理發射給怪獸"
+  },
+  {
+    "category": "必備機器",
+    "name": "儲物箱",
+    "goblins": 0.0,
+    "power": 0.0,
+    "fluidType": "無",
+    "fluidRate": 0,
+    "baseRate": "-",
+    "notes": "15格儲存空間，每格最高堆疊999個"
+  },
+  {
+    "category": "必備機器",
+    "name": "分流器",
+    "goblins": 0.0,
+    "power": 1.0,
+    "fluidType": "無",
+    "fluidRate": 0,
+    "baseRate": "-",
+    "notes": "設定不同輸出口的輸出物配比，形成分流"
+  },
+  {
+    "category": "收割機器",
+    "name": "採掘機",
+    "goblins": 1.0,
+    "power": 1.0,
+    "fluidType": "無",
+    "fluidRate": 0,
+    "baseRate": "0.2 個/秒",
+    "notes": "遊戲中一格礦石可無限開採不會枯竭"
+  },
+  {
+    "category": "收割機器",
+    "name": "虛空泵機",
+    "goblins": 1.0,
+    "power": 1.0,
+    "fluidType": "水 / 虛空 / 油 / 醬汁",
+    "fluidRate": 0,
+    "baseRate": "2 fl/s (常規) / 8 fl/s (汙泥增效)",
+    "notes": "一格液體無限抽取；每5秒消耗1個虛空汙泥可提速至 8 fl/s。"
+  },
+  {
+    "category": "收割機器",
+    "name": "收割機",
+    "goblins": 1.0,
+    "power": 1.0,
+    "fluidType": "無",
+    "fluidRate": 0,
+    "baseRate": "0.2 個/秒",
+    "notes": "植物節點無限採收；可用槌子敲起植物移植至指定生長方塊上"
+  },
+  {
+    "category": "轉化機器",
+    "name": "發酵罐",
+    "goblins": 2.0,
+    "power": 1.0,
+    "fluidType": "指定發酵液",
+    "fluidRate": 0,
+    "baseRate": "10秒5個 (0.5/s)",
+    "notes": "不同物品需要對應不同液體進行發酵"
+  },
+  {
+    "category": "轉化機器",
+    "name": "油炸鍋",
+    "goblins": 2.0,
+    "power": 1.0,
+    "fluidType": "油",
+    "fluidRate": 0,
+    "baseRate": "5秒1個 (0.2/s)",
+    "notes": ""
+  },
+  {
+    "category": "轉化機器",
+    "name": "注入機",
+    "goblins": 2.0,
+    "power": 1.0,
+    "fluidType": "無",
+    "fluidRate": 0,
+    "baseRate": "-",
+    "notes": "轉化機器；放置於液體中（如油池），每5秒輸入1個辛香料，將相連液體原位轉化為目標液體（如炙烈紅油）；轉化後需藉由泵機抽取輸送。運轉電力 1 FV/s，打工小妖精 2 個。"
+  },
+  {
+    "category": "轉化機器",
+    "name": "物質操縱機",
+    "goblins": 1.0,
+    "power": 1.0,
+    "fluidType": "虛空",
+    "fluidRate": 0,
+    "baseRate": "5秒1個 (0.2/s) / 5秒2個 (0.4/s)",
+    "notes": "消耗任意固體物品x1與虛空1 fl/s重構；一般為5秒1個，泥沼蟑螂為5秒2個；未設配方或缺料時自動產出虛空汙泥。"
+  },
+  {
+    "category": "轉化機器",
+    "name": "烤箱",
+    "goblins": 1.0,
+    "power": 1.0,
+    "fluidType": "無",
+    "fluidRate": 0,
+    "baseRate": "0.2 個/秒",
+    "notes": "冶煉製程/燒製製程/烘焙製程"
+  },
+  {
+    "category": "轉化機器",
+    "name": "煮鍋",
+    "goblins": 2.0,
+    "power": 1.0,
+    "fluidType": "水",
+    "fluidRate": 0,
+    "baseRate": "5秒1個 (0.2/s)",
+    "notes": "水煮熟化"
+  },
+  {
+    "category": "加工機器",
+    "name": "混合機",
+    "goblins": 2.0,
+    "power": 1.0,
+    "fluidType": "依配方需求 (水/指定液體或無)",
+    "fluidRate": 0,
+    "baseRate": "4秒1個 (0.25/s) / 4秒2個 (0.5/s) / 4秒3個 (0.75/s)",
+    "notes": "依配方決定是否通入液體，每 4 秒週期消耗 2 fl 液體（持續流率 0.5 fl/s）；產出效率分 4 秒 1 個、4 秒 2 個或 4 秒 3 個 (0.75/s)。"
+  },
+  {
+    "category": "加工機器",
+    "name": "自動廚師機",
+    "goblins": 3.0,
+    "power": 1.0,
+    "fluidType": "依配方需求 (指定液體或無)",
+    "fluidRate": 0,
+    "baseRate": "5秒1個 (0.2/s)",
+    "notes": "固體食材配比恆為 1:1；液體依配方需求(固定 1 fl/s)或無；專門產出可餵食怪獸之完成品料理。"
+  },
+  {
+    "category": "加工機器",
+    "name": "擠出機",
+    "goblins": 2.0,
+    "power": 1.0,
+    "fluidType": "無",
+    "fluidRate": 0,
+    "baseRate": "0.25 個/秒",
+    "notes": "消耗固體原料擠出成型"
+  },
+  {
+    "category": "加工機器",
+    "name": "研磨機",
+    "goblins": 2.0,
+    "power": 1.0,
+    "fluidType": "無",
+    "fluidRate": 0,
+    "baseRate": "1 個/秒",
+    "notes": "將食物或物品磨成粉"
+  },
+  {
+    "category": "加工機器",
+    "name": "攪拌機",
+    "goblins": 2.0,
+    "power": 1.0,
+    "fluidType": "無",
+    "fluidRate": 0,
+    "baseRate": "1 fl/s",
+    "notes": "消耗食材持續產出醬汁"
+  }
+]

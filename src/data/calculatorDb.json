@@ -1,0 +1,5106 @@
+{
+  "processes": [
+    {
+      "dish": "鮮紅濃湯",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "鮮紅濃湯",
+      "processName": "塔瑪茄醬",
+      "machine": "攪拌機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "鮮紅濃湯",
+      "processName": "採收塔瑪茄",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "鮮紅濃湯",
+      "processName": "採收日桂葉",
+      "machine": "收割機",
+      "baseRate": 0.1,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "鮮紅濃湯",
+      "processName": "開採豆肉蔻",
+      "machine": "採掘機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "鮮紅濃湯",
+      "processName": "開採鹽",
+      "machine": "採掘機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "蜘蛛意式通心粉",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "蜘蛛意式通心粉",
+      "processName": "塔瑪茄醬",
+      "machine": "攪拌機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "蜘蛛意式通心粉",
+      "processName": "水煮通心粉",
+      "machine": "煮鍋",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "蜘蛛意式通心粉",
+      "processName": "擠出通心粉",
+      "machine": "擠出機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "蜘蛛意式通心粉",
+      "processName": "混和麵團",
+      "machine": "混合機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "蜘蛛意式通心粉",
+      "processName": "研磨骨粉",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "蜘蛛意式通心粉",
+      "processName": "重構巫妖骸骨",
+      "machine": "物質操縱機",
+      "baseRate": 0.4,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "蜘蛛意式通心粉",
+      "processName": "重構蜘蛛蛋",
+      "machine": "物質操縱機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "蜘蛛意式通心粉",
+      "processName": "採收塔瑪茄",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "蜘蛛意式通心粉",
+      "processName": "採收日桂葉",
+      "machine": "收割機",
+      "baseRate": 0.1,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "惡鬼千層面",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "惡鬼千層面",
+      "processName": "塔瑪茄醬",
+      "machine": "攪拌機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "惡鬼千層面",
+      "processName": "水煮千層麵皮",
+      "machine": "煮鍋",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "惡鬼千層面",
+      "processName": "擠出千層麵皮",
+      "machine": "擠出機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "惡鬼千層面",
+      "processName": "混和麵團",
+      "machine": "混合機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "惡鬼千層面",
+      "processName": "研磨骨粉",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "惡鬼千層面",
+      "processName": "絞碎史萊姆",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "惡鬼千層面",
+      "processName": "重構巫妖骸骨",
+      "machine": "物質操縱機",
+      "baseRate": 0.4,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "惡鬼千層面",
+      "processName": "重構蜘蛛蛋",
+      "machine": "物質操縱機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "惡鬼千層面",
+      "processName": "重構綠色史萊姆",
+      "machine": "物質操縱機",
+      "baseRate": 0.4,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "惡鬼千層面",
+      "processName": "採收塔瑪茄",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "惡鬼千層面",
+      "processName": "採收日桂葉",
+      "machine": "收割機",
+      "baseRate": 0.1,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "幽靈肉醬意麵",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "幽靈肉醬意麵",
+      "processName": "塔瑪茄醬",
+      "machine": "攪拌機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "幽靈肉醬意麵",
+      "processName": "水煮義大利麵",
+      "machine": "煮鍋",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "幽靈肉醬意麵",
+      "processName": "擠出義大利麵",
+      "machine": "擠出機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "幽靈肉醬意麵",
+      "processName": "混和麵團",
+      "machine": "混合機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "幽靈肉醬意麵",
+      "processName": "研磨骨粉",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "幽靈肉醬意麵",
+      "processName": "絞碎史萊姆",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "幽靈肉醬意麵",
+      "processName": "重構巫妖骸骨",
+      "machine": "物質操縱機",
+      "baseRate": 0.4,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "幽靈肉醬意麵",
+      "processName": "重構蜘蛛蛋",
+      "machine": "物質操縱機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "幽靈肉醬意麵",
+      "processName": "重構綠色史萊姆",
+      "machine": "物質操縱機",
+      "baseRate": 0.4,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "幽靈肉醬意麵",
+      "processName": "採收塔瑪茄",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "幽靈肉醬意麵",
+      "processName": "採收日桂葉",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "哀嚎肉丸",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "哀嚎肉丸",
+      "processName": "塔瑪茄醬",
+      "machine": "攪拌機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "哀嚎肉丸",
+      "processName": "炸史萊姆肉丸",
+      "machine": "油炸鍋",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "哀嚎肉丸",
+      "processName": "混和生史萊姆肉丸",
+      "machine": "混合機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "哀嚎肉丸",
+      "processName": "採收日桂葉",
+      "machine": "收割機",
+      "baseRate": 0.1,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "哀嚎肉丸",
+      "processName": "採收塔瑪茄",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "哀嚎肉丸",
+      "processName": "開採豆肉蔻",
+      "machine": "採掘機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "哀嚎肉丸",
+      "processName": "重構綠色史萊姆",
+      "machine": "物質操縱機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "塔瑪茄炒蛋",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "塔瑪茄炒蛋",
+      "processName": "混和炒蜘蛛蛋",
+      "machine": "混合機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "塔瑪茄炒蛋",
+      "processName": "採收塔瑪茄",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "塔瑪茄炒蛋",
+      "processName": "開採豆肉蔻",
+      "machine": "採掘機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "塔瑪茄炒蛋",
+      "processName": "開採鹽",
+      "machine": "採掘機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "塔瑪茄炒蛋",
+      "processName": "重構蜘蛛蛋",
+      "machine": "物質操縱機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "瘟疫青醬麵",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "瘟疫青醬麵",
+      "processName": "青醬",
+      "machine": "攪拌機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "瘟疫青醬麵",
+      "processName": "水煮通心粉",
+      "machine": "煮鍋",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "瘟疫青醬麵",
+      "processName": "擠出通心粉",
+      "machine": "擠出機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "瘟疫青醬麵",
+      "processName": "混和麵團",
+      "machine": "混合機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "瘟疫青醬麵",
+      "processName": "研磨骨粉",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "瘟疫青醬麵",
+      "processName": "重構巫妖骸骨",
+      "machine": "物質操縱機",
+      "baseRate": 0.4,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "瘟疫青醬麵",
+      "processName": "重構蜘蛛蛋",
+      "machine": "物質操縱機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "瘟疫青醬麵",
+      "processName": "採收日桂葉",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "瘟疫青醬麵",
+      "processName": "開採豆肉蔻",
+      "machine": "採掘機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "瘟疫青醬麵",
+      "processName": "開採鹽",
+      "machine": "採掘機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "煉獄魔蛋",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "煉獄魔蛋",
+      "processName": "塔瑪茄醬",
+      "machine": "攪拌機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "煉獄魔蛋",
+      "processName": "炸蜘蛛蛋",
+      "machine": "油炸鍋",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "煉獄魔蛋",
+      "processName": "採收日桂葉",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "煉獄魔蛋",
+      "processName": "採收塔瑪茄",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "煉獄魔蛋",
+      "processName": "重構蜘蛛蛋",
+      "machine": "物質操縱機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "驚魂北非蛋",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "驚魂北非蛋",
+      "processName": "塔瑪茄醬",
+      "machine": "攪拌機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "驚魂北非蛋",
+      "processName": "混和塔瑪茄泥",
+      "machine": "混合機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "驚魂北非蛋",
+      "processName": "炸蜘蛛蛋",
+      "machine": "油炸鍋",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "驚魂北非蛋",
+      "processName": "採收塔瑪茄",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "驚魂北非蛋",
+      "processName": "開採豆肉蔻",
+      "machine": "採掘機",
+      "baseRate": 0.1,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "驚魂北非蛋",
+      "processName": "採收日桂葉",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "驚魂北非蛋",
+      "processName": "重構蜘蛛蛋",
+      "machine": "物質操縱機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "撕裂脆片蘸醬",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "撕裂脆片蘸醬",
+      "processName": "塔瑪茄醬",
+      "machine": "攪拌機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "撕裂脆片蘸醬",
+      "processName": "炸多林多滋",
+      "machine": "油炸鍋",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "撕裂脆片蘸醬",
+      "processName": "烘烤玉米餅",
+      "machine": "烤箱",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "撕裂脆片蘸醬",
+      "processName": "混和生玉米餅",
+      "machine": "混合機",
+      "baseRate": 0.5,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "撕裂脆片蘸醬",
+      "processName": "研磨骨粉",
+      "machine": "研磨機",
+      "baseRate": 2.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "撕裂脆片蘸醬",
+      "processName": "重構巫妖骸骨",
+      "machine": "物質操縱機",
+      "baseRate": 0.8,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "撕裂脆片蘸醬",
+      "processName": "採收塔瑪茄",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "撕裂脆片蘸醬",
+      "processName": "採收日桂葉",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "撕裂脆片蘸醬",
+      "processName": "開採鹽",
+      "machine": "採掘機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "惡臭農場蛋",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "惡臭農場蛋",
+      "processName": "炸蜘蛛蛋",
+      "machine": "油炸鍋",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "惡臭農場蛋",
+      "processName": "混和塔瑪茄泥",
+      "machine": "混合機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "惡臭農場蛋",
+      "processName": "烘烤玉米餅",
+      "machine": "烤箱",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "惡臭農場蛋",
+      "processName": "混和生玉米餅",
+      "machine": "混合機",
+      "baseRate": 0.5,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "惡臭農場蛋",
+      "processName": "研磨骨粉",
+      "machine": "研磨機",
+      "baseRate": 2.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "惡臭農場蛋",
+      "processName": "重構巫妖骸骨",
+      "machine": "物質操縱機",
+      "baseRate": 0.8,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "惡臭農場蛋",
+      "processName": "重構蜘蛛蛋",
+      "machine": "物質操縱機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "惡臭農場蛋",
+      "processName": "採收塔瑪茄",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "惡臭農場蛋",
+      "processName": "開採豆肉蔻",
+      "machine": "採掘機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "惡臭農場蛋",
+      "processName": "採收·椒",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "致命玉米片",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "致命玉米片",
+      "processName": "塔瑪茄醬",
+      "machine": "攪拌機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "致命玉米片",
+      "processName": "混和炒蜘蛛蛋",
+      "machine": "混合機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "致命玉米片",
+      "processName": "炸多林多滋",
+      "machine": "油炸鍋",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "致命玉米片",
+      "processName": "烘烤玉米餅",
+      "machine": "烤箱",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "致命玉米片",
+      "processName": "混和生玉米餅",
+      "machine": "混合機",
+      "baseRate": 0.5,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "致命玉米片",
+      "processName": "研磨骨粉",
+      "machine": "研磨機",
+      "baseRate": 2.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "致命玉米片",
+      "processName": "重構巫妖骸骨",
+      "machine": "物質操縱機",
+      "baseRate": 0.8,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "致命玉米片",
+      "processName": "重構蜘蛛蛋",
+      "machine": "物質操縱機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "致命玉米片",
+      "processName": "採收塔瑪茄",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "致命玉米片",
+      "processName": "採收日桂葉",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "致命玉米片",
+      "processName": "開採豆肉蔻",
+      "machine": "採掘機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "致命玉米片",
+      "processName": "開採鹽",
+      "machine": "採掘機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "致命玉米片",
+      "processName": "採收·椒",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "食屍鬼鮮莎莎",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "食屍鬼鮮莎莎",
+      "processName": "採收塔瑪茄",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "食屍鬼鮮莎莎",
+      "processName": "採收洋蔥蔥",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "食屍鬼鮮莎莎",
+      "processName": "採收日桂葉",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "幽靈洋蔥湯",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "幽靈洋蔥湯",
+      "processName": "採收洋蔥蔥",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "幽靈洋蔥湯",
+      "processName": "採收日桂葉",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "驚嚇炸洋蔥",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "驚嚇炸洋蔥",
+      "processName": "麵糊",
+      "machine": "攪拌機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "驚嚇炸洋蔥",
+      "processName": "研磨骨粉",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "驚嚇炸洋蔥",
+      "processName": "重構巫妖骸骨",
+      "machine": "物質操縱機",
+      "baseRate": 0.4,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "驚嚇炸洋蔥",
+      "processName": "重構蜘蛛蛋",
+      "machine": "物質操縱機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "驚嚇炸洋蔥",
+      "processName": "採收洋蔥蔥",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "驚嚇炸洋蔥",
+      "processName": "開採豆肉蔻",
+      "machine": "採掘機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "暗淡洋蔥花",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "暗淡洋蔥花",
+      "processName": "麵糊",
+      "machine": "攪拌機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "暗淡洋蔥花",
+      "processName": "研磨骨粉",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "暗淡洋蔥花",
+      "processName": "重構巫妖骸骨",
+      "machine": "物質操縱機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "暗淡洋蔥花",
+      "processName": "重構蜘蛛蛋",
+      "machine": "物質操縱機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "暗淡洋蔥花",
+      "processName": "採收洋蔥蔥",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "暗淡洋蔥花",
+      "processName": "採收日桂葉",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "末日麵團",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "末日麵團",
+      "processName": "蒜泥蛋醬",
+      "machine": "攪拌機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "末日麵團",
+      "processName": "烘烤麵包",
+      "machine": "烤箱",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "末日麵團",
+      "processName": "混和麵包麵團",
+      "machine": "混合機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "末日麵團",
+      "processName": "研磨骨粉",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "末日麵團",
+      "processName": "重構巫妖骸骨",
+      "machine": "物質操縱機",
+      "baseRate": 0.4,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "末日麵團",
+      "processName": "重構蛇蛋",
+      "machine": "物質操縱機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "末日麵團",
+      "processName": "採收小蒜",
+      "machine": "收割機",
+      "baseRate": 0.1,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "末日麵團",
+      "processName": "採收歐琴",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "咒語餃子",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "咒語餃子",
+      "processName": "白醬",
+      "machine": "攪拌機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "咒語餃子",
+      "processName": "混和蟑螂黃油",
+      "machine": "混合機",
+      "baseRate": 0.5,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "咒語餃子",
+      "processName": "混和蟑螂奶油",
+      "machine": "混合機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "咒語餃子",
+      "processName": "攪拌蟑螂奶",
+      "machine": "攪拌機",
+      "baseRate": 0.3333333333,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "咒語餃子",
+      "processName": "混和義大利麵團",
+      "machine": "混合機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "咒語餃子",
+      "processName": "研磨骨粉",
+      "machine": "研磨機",
+      "baseRate": 0.5,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "咒語餃子",
+      "processName": "重構巫妖骸骨",
+      "machine": "物質操縱機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "咒語餃子",
+      "processName": "重構蛇蛋",
+      "machine": "物質操縱機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "咒語餃子",
+      "processName": "重構綠色史萊姆",
+      "machine": "物質操縱機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "咒語餃子",
+      "processName": "重構泥沼蟑螂",
+      "machine": "物質操縱機",
+      "baseRate": 0.6666666667,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "咒語餃子",
+      "processName": "採收土豆",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "咒語餃子",
+      "processName": "開採鹽",
+      "machine": "採掘機",
+      "baseRate": 0.1,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "末日麵團",
+      "processName": "研磨粉塵",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "末日麵團",
+      "processName": "採收粉塵底料",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "墳墓茄包",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "墳墓茄包",
+      "processName": "烘烤麵包",
+      "machine": "烤箱",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "墳墓茄包",
+      "processName": "混和麵包麵團",
+      "machine": "混合機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "墳墓茄包",
+      "processName": "研磨骨粉",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "墳墓茄包",
+      "processName": "重構巫妖骸骨",
+      "machine": "物質操縱機",
+      "baseRate": 0.4,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "墳墓茄包",
+      "processName": "研磨粉塵",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "墳墓茄包",
+      "processName": "採收粉塵底料",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "墳墓茄包",
+      "processName": "採收塔瑪茄",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "墳墓茄包",
+      "processName": "採收小蒜",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "暴徒烤麵包",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "暴徒烤麵包",
+      "processName": "青醬",
+      "machine": "攪拌機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "暴徒烤麵包",
+      "processName": "混和塔瑪茄泥",
+      "machine": "混合機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "暴徒烤麵包",
+      "processName": "烘烤麵包",
+      "machine": "烤箱",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "暴徒烤麵包",
+      "processName": "混和麵包麵團",
+      "machine": "混合機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "暴徒烤麵包",
+      "processName": "研磨骨粉",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "暴徒烤麵包",
+      "processName": "重構巫妖骸骨",
+      "machine": "物質操縱機",
+      "baseRate": 0.4,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "暴徒烤麵包",
+      "processName": "研磨粉塵",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "暴徒烤麵包",
+      "processName": "採收粉塵底料",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "暴徒烤麵包",
+      "processName": "採收塔瑪茄",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "暴徒烤麵包",
+      "processName": "採收歐琴",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "暴徒烤麵包",
+      "processName": "開採香豆蔻",
+      "machine": "採掘機",
+      "baseRate": 0.1,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "爛蛋約翰",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.1,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "爛蛋約翰",
+      "processName": "烘烤麵包",
+      "machine": "烤箱",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "爛蛋約翰",
+      "processName": "混和麵包麵團",
+      "machine": "混合機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "爛蛋約翰",
+      "processName": "研磨骨粉",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "爛蛋約翰",
+      "processName": "重構巫妖骸骨",
+      "machine": "物質操縱機",
+      "baseRate": 0.1,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "爛蛋約翰",
+      "processName": "採收粉塵底料",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "爛蛋約翰",
+      "processName": "重構蛇蛋",
+      "machine": "物質操縱機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "爛蛋約翰",
+      "processName": "絞碎史萊姆",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "爛蛋約翰",
+      "processName": "重構綠色史萊姆",
+      "machine": "物質操縱機",
+      "baseRate": 0.4,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "爛蛋約翰",
+      "processName": "採收洋蔥蔥",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "怪物庫克先生",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "怪物庫克先生",
+      "processName": "白醬",
+      "machine": "攪拌機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "怪物庫克先生",
+      "processName": "混和蟑螂黃油",
+      "machine": "混合機",
+      "baseRate": 0.5,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "怪物庫克先生",
+      "processName": "混和蟑螂奶油",
+      "machine": "混合機",
+      "baseRate": 0.1666666667,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "怪物庫克先生",
+      "processName": "攪拌蟑螂奶",
+      "machine": "攪拌機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "怪物庫克先生",
+      "processName": "發酵軟質奶酪",
+      "machine": "發酵罐",
+      "baseRate": 0.5,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "怪物庫克先生",
+      "processName": "烘烤麵包",
+      "machine": "烤箱",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "怪物庫克先生",
+      "processName": "混和麵包麵團",
+      "machine": "混合機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "怪物庫克先生",
+      "processName": "研磨骨粉",
+      "machine": "研磨機",
+      "baseRate": 0.5,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "怪物庫克先生",
+      "processName": "重構巫妖骸骨",
+      "machine": "物質操縱機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "怪物庫克先生",
+      "processName": "研磨粉塵",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "怪物庫克先生",
+      "processName": "採收粉塵底料",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "怪物庫克先生",
+      "processName": "重構泥沼蟑螂",
+      "machine": "物質操縱機",
+      "baseRate": 0.4,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "怪物庫克先生",
+      "processName": "開採鹽",
+      "machine": "採掘機",
+      "baseRate": 0.09090909091,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "墳墓土豆塊",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "墳墓土豆塊",
+      "processName": "採收土豆",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "墳墓土豆塊",
+      "processName": "開採香豆蔻",
+      "machine": "採掘機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "墳墓土豆塊",
+      "processName": "採收小蒜",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "墳墓土豆塊",
+      "processName": "採收塔瑪茄",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "爆炸土豆塊",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "爆炸土豆塊",
+      "processName": "肉汁",
+      "machine": "攪拌機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "爆炸土豆塊",
+      "processName": "採收土豆",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "爆炸土豆塊",
+      "processName": "開採香豆蔻",
+      "machine": "採掘機",
+      "baseRate": 0.1,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "爆炸土豆塊",
+      "processName": "採收小蒜",
+      "machine": "收割機",
+      "baseRate": 0.1,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "爆炸土豆塊",
+      "processName": "採收洋蔥蔥",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "爆炸土豆塊",
+      "processName": "採收歐琴",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "奶酪飛濺盤",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "奶酪飛濺盤",
+      "processName": "發酵軟質奶酪",
+      "machine": "發酵罐",
+      "baseRate": 0.1666666667,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "奶酪飛濺盤",
+      "processName": "攪拌蟑螂奶",
+      "machine": "攪拌機",
+      "baseRate": 0.1,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "奶酪飛濺盤",
+      "processName": "烘烤麵包",
+      "machine": "烤箱",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "奶酪飛濺盤",
+      "processName": "混和麵包麵團",
+      "machine": "混合機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "奶酪飛濺盤",
+      "processName": "研磨骨粉",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "奶酪飛濺盤",
+      "processName": "重構巫妖骸骨",
+      "machine": "物質操縱機",
+      "baseRate": 0.4,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "奶酪飛濺盤",
+      "processName": "研磨粉塵",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "奶酪飛濺盤",
+      "processName": "採收粉塵底料",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "奶酪飛濺盤",
+      "processName": "重構泥沼蟑螂",
+      "machine": "物質操縱機",
+      "baseRate": 0.8,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "奶酪飛濺盤",
+      "processName": "開採鹽",
+      "machine": "採掘機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "恐慌帕尼爾",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "恐慌帕尼爾",
+      "processName": "肉汁",
+      "machine": "攪拌機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "恐慌帕尼爾",
+      "processName": "炸小蒜",
+      "machine": "油炸鍋",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "恐慌帕尼爾",
+      "processName": "混和蟑螂奶油",
+      "machine": "混合機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "恐慌帕尼爾",
+      "processName": "發酵軟質奶酪",
+      "machine": "發酵罐",
+      "baseRate": 0.5,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "恐慌帕尼爾",
+      "processName": "攪拌蟑螂奶",
+      "machine": "攪拌機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "恐慌帕尼爾",
+      "processName": "重構泥沼蟑螂",
+      "machine": "物質操縱機",
+      "baseRate": 0.5,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "恐慌帕尼爾",
+      "processName": "採收洋蔥蔥",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "恐慌帕尼爾",
+      "processName": "採收小蒜",
+      "machine": "收割機",
+      "baseRate": 0.1,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "恐慌帕尼爾",
+      "processName": "採收歐琴",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "恐慌帕尼爾",
+      "processName": "開採香豆蔻",
+      "machine": "採掘機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "恐慌帕尼爾",
+      "processName": "開採鹽",
+      "machine": "採掘機",
+      "baseRate": 0.1666666667,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "殺戮芝士麵",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "殺戮芝士麵",
+      "processName": "混和蟑螂黃油",
+      "machine": "混合機",
+      "baseRate": 0.5,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "殺戮芝士麵",
+      "processName": "混和蟑螂奶油",
+      "machine": "混合機",
+      "baseRate": 0.5,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "殺戮芝士麵",
+      "processName": "發酵軟質奶酪",
+      "machine": "發酵罐",
+      "baseRate": 0.5,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "殺戮芝士麵",
+      "processName": "攪拌蟑螂奶",
+      "machine": "攪拌機",
+      "baseRate": 0.3333333333,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "殺戮芝士麵",
+      "processName": "水煮通心粉",
+      "machine": "煮鍋",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "殺戮芝士麵",
+      "processName": "擠出通心粉",
+      "machine": "擠出機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "殺戮芝士麵",
+      "processName": "混和麵團",
+      "machine": "混合機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "殺戮芝士麵",
+      "processName": "研磨骨粉",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "殺戮芝士麵",
+      "processName": "重構巫妖骸骨",
+      "machine": "物質操縱機",
+      "baseRate": 0.4,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "殺戮芝士麵",
+      "processName": "重構蛇蛋",
+      "machine": "物質操縱機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "殺戮芝士麵",
+      "processName": "重構泥沼蟑螂",
+      "machine": "物質操縱機",
+      "baseRate": 0.6666666667,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "殺戮芝士麵",
+      "processName": "採收歐琴",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "殺戮芝士麵",
+      "processName": "開採鹽",
+      "machine": "採掘機",
+      "baseRate": 0.1666666667,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "恐懼炸芝士",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "恐懼炸芝士",
+      "processName": "麵糊",
+      "machine": "攪拌機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "恐懼炸芝士",
+      "processName": "發酵軟質奶酪",
+      "machine": "發酵罐",
+      "baseRate": 0.5,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "恐懼炸芝士",
+      "processName": "攪拌蟑螂奶",
+      "machine": "攪拌機",
+      "baseRate": 0.5,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "恐懼炸芝士",
+      "processName": "研磨麵包糠",
+      "machine": "研磨機",
+      "baseRate": 0.5,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "恐懼炸芝士",
+      "processName": "烘烤麵包",
+      "machine": "烤箱",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "恐懼炸芝士",
+      "processName": "混和麵包麵團",
+      "machine": "混合機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "恐懼炸芝士",
+      "processName": "研磨骨粉",
+      "machine": "研磨機",
+      "baseRate": 0.5,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "恐懼炸芝士",
+      "processName": "研磨粉塵",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "恐懼炸芝士",
+      "processName": "重構巫妖骸骨",
+      "machine": "物質操縱機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "恐懼炸芝士",
+      "processName": "重構蛇蛋",
+      "machine": "物質操縱機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "恐懼炸芝士",
+      "processName": "重構泥沼蟑螂",
+      "machine": "物質操縱機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "恐懼炸芝士",
+      "processName": "採收粉塵底料",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "恐懼炸芝士",
+      "processName": "開採鹽",
+      "machine": "採掘機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "毒蘑菇·肉",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "毒蘑菇·肉",
+      "processName": "肉汁",
+      "machine": "攪拌機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "毒蘑菇·肉",
+      "processName": "混和蟑螂奶油",
+      "machine": "混合機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "毒蘑菇·肉",
+      "processName": "攪拌蟑螂奶",
+      "machine": "攪拌機",
+      "baseRate": 0.5,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "毒蘑菇·肉",
+      "processName": "重構泥沼蟑螂",
+      "machine": "物質操縱機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "毒蘑菇·肉",
+      "processName": "重構綠色史萊姆",
+      "machine": "物質操縱機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "毒蘑菇·肉",
+      "processName": "採收洋蔥蔥",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "毒蘑菇·肉",
+      "processName": "採收小蒜",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "毒蘑菇·肉",
+      "processName": "採收致命傘菇",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "毒蘑菇·肉",
+      "processName": "開採香豆蔻",
+      "machine": "採掘機",
+      "baseRate": 0.1,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "毒蘑菇·肉",
+      "processName": "開採鹽",
+      "machine": "採掘機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "罪人炒飯",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "罪人炒飯",
+      "processName": "炸小蒜",
+      "machine": "油炸鍋",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "罪人炒飯",
+      "processName": "打工小妖炒飯",
+      "machine": "油炸鍋",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "罪人炒飯",
+      "processName": "採收水稻",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "罪人炒飯",
+      "processName": "採收小蒜",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "罪人炒飯",
+      "processName": "開採香豆蔻",
+      "machine": "採掘機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "骨味炸米團",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "骨味炸米團",
+      "processName": "攪拌麵糊",
+      "machine": "攪拌機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "骨味炸米團",
+      "processName": "發酵軟質奶酪",
+      "machine": "發酵罐",
+      "baseRate": 0.5,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "骨味炸米團",
+      "processName": "攪拌蟑螂奶",
+      "machine": "攪拌機",
+      "baseRate": 0.5,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "骨味炸米團",
+      "processName": "研磨麵包糠",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "骨味炸米團",
+      "processName": "烘烤麵包",
+      "machine": "烤箱",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "骨味炸米團",
+      "processName": "混和麵包麵團",
+      "machine": "混合機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "骨味炸米團",
+      "processName": "研磨骨粉",
+      "machine": "研磨機",
+      "baseRate": 0.5,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "骨味炸米團",
+      "processName": "採收水稻",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "骨味炸米團",
+      "processName": "開採鹽",
+      "machine": "採掘機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "骨味炸米團",
+      "processName": "重構巫妖骸骨",
+      "machine": "物質操縱機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "骨味炸米團",
+      "processName": "重構蛇蛋",
+      "machine": "物質操縱機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "骨味炸米團",
+      "processName": "重構泥沼蟑螂",
+      "machine": "物質操縱機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "骨味炸米團",
+      "processName": "研磨粉塵",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "骨味炸米團",
+      "processName": "採收粉塵底料",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "撒旦紅燴飯",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "撒旦紅燴飯",
+      "processName": "攪拌塔瑪茄醬",
+      "machine": "攪拌機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "撒旦紅燴飯",
+      "processName": "採收塔瑪茄",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "撒旦紅燴飯",
+      "processName": "採收日桂葉",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "撒旦紅燴飯",
+      "processName": "發酵軟質奶酪",
+      "machine": "發酵罐",
+      "baseRate": 0.5,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "撒旦紅燴飯",
+      "processName": "攪拌蟑螂奶(奶酪專線)",
+      "machine": "攪拌機",
+      "baseRate": 0.5,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "撒旦紅燴飯",
+      "processName": "混和蟑螂黃油",
+      "machine": "混合機",
+      "baseRate": 0.5,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "撒旦紅燴飯",
+      "processName": "混和蟑螂奶油",
+      "machine": "混合機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "撒旦紅燴飯",
+      "processName": "攪拌蟑螂奶(黃油專線)",
+      "machine": "攪拌機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "撒旦紅燴飯",
+      "processName": "採收水稻",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "撒旦紅燴飯",
+      "processName": "採收·椒",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "撒旦紅燴飯",
+      "processName": "開採鹽",
+      "machine": "採掘機",
+      "baseRate": 0.1666666667,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "撒旦紅燴飯",
+      "processName": "重構泥沼蟑螂",
+      "machine": "物質操縱機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "幽靈肉汁奶酪薯條",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "幽靈肉汁奶酪薯條",
+      "processName": "炸薯條",
+      "machine": "油炸鍋",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "幽靈肉汁奶酪薯條",
+      "processName": "擠出生薯條",
+      "machine": "擠出機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "幽靈肉汁奶酪薯條",
+      "processName": "採收土豆",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "幽靈肉汁奶酪薯條",
+      "processName": "研磨芝士碎",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "幽靈肉汁奶酪薯條",
+      "processName": "發酵軟質奶酪",
+      "machine": "發酵罐",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "幽靈肉汁奶酪薯條",
+      "processName": "攪拌蟑螂奶",
+      "machine": "攪拌機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "幽靈肉汁奶酪薯條",
+      "processName": "重構泥沼蟑螂",
+      "machine": "物質操縱機",
+      "baseRate": 2.0,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "幽靈肉汁奶酪薯條",
+      "processName": "肉汁",
+      "machine": "攪拌機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "幽靈肉汁奶酪薯條",
+      "processName": "採收洋蔥蔥",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "幽靈肉汁奶酪薯條",
+      "processName": "採收小蒜",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "幽靈肉汁奶酪薯條",
+      "processName": "開採香豆蔻",
+      "machine": "採掘機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "幽靈肉汁奶酪薯條",
+      "processName": "開採鹽",
+      "machine": "採掘機",
+      "baseRate": 0.1818181818,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "痛擊漢堡",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "痛擊漢堡",
+      "processName": "絞碎史萊姆",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "痛擊漢堡",
+      "processName": "重構綠色史萊姆",
+      "machine": "物質操縱機",
+      "baseRate": 0.4,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "痛擊漢堡",
+      "processName": "炸薯條",
+      "machine": "油炸鍋",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "痛擊漢堡",
+      "processName": "擠出生薯條",
+      "machine": "擠出機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "痛擊漢堡",
+      "processName": "採收土豆",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "痛擊漢堡",
+      "processName": "研磨芝士碎",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "痛擊漢堡",
+      "processName": "發酵軟質奶酪",
+      "machine": "發酵罐",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "痛擊漢堡",
+      "processName": "攪拌蟑螂奶",
+      "machine": "攪拌機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "痛擊漢堡",
+      "processName": "重構泥沼蟑螂",
+      "machine": "物質操縱機",
+      "baseRate": 2.0,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "痛擊漢堡",
+      "processName": "烘烤麵包",
+      "machine": "烤箱",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "痛擊漢堡",
+      "processName": "混和麵包麵團",
+      "machine": "混合機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "痛擊漢堡",
+      "processName": "研磨骨粉",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "痛擊漢堡",
+      "processName": "重構巫妖骸骨",
+      "machine": "物質操縱機",
+      "baseRate": 0.4,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "痛擊漢堡",
+      "processName": "研磨粉塵",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "痛擊漢堡",
+      "processName": "採收粉塵底料",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "痛擊漢堡",
+      "processName": "開採鹽",
+      "machine": "採掘機",
+      "baseRate": 0.1818181818,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "刺菠蘿披薩",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "刺菠蘿披薩",
+      "processName": "塔瑪茄醬",
+      "machine": "攪拌機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "刺菠蘿披薩",
+      "processName": "採收塔瑪茄",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "刺菠蘿披薩",
+      "processName": "採收日桂葉",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "刺菠蘿披薩",
+      "processName": "採收刺菠蘿",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "刺菠蘿披薩",
+      "processName": "炸薯條",
+      "machine": "油炸鍋",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "刺菠蘿披薩",
+      "processName": "擠出生薯條",
+      "machine": "擠出機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "刺菠蘿披薩",
+      "processName": "採收土豆",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "刺菠蘿披薩",
+      "processName": "研磨芝士碎",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "刺菠蘿披薩",
+      "processName": "發酵軟質奶酪",
+      "machine": "發酵罐",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "刺菠蘿披薩",
+      "processName": "攪拌蟑螂奶",
+      "machine": "攪拌機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "刺菠蘿披薩",
+      "processName": "重構泥沼蟑螂",
+      "machine": "物質操縱機",
+      "baseRate": 2.0,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "刺菠蘿披薩",
+      "processName": "烘烤麵包",
+      "machine": "烤箱",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "刺菠蘿披薩",
+      "processName": "混和麵包麵團",
+      "machine": "混合機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "刺菠蘿披薩",
+      "processName": "研磨骨粉",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "刺菠蘿披薩",
+      "processName": "重構巫妖骸骨",
+      "machine": "物質操縱機",
+      "baseRate": 0.4,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "刺菠蘿披薩",
+      "processName": "研磨粉塵",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "刺菠蘿披薩",
+      "processName": "採收粉塵底料",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "刺菠蘿披薩",
+      "processName": "開採鹽",
+      "machine": "採掘機",
+      "baseRate": 0.1818181818,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "殺手薄餅",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "殺手薄餅",
+      "processName": "塔瑪茄醬",
+      "machine": "攪拌機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "殺手薄餅",
+      "processName": "採收塔瑪茄",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "殺手薄餅",
+      "processName": "採收日桂葉",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "殺手薄餅",
+      "processName": "烘烤玉米餅",
+      "machine": "烤箱",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "殺手薄餅",
+      "processName": "混和生玉米餅",
+      "machine": "混合機",
+      "baseRate": 0.5,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "殺手薄餅",
+      "processName": "研磨骨粉",
+      "machine": "研磨機",
+      "baseRate": 2.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "殺手薄餅",
+      "processName": "重構巫妖骸骨",
+      "machine": "物質操縱機",
+      "baseRate": 0.8,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "殺手薄餅",
+      "processName": "絞碎史萊姆",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "殺手薄餅",
+      "processName": "重構綠色史萊姆",
+      "machine": "物質操縱機",
+      "baseRate": 0.4,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "殺手薄餅",
+      "processName": "研磨芝士碎",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "殺手薄餅",
+      "processName": "發酵軟質奶酪",
+      "machine": "發酵罐",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "殺手薄餅",
+      "processName": "攪拌蟑螂奶(奶酪專線)",
+      "machine": "攪拌機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "殺手薄餅",
+      "processName": "混和蟑螂奶油",
+      "machine": "混合機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "殺手薄餅",
+      "processName": "攪拌蟑螂奶(奶油專線)",
+      "machine": "攪拌機",
+      "baseRate": 0.5,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "殺手薄餅",
+      "processName": "重構泥沼蟑螂",
+      "machine": "物質操縱機",
+      "baseRate": 0.6666666667,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "殺手薄餅",
+      "processName": "開採鹽",
+      "machine": "採掘機",
+      "baseRate": 0.1818181818,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "混亂日式炒飯",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "混亂日式炒飯",
+      "processName": "打工小妖炒飯",
+      "machine": "油炸鍋",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "混亂日式炒飯",
+      "processName": "採收水稻",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "混亂日式炒飯",
+      "processName": "重構蛇蛋",
+      "machine": "物質操縱機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "混亂日式炒飯",
+      "processName": "開採香豆蔻",
+      "machine": "採掘機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "混亂日式炒飯",
+      "processName": "採收小蒜",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "爆烈雞肉飯",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "爆烈雞肉飯",
+      "processName": "打工小妖炒飯",
+      "machine": "油炸鍋",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "爆烈雞肉飯",
+      "processName": "採收水稻",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "爆烈雞肉飯",
+      "processName": "剝皮鷹身女妖肉",
+      "machine": "擠出機",
+      "baseRate": 0.25,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "爆烈雞肉飯",
+      "processName": "重構鷹身女妖翅膀",
+      "machine": "物質操縱機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "爆烈雞肉飯",
+      "processName": "炙烈紅油",
+      "machine": "注入機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "爆烈雞肉飯",
+      "processName": "採收辣椒",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "爆烈雞肉飯",
+      "processName": "混和辛辣沙沙醬",
+      "machine": "混合機",
+      "baseRate": 0.5,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "爆烈雞肉飯",
+      "processName": "採收洋蔥蔥",
+      "machine": "收割機",
+      "baseRate": 0.4,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "爆烈雞肉飯",
+      "processName": "採收塔瑪茄",
+      "machine": "收割機",
+      "baseRate": 0.4,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "爆烈雞肉飯",
+      "processName": "採收菠菜",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "驚嚇醃薑",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 3.0,
+      "order": 0
+    },
+    {
+      "dish": "驚嚇醃薑",
+      "processName": "注入醋",
+      "machine": "注入機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "驚嚇醃薑",
+      "processName": "發酵甘酒",
+      "machine": "發酵罐",
+      "baseRate": 0.5,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "驚嚇醃薑",
+      "processName": "採收水稻",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "驚嚇醃薑",
+      "processName": "採收姜姜",
+      "machine": "收割機",
+      "baseRate": 0.2,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    },
+    {
+      "dish": "驚嚇醃薑",
+      "processName": "研磨E127",
+      "machine": "研磨機",
+      "baseRate": 1.0,
+      "power": 1.0,
+      "goblins": 2.0,
+      "order": 0
+    },
+    {
+      "dish": "驚嚇醃薑",
+      "processName": "重構粉紅仙子",
+      "machine": "物質操縱機",
+      "baseRate": 0.4,
+      "power": 1.0,
+      "goblins": 1.0,
+      "order": 0
+    }
+  ],
+  "materials": [
+    {
+      "dish": "鮮紅濃湯",
+      "material": "塔瑪茄",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "鮮紅濃湯",
+      "material": "日桂葉",
+      "amount": 2.0,
+      "type": "固體"
+    },
+    {
+      "dish": "鮮紅濃湯",
+      "material": "豆肉蔻",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "鮮紅濃湯",
+      "material": "鹽",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "蜘蛛意式通心粉",
+      "material": "塔瑪茄",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "蜘蛛意式通心粉",
+      "material": "日桂葉",
+      "amount": 2.0,
+      "type": "固體"
+    },
+    {
+      "dish": "蜘蛛意式通心粉",
+      "material": "巫妖骸骨",
+      "amount": 0.5,
+      "type": "固體"
+    },
+    {
+      "dish": "蜘蛛意式通心粉",
+      "material": "蜘蛛蛋",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "蜘蛛意式通心粉",
+      "material": "水",
+      "amount": 1.0,
+      "type": "液體"
+    },
+    {
+      "dish": "惡鬼千層面",
+      "material": "巫妖骸骨",
+      "amount": 0.5,
+      "type": "固體"
+    },
+    {
+      "dish": "惡鬼千層面",
+      "material": "綠色史萊姆",
+      "amount": 0.5,
+      "type": "固體"
+    },
+    {
+      "dish": "幽靈肉醬意麵",
+      "material": "塔瑪茄",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "幽靈肉醬意麵",
+      "material": "日桂葉",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "幽靈肉醬意麵",
+      "material": "巫妖骸骨",
+      "amount": 0.5,
+      "type": "固體"
+    },
+    {
+      "dish": "幽靈肉醬意麵",
+      "material": "蜘蛛蛋",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "幽靈肉醬意麵",
+      "material": "綠色史萊姆",
+      "amount": 0.5,
+      "type": "固體"
+    },
+    {
+      "dish": "幽靈肉醬意麵",
+      "material": "水",
+      "amount": 1.0,
+      "type": "液體"
+    },
+    {
+      "dish": "哀嚎肉丸",
+      "material": "塔瑪茄",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "哀嚎肉丸",
+      "material": "日桂葉",
+      "amount": 2.0,
+      "type": "固體"
+    },
+    {
+      "dish": "哀嚎肉丸",
+      "material": "豆肉蔻",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "哀嚎肉丸",
+      "material": "綠色史萊姆",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "哀嚎肉丸",
+      "material": "油",
+      "amount": 1.0,
+      "type": "液體"
+    },
+    {
+      "dish": "哀嚎肉丸",
+      "material": "虛空",
+      "amount": 1.0,
+      "type": "液體"
+    },
+    {
+      "dish": "塔瑪茄炒蛋",
+      "material": "塔瑪茄",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "塔瑪茄炒蛋",
+      "material": "豆肉蔻",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "塔瑪茄炒蛋",
+      "material": "鹽",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "塔瑪茄炒蛋",
+      "material": "蜘蛛蛋",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "塔瑪茄炒蛋",
+      "material": "虛空",
+      "amount": 1.0,
+      "type": "液體"
+    },
+    {
+      "dish": "瘟疫青醬麵",
+      "material": "巫妖骸骨",
+      "amount": 0.5,
+      "type": "固體"
+    },
+    {
+      "dish": "瘟疫青醬麵",
+      "material": "蜘蛛蛋",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "瘟疫青醬麵",
+      "material": "日桂葉",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "瘟疫青醬麵",
+      "material": "豆肉蔻",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "瘟疫青醬麵",
+      "material": "鹽",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "瘟疫青醬麵",
+      "material": "水",
+      "amount": 1.0,
+      "type": "液體"
+    },
+    {
+      "dish": "瘟疫青醬麵",
+      "material": "虛空",
+      "amount": 2.0,
+      "type": "液體"
+    },
+    {
+      "dish": "煉獄魔蛋",
+      "material": "塔瑪茄",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "煉獄魔蛋",
+      "material": "日桂葉",
+      "amount": 2.0,
+      "type": "固體"
+    },
+    {
+      "dish": "煉獄魔蛋",
+      "material": "蜘蛛蛋",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "煉獄魔蛋",
+      "material": "油",
+      "amount": 1.0,
+      "type": "液體"
+    },
+    {
+      "dish": "煉獄魔蛋",
+      "material": "虛空",
+      "amount": 1.0,
+      "type": "液體"
+    },
+    {
+      "dish": "驚魂北非蛋",
+      "material": "塔瑪茄",
+      "amount": 2.0,
+      "type": "固體"
+    },
+    {
+      "dish": "驚魂北非蛋",
+      "material": "豆肉蔻",
+      "amount": 2.0,
+      "type": "固體"
+    },
+    {
+      "dish": "驚魂北非蛋",
+      "material": "日桂葉",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "驚魂北非蛋",
+      "material": "蜘蛛蛋",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "驚魂北非蛋",
+      "material": "油",
+      "amount": 1.0,
+      "type": "液體"
+    },
+    {
+      "dish": "驚魂北非蛋",
+      "material": "虛空",
+      "amount": 1.0,
+      "type": "液體"
+    },
+    {
+      "dish": "撕裂脆片蘸醬",
+      "material": "巫妖骸骨",
+      "amount": 0.25,
+      "type": "固體"
+    },
+    {
+      "dish": "撕裂脆片蘸醬",
+      "material": "塔瑪茄",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "撕裂脆片蘸醬",
+      "material": "日桂葉",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "撕裂脆片蘸醬",
+      "material": "鹽",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "撕裂脆片蘸醬",
+      "material": "油",
+      "amount": 1.5,
+      "type": "液體"
+    },
+    {
+      "dish": "撕裂脆片蘸醬",
+      "material": "虛空",
+      "amount": 1.0,
+      "type": "液體"
+    },
+    {
+      "dish": "惡臭農場蛋",
+      "material": "巫妖骸骨",
+      "amount": 0.25,
+      "type": "固體"
+    },
+    {
+      "dish": "惡臭農場蛋",
+      "material": "蜘蛛蛋",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "惡臭農場蛋",
+      "material": "塔瑪茄",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "惡臭農場蛋",
+      "material": "豆肉蔻",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "惡臭農場蛋",
+      "material": "·椒",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "惡臭農場蛋",
+      "material": "油",
+      "amount": 1.5,
+      "type": "液體"
+    },
+    {
+      "dish": "惡臭農場蛋",
+      "material": "虛空",
+      "amount": 2.0,
+      "type": "液體"
+    },
+    {
+      "dish": "致命玉米片",
+      "material": "巫妖骸骨",
+      "amount": 0.25,
+      "type": "固體"
+    },
+    {
+      "dish": "致命玉米片",
+      "material": "蜘蛛蛋",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "致命玉米片",
+      "material": "塔瑪茄",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "致命玉米片",
+      "material": "日桂葉",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "致命玉米片",
+      "material": "豆肉蔻",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "致命玉米片",
+      "material": "·椒",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "致命玉米片",
+      "material": "鹽",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "致命玉米片",
+      "material": "油",
+      "amount": 1.5,
+      "type": "液體"
+    },
+    {
+      "dish": "致命玉米片",
+      "material": "虛空",
+      "amount": 2.0,
+      "type": "液體"
+    },
+    {
+      "dish": "食屍鬼鮮莎莎",
+      "material": "塔瑪茄",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "食屍鬼鮮莎莎",
+      "material": "洋蔥蔥",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "食屍鬼鮮莎莎",
+      "material": "日桂葉",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "幽靈洋蔥湯",
+      "material": "洋蔥蔥",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "幽靈洋蔥湯",
+      "material": "日桂葉",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "幽靈洋蔥湯",
+      "material": "水",
+      "amount": 1.0,
+      "type": "液體"
+    },
+    {
+      "dish": "驚嚇炸洋蔥",
+      "material": "巫妖骸骨",
+      "amount": 0.5,
+      "type": "固體"
+    },
+    {
+      "dish": "驚嚇炸洋蔥",
+      "material": "蜘蛛蛋",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "驚嚇炸洋蔥",
+      "material": "洋蔥蔥",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "驚嚇炸洋蔥",
+      "material": "豆肉蔻",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "驚嚇炸洋蔥",
+      "material": "虛空",
+      "amount": 2.0,
+      "type": "液體"
+    },
+    {
+      "dish": "惡鬼千層面",
+      "material": "日桂葉",
+      "amount": 2.0,
+      "type": "固體"
+    },
+    {
+      "dish": "惡鬼千層面",
+      "material": "蜘蛛蛋",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "暗淡洋蔥花",
+      "material": "巫妖骸骨",
+      "amount": 0.5,
+      "type": "固體"
+    },
+    {
+      "dish": "暗淡洋蔥花",
+      "material": "蜘蛛蛋",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "暗淡洋蔥花",
+      "material": "洋蔥蔥",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "暗淡洋蔥花",
+      "material": "日桂葉",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "暗淡洋蔥花",
+      "material": "虛空",
+      "amount": 2.0,
+      "type": "液體"
+    },
+    {
+      "dish": "末日麵團",
+      "material": "巫妖骸骨",
+      "amount": 0.5,
+      "type": "固體"
+    },
+    {
+      "dish": "末日麵團",
+      "material": "蛇蛋",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "末日麵團",
+      "material": "小蒜",
+      "amount": 2.0,
+      "type": "固體"
+    },
+    {
+      "dish": "末日麵團",
+      "material": "歐琴",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "末日麵團",
+      "material": "水",
+      "amount": 0.5,
+      "type": "液體"
+    },
+    {
+      "dish": "末日麵團",
+      "material": "虛空",
+      "amount": 2.0,
+      "type": "液體"
+    },
+    {
+      "dish": "咒語餃子",
+      "material": "巫妖骸骨",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "咒語餃子",
+      "material": "蛇蛋",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "咒語餃子",
+      "material": "綠色史萊姆",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "咒語餃子",
+      "material": "泥沼蟑螂",
+      "amount": 0.6,
+      "type": "固體"
+    },
+    {
+      "dish": "咒語餃子",
+      "material": "土豆",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "咒語餃子",
+      "material": "鹽",
+      "amount": 2.0,
+      "type": "固體"
+    },
+    {
+      "dish": "咒語餃子",
+      "material": "水",
+      "amount": 0.5,
+      "type": "液體"
+    },
+    {
+      "dish": "咒語餃子",
+      "material": "虛空",
+      "amount": 4.0,
+      "type": "液體"
+    },
+    {
+      "dish": "末日麵團",
+      "material": "粉塵",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "墳墓茄包",
+      "material": "巫妖骸骨",
+      "amount": 0.5,
+      "type": "固體"
+    },
+    {
+      "dish": "墳墓茄包",
+      "material": "粉塵",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "墳墓茄包",
+      "material": "塔瑪茄",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "墳墓茄包",
+      "material": "小蒜",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "墳墓茄包",
+      "material": "鹽",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "墳墓茄包",
+      "material": "水",
+      "amount": 0.5,
+      "type": "液體"
+    },
+    {
+      "dish": "墳墓茄包",
+      "material": "虛空",
+      "amount": 1.0,
+      "type": "液體"
+    },
+    {
+      "dish": "暴徒烤麵包",
+      "material": "巫妖骸骨",
+      "amount": 0.5,
+      "type": "固體"
+    },
+    {
+      "dish": "暴徒烤麵包",
+      "material": "粉塵",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "暴徒烤麵包",
+      "material": "塔瑪茄",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "暴徒烤麵包",
+      "material": "歐琴",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "暴徒烤麵包",
+      "material": "香豆蔻",
+      "amount": 2.0,
+      "type": "固體"
+    },
+    {
+      "dish": "暴徒烤麵包",
+      "material": "水",
+      "amount": 0.5,
+      "type": "液體"
+    },
+    {
+      "dish": "暴徒烤麵包",
+      "material": "虛空",
+      "amount": 1.0,
+      "type": "液體"
+    },
+    {
+      "dish": "爛蛋約翰",
+      "material": "巫妖骸骨",
+      "amount": 0.5,
+      "type": "固體"
+    },
+    {
+      "dish": "爛蛋約翰",
+      "material": "蛇蛋",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "爛蛋約翰",
+      "material": "綠色史萊姆",
+      "amount": 0.5,
+      "type": "固體"
+    },
+    {
+      "dish": "爛蛋約翰",
+      "material": "粉塵",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "爛蛋約翰",
+      "material": "洋蔥蔥",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "爛蛋約翰",
+      "material": "水",
+      "amount": 0.5,
+      "type": "液體"
+    },
+    {
+      "dish": "爛蛋約翰",
+      "material": "虛空",
+      "amount": 3.0,
+      "type": "液體"
+    },
+    {
+      "dish": "怪物庫克先生",
+      "material": "巫妖骸骨",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "怪物庫克先生",
+      "material": "泥沼蟑螂",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "怪物庫克先生",
+      "material": "粉塵",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "怪物庫克先生",
+      "material": "鹽",
+      "amount": 2.2,
+      "type": "固體"
+    },
+    {
+      "dish": "怪物庫克先生",
+      "material": "水",
+      "amount": 1.0,
+      "type": "液體"
+    },
+    {
+      "dish": "怪物庫克先生",
+      "material": "虛空",
+      "amount": 4.0,
+      "type": "液體"
+    },
+    {
+      "dish": "墳墓土豆塊",
+      "material": "土豆",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "墳墓土豆塊",
+      "material": "香豆蔻",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "墳墓土豆塊",
+      "material": "小蒜",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "墳墓土豆塊",
+      "material": "塔瑪茄",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "墳墓土豆塊",
+      "material": "油",
+      "amount": 1.0,
+      "type": "液體"
+    },
+    {
+      "dish": "爆炸土豆塊",
+      "material": "土豆",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "爆炸土豆塊",
+      "material": "香豆蔻",
+      "amount": 2.0,
+      "type": "固體"
+    },
+    {
+      "dish": "爆炸土豆塊",
+      "material": "小蒜",
+      "amount": 2.0,
+      "type": "固體"
+    },
+    {
+      "dish": "爆炸土豆塊",
+      "material": "洋蔥蔥",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "爆炸土豆塊",
+      "material": "歐琴",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "奶酪飛濺盤",
+      "material": "鹽",
+      "amount": 0.6,
+      "type": "固體"
+    },
+    {
+      "dish": "奶酪飛濺盤",
+      "material": "泥沼蟑螂",
+      "amount": 0.5,
+      "type": "固體"
+    },
+    {
+      "dish": "奶酪飛濺盤",
+      "material": "巫妖骸骨",
+      "amount": 0.5,
+      "type": "固體"
+    },
+    {
+      "dish": "奶酪飛濺盤",
+      "material": "水",
+      "amount": 0.5,
+      "type": "液體"
+    },
+    {
+      "dish": "奶酪飛濺盤",
+      "material": "虛空",
+      "amount": 2.0,
+      "type": "液體"
+    },
+    {
+      "dish": "恐慌帕尼爾",
+      "material": "泥沼蟑螂",
+      "amount": 0.8,
+      "type": "固體"
+    },
+    {
+      "dish": "恐慌帕尼爾",
+      "material": "洋蔥蔥",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "恐慌帕尼爾",
+      "material": "小蒜",
+      "amount": 2.0,
+      "type": "固體"
+    },
+    {
+      "dish": "恐慌帕尼爾",
+      "material": "歐琴",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "恐慌帕尼爾",
+      "material": "香豆蔻",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "恐慌帕尼爾",
+      "material": "鹽",
+      "amount": 1.2,
+      "type": "固體"
+    },
+    {
+      "dish": "恐慌帕尼爾",
+      "material": "油",
+      "amount": 1.0,
+      "type": "液體"
+    },
+    {
+      "dish": "恐慌帕尼爾",
+      "material": "虛空",
+      "amount": 1.0,
+      "type": "液體"
+    },
+    {
+      "dish": "殺戮芝士麵",
+      "material": "泥沼蟑螂",
+      "amount": 0.6,
+      "type": "固體"
+    },
+    {
+      "dish": "殺戮芝士麵",
+      "material": "蛇蛋",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "殺戮芝士麵",
+      "material": "巫妖骸骨",
+      "amount": 0.5,
+      "type": "固體"
+    },
+    {
+      "dish": "殺戮芝士麵",
+      "material": "歐琴",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "殺戮芝士麵",
+      "material": "鹽",
+      "amount": 1.2,
+      "type": "固體"
+    },
+    {
+      "dish": "殺戮芝士麵",
+      "material": "水",
+      "amount": 1.5,
+      "type": "液體"
+    },
+    {
+      "dish": "殺戮芝士麵",
+      "material": "虛空",
+      "amount": 3.0,
+      "type": "液體"
+    },
+    {
+      "dish": "恐懼炸芝士",
+      "material": "巫妖骸骨",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "恐懼炸芝士",
+      "material": "蛇蛋",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "恐懼炸芝士",
+      "material": "泥沼蟑螂",
+      "amount": 0.4,
+      "type": "固體"
+    },
+    {
+      "dish": "恐懼炸芝士",
+      "material": "鹽",
+      "amount": 0.2,
+      "type": "固體"
+    },
+    {
+      "dish": "恐懼炸芝士",
+      "material": "粉塵",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "恐懼炸芝士",
+      "material": "水",
+      "amount": 0.5,
+      "type": "液體"
+    },
+    {
+      "dish": "恐懼炸芝士",
+      "material": "虛空",
+      "amount": 3.0,
+      "type": "液體"
+    },
+    {
+      "dish": "毒蘑菇·肉",
+      "material": "泥沼蟑螂",
+      "amount": 0.4,
+      "type": "固體"
+    },
+    {
+      "dish": "毒蘑菇·肉",
+      "material": "綠色史萊姆",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "毒蘑菇·肉",
+      "material": "洋蔥蔥",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "毒蘑菇·肉",
+      "material": "小蒜",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "毒蘑菇·肉",
+      "material": "致命傘菇",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "毒蘑菇·肉",
+      "material": "香豆蔻",
+      "amount": 2.0,
+      "type": "固體"
+    },
+    {
+      "dish": "毒蘑菇·肉",
+      "material": "鹽",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "毒蘑菇·肉",
+      "material": "虛空",
+      "amount": 2.0,
+      "type": "液體"
+    },
+    {
+      "dish": "罪人炒飯",
+      "material": "水稻",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "罪人炒飯",
+      "material": "小蒜",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "罪人炒飯",
+      "material": "香豆蔻",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "罪人炒飯",
+      "material": "油",
+      "amount": 2.0,
+      "type": "液體"
+    },
+    {
+      "dish": "骨味炸米團",
+      "material": "水稻",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "骨味炸米團",
+      "material": "鹽",
+      "amount": 0.2,
+      "type": "固體"
+    },
+    {
+      "dish": "骨味炸米團",
+      "material": "巫妖骸骨",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "骨味炸米團",
+      "material": "蛇蛋",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "骨味炸米團",
+      "material": "泥沼蟑螂",
+      "amount": 0.4,
+      "type": "固體"
+    },
+    {
+      "dish": "骨味炸米團",
+      "material": "粉塵",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "骨味炸米團",
+      "material": "水",
+      "amount": 0.5,
+      "type": "液體"
+    },
+    {
+      "dish": "撒旦紅燴飯",
+      "material": "水稻",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "撒旦紅燴飯",
+      "material": "·椒",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "撒旦紅燴飯",
+      "material": "塔瑪茄",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "撒旦紅燴飯",
+      "material": "日桂葉",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "撒旦紅燴飯",
+      "material": "鹽",
+      "amount": 1.2,
+      "type": "固體"
+    },
+    {
+      "dish": "撒旦紅燴飯",
+      "material": "泥沼蟑螂",
+      "amount": 0.6,
+      "type": "固體"
+    },
+    {
+      "dish": "撒旦紅燴飯",
+      "material": "水",
+      "amount": 0.5,
+      "type": "液體"
+    },
+    {
+      "dish": "撒旦紅燴飯",
+      "material": "虛空",
+      "amount": 1.0,
+      "type": "液體"
+    },
+    {
+      "dish": "幽靈肉汁奶酪薯條",
+      "material": "土豆",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "幽靈肉汁奶酪薯條",
+      "material": "洋蔥蔥",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "幽靈肉汁奶酪薯條",
+      "material": "小蒜",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "幽靈肉汁奶酪薯條",
+      "material": "香豆蔻",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "幽靈肉汁奶酪薯條",
+      "material": "鹽",
+      "amount": 1.1,
+      "type": "固體"
+    },
+    {
+      "dish": "幽靈肉汁奶酪薯條",
+      "material": "泥沼蟑螂",
+      "amount": 0.2,
+      "type": "固體"
+    },
+    {
+      "dish": "幽靈肉汁奶酪薯條",
+      "material": "油",
+      "amount": 1.0,
+      "type": "液體"
+    },
+    {
+      "dish": "幽靈肉汁奶酪薯條",
+      "material": "虛空",
+      "amount": 1.0,
+      "type": "液體"
+    },
+    {
+      "dish": "痛擊漢堡",
+      "material": "土豆",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "痛擊漢堡",
+      "material": "鹽",
+      "amount": 1.1,
+      "type": "固體"
+    },
+    {
+      "dish": "痛擊漢堡",
+      "material": "綠色史萊姆",
+      "amount": 0.5,
+      "type": "固體"
+    },
+    {
+      "dish": "痛擊漢堡",
+      "material": "泥沼蟑螂",
+      "amount": 0.2,
+      "type": "固體"
+    },
+    {
+      "dish": "痛擊漢堡",
+      "material": "巫妖骸骨",
+      "amount": 0.5,
+      "type": "固體"
+    },
+    {
+      "dish": "痛擊漢堡",
+      "material": "粉塵",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "痛擊漢堡",
+      "material": "油",
+      "amount": 1.0,
+      "type": "液體"
+    },
+    {
+      "dish": "痛擊漢堡",
+      "material": "水",
+      "amount": 0.5,
+      "type": "液體"
+    },
+    {
+      "dish": "痛擊漢堡",
+      "material": "虛空",
+      "amount": 3.0,
+      "type": "液體"
+    },
+    {
+      "dish": "刺菠蘿披薩",
+      "material": "土豆",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "刺菠蘿披薩",
+      "material": "鹽",
+      "amount": 1.1,
+      "type": "固體"
+    },
+    {
+      "dish": "刺菠蘿披薩",
+      "material": "刺菠蘿",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "刺菠蘿披薩",
+      "material": "塔瑪茄",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "刺菠蘿披薩",
+      "material": "日桂葉",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "刺菠蘿披薩",
+      "material": "泥沼蟑螂",
+      "amount": 0.2,
+      "type": "固體"
+    },
+    {
+      "dish": "刺菠蘿披薩",
+      "material": "巫妖骸骨",
+      "amount": 0.5,
+      "type": "固體"
+    },
+    {
+      "dish": "刺菠蘿披薩",
+      "material": "粉塵",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "刺菠蘿披薩",
+      "material": "油",
+      "amount": 1.0,
+      "type": "液體"
+    },
+    {
+      "dish": "刺菠蘿披薩",
+      "material": "水",
+      "amount": 0.5,
+      "type": "液體"
+    },
+    {
+      "dish": "刺菠蘿披薩",
+      "material": "虛空",
+      "amount": 2.0,
+      "type": "液體"
+    },
+    {
+      "dish": "殺手薄餅",
+      "material": "鹽",
+      "amount": 1.1,
+      "type": "固體"
+    },
+    {
+      "dish": "殺手薄餅",
+      "material": "塔瑪茄",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "殺手薄餅",
+      "material": "日桂葉",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "殺手薄餅",
+      "material": "巫妖骸骨",
+      "amount": 0.25,
+      "type": "固體"
+    },
+    {
+      "dish": "殺手薄餅",
+      "material": "綠色史萊姆",
+      "amount": 0.5,
+      "type": "固體"
+    },
+    {
+      "dish": "殺手薄餅",
+      "material": "泥沼蟑螂",
+      "amount": 0.6,
+      "type": "固體"
+    },
+    {
+      "dish": "殺手薄餅",
+      "material": "油",
+      "amount": 0.5,
+      "type": "液體"
+    },
+    {
+      "dish": "殺手薄餅",
+      "material": "虛空",
+      "amount": 3.0,
+      "type": "液體"
+    },
+    {
+      "dish": "混亂日式炒飯",
+      "material": "水稻",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "混亂日式炒飯",
+      "material": "蛇蛋",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "混亂日式炒飯",
+      "material": "香豆蔻",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "混亂日式炒飯",
+      "material": "小蒜",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "混亂日式炒飯",
+      "material": "油",
+      "amount": 2.0,
+      "type": "液體"
+    },
+    {
+      "dish": "混亂日式炒飯",
+      "material": "虛空",
+      "amount": 1.0,
+      "type": "液體"
+    },
+    {
+      "dish": "爆烈雞肉飯",
+      "material": "水稻",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "爆烈雞肉飯",
+      "material": "鷹身女妖翅膀",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "爆烈雞肉飯",
+      "material": "辣椒",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "爆烈雞肉飯",
+      "material": "菠菜",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "爆烈雞肉飯",
+      "material": "洋蔥蔥",
+      "amount": 0.5,
+      "type": "固體"
+    },
+    {
+      "dish": "爆烈雞肉飯",
+      "material": "塔瑪茄",
+      "amount": 0.5,
+      "type": "固體"
+    },
+    {
+      "dish": "爆烈雞肉飯",
+      "material": "油",
+      "amount": 1.0,
+      "type": "液體"
+    },
+    {
+      "dish": "爆烈雞肉飯",
+      "material": "虛空",
+      "amount": 1.0,
+      "type": "液體"
+    },
+    {
+      "dish": "驚嚇醃薑",
+      "material": "姜姜",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "驚嚇醃薑",
+      "material": "水稻",
+      "amount": 1.0,
+      "type": "固體"
+    },
+    {
+      "dish": "驚嚇醃薑",
+      "material": "粉紅仙子",
+      "amount": 0.5,
+      "type": "固體"
+    },
+    {
+      "dish": "驚嚇醃薑",
+      "material": "水",
+      "amount": 1.0,
+      "type": "液體"
+    },
+    {
+      "dish": "驚嚇醃薑",
+      "material": "虛空",
+      "amount": 1.0,
+      "type": "液體"
+    }
+  ]
+}

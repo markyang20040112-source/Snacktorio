@@ -1,0 +1,1650 @@
+[
+  {
+    "name": "物品管道",
+    "machine": "裝配機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "鐵",
+        "count": 1.0
+      },
+      {
+        "name": "玻璃",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 8.0,
+    "notes": "用於傳輸物品"
+  },
+  {
+    "name": "液體管道",
+    "machine": "裝配機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "橡膠",
+        "count": 1.0
+      },
+      {
+        "name": "玻璃",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 8.0,
+    "notes": "用於傳輸液體"
+  },
+  {
+    "name": "電線",
+    "machine": "裝配機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "鐵",
+        "count": 1.0
+      },
+      {
+        "name": "橡膠",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 8.0,
+    "notes": "用於傳輸電力"
+  },
+  {
+    "name": "梯子",
+    "machine": "裝配機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "鐵",
+        "count": 1.0
+      },
+      {
+        "name": "煤炭",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 8.0,
+    "notes": "用於攀爬"
+  },
+  {
+    "name": "腳手架",
+    "machine": "裝配機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "鐵",
+        "count": 1.0
+      },
+      {
+        "name": "煤炭",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 8.0,
+    "notes": "作為實體方塊使用"
+  },
+  {
+    "name": "平台",
+    "machine": "裝配機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "鐵",
+        "count": 1.0
+      },
+      {
+        "name": "煤炭",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 8.0,
+    "notes": "可從頂部往下穿的實體"
+  },
+  {
+    "name": "彈簧板",
+    "machine": "裝配機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "鐵",
+        "count": 1.0
+      },
+      {
+        "name": "橡膠",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 8.0,
+    "notes": "使角色彈跳更高"
+  },
+  {
+    "name": "傳送帶",
+    "machine": "裝配機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "鐵",
+        "count": 1.0
+      },
+      {
+        "name": "橡膠",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 8.0,
+    "notes": "水平傳輸物品"
+  },
+  {
+    "name": "綠色史萊姆",
+    "machine": "物質操縱機",
+    "fluidType": "虛空",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "任意物品",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "消耗任意物品與虛空等價轉換"
+  },
+  {
+    "name": "巫妖骸骨",
+    "machine": "物質操縱機",
+    "fluidType": "虛空",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "任意物品",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "消耗任意物品與虛空等價轉換"
+  },
+  {
+    "name": "蜘蛛蛋",
+    "machine": "物質操縱機",
+    "fluidType": "虛空",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "任意物品",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "消耗任意物品與虛空等價轉換"
+  },
+  {
+    "name": "蛇蛋",
+    "machine": "物質操縱機",
+    "fluidType": "虛空",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "任意物品",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "消耗任意物品與虛空等價轉換"
+  },
+  {
+    "name": "泥沼蟑螂",
+    "machine": "物質操縱機",
+    "fluidType": "虛空",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "任意物品",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 2.0,
+    "notes": "特殊雙倍產量配方"
+  },
+  {
+    "name": "虛空汙泥",
+    "machine": "物質操縱機",
+    "fluidType": "虛空",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "無(空載)",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "未輸入物品或未設定產物時自動凝結"
+  },
+  {
+    "name": "鐵",
+    "machine": "烤箱",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "鐵礦石",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "冶煉製程"
+  },
+  {
+    "name": "玻璃",
+    "machine": "烤箱",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "沙塊",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "燒製製程"
+  },
+  {
+    "name": "麵包",
+    "machine": "烤箱",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "發酵麵糰",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "烘焙製程"
+  },
+  {
+    "name": "煮熟的通心粉",
+    "machine": "煮鍋",
+    "fluidType": "水",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "生通心粉",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "水煮熟化"
+  },
+  {
+    "name": "煮熟的千層麵皮",
+    "machine": "煮鍋",
+    "fluidType": "水",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "生千層麵",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "水煮熟化"
+  },
+  {
+    "name": "煮熟的義大利麵",
+    "machine": "煮鍋",
+    "fluidType": "水",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "生義大利麵",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "水煮熟化"
+  },
+  {
+    "name": "塔瑪茄醬",
+    "machine": "攪拌機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "塔瑪茄",
+        "count": 1.0
+      },
+      {
+        "name": "日桂葉",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 5.0,
+    "notes": "每5秒消耗塔瑪茄x1與日桂葉x1，持續產出塔瑪茄醬液體"
+  },
+  {
+    "name": "骨粉",
+    "machine": "研磨機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "巫妖骸骨",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 2.0,
+    "outputCount": 2.0,
+    "notes": "將1個巫妖骸骨研磨成2個骨粉"
+  },
+  {
+    "name": "義大利麵團",
+    "machine": "混合機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "骨粉",
+        "count": 1.0
+      },
+      {
+        "name": "蜘蛛蛋",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 4.0,
+    "outputCount": 1.0,
+    "notes": "骨粉x1與蜘蛛蛋x1混合成義大利麵團"
+  },
+  {
+    "name": "生通心粉",
+    "machine": "擠出機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "義大利麵團",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 4.0,
+    "outputCount": 1.0,
+    "notes": "將義大利麵團擠出成型為生通心粉"
+  },
+  {
+    "name": "生千層麵",
+    "machine": "擠出機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "義大利麵團",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 4.0,
+    "outputCount": 1.0,
+    "notes": "將義大利麵團擠出成型為生千層麵皮"
+  },
+  {
+    "name": "史萊姆肉餡",
+    "machine": "研磨機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "綠色史萊姆",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 2.0,
+    "outputCount": 2.0,
+    "notes": "將1個綠色史萊姆絞碎成2個史萊姆肉餡"
+  },
+  {
+    "name": "塔瑪茄",
+    "machine": "收割機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "塔瑪茄植株",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "收割機採收自然生長之塔瑪茄"
+  },
+  {
+    "name": "日桂葉",
+    "machine": "收割機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "日桂葉植株",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "收割機採收生長於石頭之日桂葉"
+  },
+  {
+    "name": "豆肉蔻",
+    "machine": "採掘機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "豆肉蔻(礦石方塊)",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "採掘機開採香料礦石，具過敏原特性"
+  },
+  {
+    "name": "鹽",
+    "machine": "採掘機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "鹽(礦石方塊)",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "採掘機開採鹽礦石"
+  },
+  {
+    "name": "生史萊姆肉丸",
+    "machine": "混合機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "綠色史萊姆",
+        "count": 1.0
+      },
+      {
+        "name": "豆肉蔻",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 4.0,
+    "outputCount": 1.0,
+    "notes": "綠色史萊姆與豆肉蔻混和製成生肉丸"
+  },
+  {
+    "name": "炸史萊姆肉丸",
+    "machine": "油炸鍋",
+    "fluidType": "油",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "生史萊姆肉丸",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "在油中炸成炸史萊姆肉丸"
+  },
+  {
+    "name": "炒蜘蛛蛋",
+    "machine": "混合機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "蜘蛛蛋",
+        "count": 1.0
+      },
+      {
+        "name": "鹽",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 4.0,
+    "outputCount": 1.0,
+    "notes": "蜘蛛蛋與鹽混和製成炒蜘蛛蛋"
+  },
+  {
+    "name": "青醬",
+    "machine": "攪拌機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "日桂葉",
+        "count": 1.0
+      },
+      {
+        "name": "豆肉蔻",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 5.0,
+    "notes": "日桂葉x1與豆肉蔻x1於攪拌機攪打成青醬"
+  },
+  {
+    "name": "炸蜘蛛蛋",
+    "machine": "油炸鍋",
+    "fluidType": "油",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "蜘蛛蛋",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "在油中炸成炸蜘蛛蛋"
+  },
+  {
+    "name": "塔瑪茄泥",
+    "machine": "混合機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "塔瑪茄",
+        "count": 1.0
+      },
+      {
+        "name": "豆肉蔻",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 4.0,
+    "outputCount": 1.0,
+    "notes": "塔瑪茄與豆肉蔻混和製成"
+  },
+  {
+    "name": "生玉米餅",
+    "machine": "混合機",
+    "fluidType": "油",
+    "fluidRate": 0.5,
+    "inputs": [
+      {
+        "name": "骨粉",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 4.0,
+    "outputCount": 2.0,
+    "notes": "骨粉與油混和製成生玉米餅(雙倍產量)"
+  },
+  {
+    "name": "玉米餅",
+    "machine": "烤箱",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "生玉米餅",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "烘烤成玉米餅"
+  },
+  {
+    "name": "多林多滋",
+    "machine": "油炸鍋",
+    "fluidType": "油",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "玉米餅",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "在油中炸成多林多滋脆片"
+  },
+  {
+    "name": "麵糊",
+    "machine": "攪拌機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "骨粉",
+        "count": 1.0
+      },
+      {
+        "name": "蜘蛛蛋",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 5.0,
+    "notes": "骨粉x1與蜘蛛蛋x1於攪拌機攪打成麵糊"
+  },
+  {
+    "name": "麵包麵團",
+    "machine": "混合機",
+    "fluidType": "水",
+    "fluidRate": 0.5,
+    "inputs": [
+      {
+        "name": "骨粉",
+        "count": 1.0
+      },
+      {
+        "name": "粉塵",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 4.0,
+    "outputCount": 1.0,
+    "notes": "骨粉、粉塵與水於混和機製成，放置15秒發酵為發酵麵糰"
+  },
+  {
+    "name": "蒜泥蛋醬",
+    "machine": "混合機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "蛇蛋",
+        "count": 1.0
+      },
+      {
+        "name": "小蒜",
+        "count": 1.0
+      },
+      {
+        "name": "歐琴",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 5.0,
+    "notes": "蛇蛋、小蒜與歐琴於攪拌機攪打成蒜泥蛋醬"
+  },
+  {
+    "name": "義大利麵團",
+    "machine": "混合機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "骨粉",
+        "count": 1.0
+      },
+      {
+        "name": "蛇蛋",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 4.0,
+    "outputCount": 1.0,
+    "notes": "骨粉與蛇蛋於混合機製成義大利麵團"
+  },
+  {
+    "name": "蟑螂奶",
+    "machine": "攪拌機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "泥沼蟑螂",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 5.0,
+    "notes": "泥沼蟑螂於攪拌機攪打成蟑螂奶"
+  },
+  {
+    "name": "蟑螂奶油",
+    "machine": "混合機",
+    "fluidType": "蟑螂奶",
+    "fluidRate": 0.5,
+    "inputs": [
+      {
+        "name": "鹽",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 4.0,
+    "outputCount": 1.0,
+    "notes": "鹽與蟑螂奶於混合機混和製成，每4秒消耗2fl蟑螂奶(持續流率0.5 fl/s)，具30秒發酵腐壞限制"
+  },
+  {
+    "name": "蟑螂黃油",
+    "machine": "混合機",
+    "fluidType": "水",
+    "fluidRate": 0.5,
+    "inputs": [
+      {
+        "name": "蟑螂奶油",
+        "count": 1.0
+      },
+      {
+        "name": "鹽",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 4.0,
+    "outputCount": 2.0,
+    "notes": "蟑螂奶油、鹽與水混和製成蟑螂黃油(雙倍產量)"
+  },
+  {
+    "name": "白醬",
+    "machine": "攪拌機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "蟑螂黃油",
+        "count": 1.0
+      },
+      {
+        "name": "蟑螂奶油",
+        "count": 1.0
+      },
+      {
+        "name": "骨粉",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 5.0,
+    "notes": "蟑螂黃油、蟑螂奶油與骨粉於攪拌機製成白醬"
+  },
+  {
+    "name": "塔瑪茄泥",
+    "machine": "混合機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "塔瑪茄",
+        "count": 1.0
+      },
+      {
+        "name": "香豆蔻",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 4.0,
+    "outputCount": 1.0,
+    "notes": "塔瑪茄與香豆蔻於混合機製成塔瑪茄泥"
+  },
+  {
+    "name": "青醬",
+    "machine": "攪拌機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "歐琴",
+        "count": 1.0
+      },
+      {
+        "name": "香豆蔻",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 5.0,
+    "notes": "歐琴與香豆蔻於攪拌機製成青醬"
+  },
+  {
+    "name": "軟質奶酪",
+    "machine": "發酵罐",
+    "fluidType": "蟑螂奶",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "鹽",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 10.0,
+    "outputCount": 5.0,
+    "notes": "鹽與蟑螂奶於發酵罐製成，放置20秒熟成為中等熟成奶酪"
+  },
+  {
+    "name": "肉汁",
+    "machine": "攪拌機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "洋蔥蔥",
+        "count": 1.0
+      },
+      {
+        "name": "小蒜",
+        "count": 1.0
+      },
+      {
+        "name": "香豆蔻",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 5.0,
+    "notes": "洋蔥蔥、小蒜與香豆蔻於攪拌機攪打成肉汁持續流體 (1 fl/s)"
+  },
+  {
+    "name": "炸小蒜",
+    "machine": "油炸鍋",
+    "fluidType": "油",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "小蒜",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "在油中炸成炸小蒜，具氣味刺鼻屬性"
+  },
+  {
+    "name": "麵包糠",
+    "machine": "研磨機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "麵包",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 2.0,
+    "outputCount": 1.0,
+    "notes": "將麵包磨成麵包糠，用於恐懼炸芝士"
+  },
+  {
+    "name": "打工小妖炒飯",
+    "machine": "油炸鍋",
+    "fluidType": "油",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "水稻",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "水稻於油炸鍋在油中炒製而成，用於組裝罪人炒飯"
+  },
+  {
+    "name": "生薯條",
+    "machine": "擠出機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "土豆",
+        "count": 1.0
+      },
+      {
+        "name": "鹽",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 4.0,
+    "outputCount": 1.0,
+    "notes": "將土豆與鹽經擠出機成型為生薯條"
+  },
+  {
+    "name": "薯條",
+    "machine": "油炸鍋",
+    "fluidType": "油",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "生薯條",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "生薯條於油中炸成薯條"
+  },
+  {
+    "name": "芝士碎",
+    "machine": "研磨機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "中等熟成奶酪",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 2.0,
+    "outputCount": 2.0,
+    "notes": "將中等熟成奶酪研磨成芝士碎(每次2個)"
+  },
+  {
+    "name": "生鷹身女妖肉",
+    "machine": "擠出機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "鷹身女妖翅膀",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 4.0,
+    "outputCount": 1.0,
+    "notes": "鷹身女妖翅膀經擠出機剝皮成生肉"
+  },
+  {
+    "name": "炙烈紅油",
+    "machine": "注入機",
+    "fluidType": "油",
+    "fluidRate": 2.0,
+    "inputs": [
+      {
+        "name": "辣椒",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "辣椒注入油池原位轉化為炙烈紅油，需泵機抽取輸送"
+  },
+  {
+    "name": "辛辣沙沙醬",
+    "machine": "混合機",
+    "fluidType": "炙烈紅油",
+    "fluidRate": 0.5,
+    "inputs": [
+      {
+        "name": "洋蔥蔥",
+        "count": 1.0
+      },
+      {
+        "name": "塔瑪茄",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 4.0,
+    "outputCount": 2.0,
+    "notes": "洋蔥蔥、塔瑪茄與炙烈紅油混和製成辛辣沙沙醬(雙倍產量)"
+  },
+  {
+    "name": "甘酒",
+    "machine": "發酵罐",
+    "fluidType": "水",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "水稻",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 10.0,
+    "outputCount": 5.0,
+    "notes": "水稻於發酵罐在水中發酵製成甘酒"
+  },
+  {
+    "name": "醋",
+    "machine": "注入機",
+    "fluidType": "水",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "甘酒",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "甘酒通過注入機於水池原位轉化製成醋(不需外採抽水管線)"
+  },
+  {
+    "name": "粉紅仙子",
+    "machine": "物質操縱機",
+    "fluidType": "虛空",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "消耗任意物品與虛空等價重構為粉紅仙子(5秒1個)"
+  },
+  {
+    "name": "E127",
+    "machine": "研磨機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "粉紅仙子",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 2.0,
+    "outputCount": 2.0,
+    "notes": "粉紅仙子於研磨機研磨成E127(雙倍產量)，具氣味刺鼻屬性"
+  }
+]

@@ -1,0 +1,1094 @@
+[
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "鮮紅濃湯",
+    "machine": "自動廚師機",
+    "fluidType": "塔瑪茄醬",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "豆肉蔻",
+        "count": 1.0
+      },
+      {
+        "name": "鹽",
+        "count": 1.0
+      },
+      {
+        "name": "日桂葉",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "需持續通入攪拌機產出之塔瑪茄醬(1 fl/s)；含有過敏原(豆肉蔻)。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "蜘蛛意式通心粉",
+    "machine": "自動廚師機",
+    "fluidType": "塔瑪茄醬",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "煮熟的通心粉",
+        "count": 1.0
+      },
+      {
+        "name": "日桂葉",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "需持續通入塔瑪茄醬(1 fl/s)；由蜘蛛蛋與骨粉製成通心粉。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "惡鬼千層面",
+    "machine": "自動廚師機",
+    "fluidType": "塔瑪茄醬",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "煮熟的千層麵皮",
+        "count": 1.0
+      },
+      {
+        "name": "史萊姆肉餡",
+        "count": 1.0
+      },
+      {
+        "name": "日桂葉",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "需持續通入塔瑪茄醬(1 fl/s)；廚師機固體食材配比皆為 1:1。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "幽靈肉醬意麵",
+    "machine": "自動廚師機",
+    "fluidType": "塔瑪茄醬",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "煮熟的義大利麵",
+        "count": 1.0
+      },
+      {
+        "name": "史萊姆肉餡",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "需通入塔瑪茄醬(1 fl/s)；由熟義大利麵、史萊姆肉餡組裝而成。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "哀嚎肉丸",
+    "machine": "自動廚師機",
+    "fluidType": "塔瑪茄醬",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "炸史萊姆肉丸",
+        "count": 1.0
+      },
+      {
+        "name": "日桂葉",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "需持續通入塔瑪茄醬(1 fl/s)；由炸史萊姆肉丸與日桂葉組裝而成。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "塔瑪茄炒蛋",
+    "machine": "自動廚師機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "炒蜘蛛蛋",
+        "count": 1.0
+      },
+      {
+        "name": "塔瑪茄",
+        "count": 1.0
+      },
+      {
+        "name": "豆肉蔻",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "無需通入液體；由炒蜘蛛蛋、塔瑪茄與豆肉蔻組裝而成。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "瘟疫青醬麵",
+    "machine": "自動廚師機",
+    "fluidType": "青醬",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "煮熟的通心粉",
+        "count": 1.0
+      },
+      {
+        "name": "鹽",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "需持續通入青醬(1 fl/s)；由煮熟的通心粉與鹽組裝而成。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "煉獄魔蛋",
+    "machine": "自動廚師機",
+    "fluidType": "塔瑪茄醬",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "炸蜘蛛蛋",
+        "count": 1.0
+      },
+      {
+        "name": "日桂葉",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "需持續通入塔瑪茄醬(1 fl/s)；由炸蜘蛛蛋與日桂葉組裝而成。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "驚魂北非蛋",
+    "machine": "自動廚師機",
+    "fluidType": "塔瑪茄醬",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "炸蜘蛛蛋",
+        "count": 1.0
+      },
+      {
+        "name": "塔瑪茄泥",
+        "count": 1.0
+      },
+      {
+        "name": "豆肉蔻",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "需持續通入塔瑪茄醬(1 fl/s)；由炸蜘蛛蛋、塔瑪茄泥與豆肉蔻組裝而成。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "撕裂脆片蘸醬",
+    "machine": "自動廚師機",
+    "fluidType": "塔瑪茄醬",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "多林多滋",
+        "count": 1.0
+      },
+      {
+        "name": "鹽",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "需持續通入塔瑪茄醬(1 fl/s)；由多林多滋與鹽組裝而成。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "惡臭農場蛋",
+    "machine": "自動廚師機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "玉米餅",
+        "count": 1.0
+      },
+      {
+        "name": "塔瑪茄泥",
+        "count": 1.0
+      },
+      {
+        "name": "炸蜘蛛蛋",
+        "count": 1.0
+      },
+      {
+        "name": "·椒",
+        "count": 1.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "無需通入液體；由玉米餅、塔瑪茄泥、炸蜘蛛蛋與·椒組裝而成。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "致命玉米片",
+    "machine": "自動廚師機",
+    "fluidType": "塔瑪茄醬",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "多林多滋",
+        "count": 1.0
+      },
+      {
+        "name": "炒蜘蛛蛋",
+        "count": 1.0
+      },
+      {
+        "name": "豆肉蔻",
+        "count": 1.0
+      },
+      {
+        "name": "·椒",
+        "count": 1.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "需持續通入塔瑪茄醬(1 fl/s)；由多林多滋、炒蜘蛛蛋、豆肉蔻與·椒組裝而成。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "食屍鬼鮮莎莎",
+    "machine": "自動廚師機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "塔瑪茄",
+        "count": 1.0
+      },
+      {
+        "name": "洋蔥蔥",
+        "count": 1.0
+      },
+      {
+        "name": "日桂葉",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "無需通入液體；由塔瑪茄、洋蔥蔥與日桂葉直接組裝而成。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "幽靈洋蔥湯",
+    "machine": "自動廚師機",
+    "fluidType": "水",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "洋蔥蔥",
+        "count": 1.0
+      },
+      {
+        "name": "日桂葉",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "需持續通入水(1 fl/s)；由洋蔥蔥與日桂葉組裝而成。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "驚嚇炸洋蔥",
+    "machine": "自動廚師機",
+    "fluidType": "麵糊",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "洋蔥蔥",
+        "count": 1.0
+      },
+      {
+        "name": "豆肉蔻",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "需持續通入麵糊(1 fl/s)；由洋蔥蔥與豆肉寇組裝而成。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "暗淡洋蔥花",
+    "machine": "自動廚師機",
+    "fluidType": "麵糊",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "洋蔥蔥",
+        "count": 1.0
+      },
+      {
+        "name": "日桂葉",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "需持續通入麵糊(1 fl/s)；由洋蔥蔥與日桂葉組裝而成。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "末日麵團",
+    "machine": "自動廚師機",
+    "fluidType": "蒜泥蛋醬",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "麵包",
+        "count": 1.0
+      },
+      {
+        "name": "小蒜",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "需持續通入蒜泥蛋醬(1 fl/s)；由麵包與小蒜組裝而成；帶有氣味刺鼻屬性。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "咒語餃子",
+    "machine": "自動廚師機",
+    "fluidType": "白醬",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "綠色史萊姆",
+        "count": 1.0
+      },
+      {
+        "name": "義大利麵團",
+        "count": 1.0
+      },
+      {
+        "name": "土豆",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "需持續通入白醬(1 fl/s)；由綠色史萊姆、義大利麵團與土豆組裝而成。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "墳墓茄包",
+    "machine": "自動廚師機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "麵包",
+        "count": 1.0
+      },
+      {
+        "name": "塔瑪茄",
+        "count": 1.0
+      },
+      {
+        "name": "小蒜",
+        "count": 1.0
+      },
+      {
+        "name": "鹽",
+        "count": 1.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "無需通入液體；由麵包、塔瑪茄、小蒜與鹽組裝而成。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "暴徒烤麵包",
+    "machine": "自動廚師機",
+    "fluidType": "青醬",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "麵包",
+        "count": 1.0
+      },
+      {
+        "name": "塔瑪茄泥",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "需持續通入青醬(1 fl/s)；由麵包與塔瑪茄泥組裝而成。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "爛蛋約翰",
+    "machine": "自動廚師機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "麵包",
+        "count": 1.0
+      },
+      {
+        "name": "臭蛇蛋",
+        "count": 1.0
+      },
+      {
+        "name": "史萊姆肉餡",
+        "count": 1.0
+      },
+      {
+        "name": "洋蔥蔥",
+        "count": 1.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "無需通入液體；由麵包、臭蛇蛋、史萊姆肉餡與洋蔥蔥組裝而成；需精確規劃蛇蛋30秒腐壞時序。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "怪物庫克先生",
+    "machine": "自動廚師機",
+    "fluidType": "白醬",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "麵包",
+        "count": 1.0
+      },
+      {
+        "name": "中等熟成奶酪",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "需持續通入白醬(1 fl/s)；由麵包與中等熟成奶酪組裝而成。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "墳墓土豆塊",
+    "machine": "自動廚師機",
+    "fluidType": "油",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "土豆",
+        "count": 1.0
+      },
+      {
+        "name": "香豆蔻",
+        "count": 1.0
+      },
+      {
+        "name": "小蒜",
+        "count": 1.0
+      },
+      {
+        "name": "塔瑪茄",
+        "count": 1.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "需持續通入油(1 fl/s)；由土豆、香豆蔻、小蒜與塔瑪茄組裝而成；含有氣味刺鼻原料。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "爆炸土豆塊",
+    "machine": "自動廚師機",
+    "fluidType": "肉汁",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "土豆",
+        "count": 1.0
+      },
+      {
+        "name": "香豆蔻",
+        "count": 1.0
+      },
+      {
+        "name": "小蒜",
+        "count": 1.0
+      },
+      {
+        "name": "歐琴",
+        "count": 1.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "需持續通入肉汁(1 fl/s)；由土豆、香豆蔻、小蒜與歐琴組裝而成；含有氣味刺鼻原料。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "奶酪飛濺盤",
+    "machine": "自動廚師機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "軟質奶酪",
+        "count": 1.0
+      },
+      {
+        "name": "中等熟成奶酪",
+        "count": 1.0
+      },
+      {
+        "name": "藍紋奶酪",
+        "count": 1.0
+      },
+      {
+        "name": "麵包",
+        "count": 1.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "無需液體；由軟質奶酪、中等熟成奶酪、藍紋奶酪與麵包組裝而成；涉及 20s/30s/60s 三階時序熟成。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "恐慌帕尼爾",
+    "machine": "自動廚師機",
+    "fluidType": "肉汁",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "軟質奶酪",
+        "count": 1.0
+      },
+      {
+        "name": "炸小蒜",
+        "count": 1.0
+      },
+      {
+        "name": "蟑螂奶油",
+        "count": 1.0
+      },
+      {
+        "name": "歐琴",
+        "count": 1.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "需持續通入肉汁(1 fl/s)；由軟質奶酪、炸小蒜、蟑螂奶油與歐琴組裝而成。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "殺戮芝士麵",
+    "machine": "自動廚師機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "硬質奶酪",
+        "count": 1.0
+      },
+      {
+        "name": "煮熟的通心粉",
+        "count": 1.0
+      },
+      {
+        "name": "蟑螂黃油",
+        "count": 1.0
+      },
+      {
+        "name": "歐琴",
+        "count": 1.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "無需液體；由硬質奶酪、煮熟的通心粉、蟑螂黃油與歐琴組裝而成；涉及 20s+30s 奶酪時序熟成。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "恐懼炸芝士",
+    "machine": "自動廚師機",
+    "fluidType": "麵糊",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "中等熟成奶酪",
+        "count": 1.0
+      },
+      {
+        "name": "麵包糠",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "需持續通入麵糊(1 fl/s)；由中等熟成奶酪與麵包糠組裝而成；涉及奶酪與麵團時序發酵。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "毒蘑菇·肉",
+    "machine": "自動廚師機",
+    "fluidType": "肉汁",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "綠色史萊姆",
+        "count": 1.0
+      },
+      {
+        "name": "致命傘菇",
+        "count": 1.0
+      },
+      {
+        "name": "酸奶油",
+        "count": 1.0
+      },
+      {
+        "name": "香豆蔻",
+        "count": 1.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "需持續通入肉汁(1 fl/s)；由綠色史萊姆、致命傘菇、酸奶油與香豆蔻組裝而成；具食物中毒屬性。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "罪人炒飯",
+    "machine": "自動廚師機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "打工小妖炒飯",
+        "count": 1.0
+      },
+      {
+        "name": "炸小蒜",
+        "count": 1.0
+      },
+      {
+        "name": "香豆蔻",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "無需通入液體；由打工小妖炒飯、炸小蒜與香豆蔻組裝而成。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "骨味炸米團",
+    "machine": "自動廚師機",
+    "fluidType": "麵糊",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "軟質奶酪",
+        "count": 1.0
+      },
+      {
+        "name": "水稻",
+        "count": 1.0
+      },
+      {
+        "name": "麵包糠",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "需持續通入麵糊 (1 fl/s)；由軟質奶酪、水稻與麵包糠組裝而成。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "撒旦紅燴飯",
+    "machine": "自動廚師機",
+    "fluidType": "塔瑪茄醬",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "硬質奶酪",
+        "count": 1.0
+      },
+      {
+        "name": "蟑螂黃油",
+        "count": 1.0
+      },
+      {
+        "name": "水稻",
+        "count": 1.0
+      },
+      {
+        "name": "·椒",
+        "count": 1.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "需通入塔瑪茄醬(1 fl/s)；由硬質奶酪、蟑螂黃油、水稻與·椒組裝；涉及奶酪50秒二階時序熟成。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "幽靈肉汁奶酪薯條",
+    "machine": "自動廚師機",
+    "fluidType": "肉汁",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "薯條",
+        "count": 1.0
+      },
+      {
+        "name": "芝士碎",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "需持續通入肉汁(1 fl/s)；由薯條與芝士碎組裝而成；芝士碎由中等熟成奶酪(20s熟成)研磨；含有小蒜(氣味刺鼻)。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "痛擊漢堡",
+    "machine": "自動廚師機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "史萊姆肉餡",
+        "count": 1.0
+      },
+      {
+        "name": "麵包",
+        "count": 1.0
+      },
+      {
+        "name": "芝士碎",
+        "count": 1.0
+      },
+      {
+        "name": "薯條",
+        "count": 1.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "無需液體；由史萊姆肉餡、麵包、芝士碎與薯條組裝而成；涉及奶酪與麵團時序發酵。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "刺菠蘿披薩",
+    "machine": "自動廚師機",
+    "fluidType": "塔瑪茄醬",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "麵包",
+        "count": 1.0
+      },
+      {
+        "name": "芝士碎",
+        "count": 1.0
+      },
+      {
+        "name": "刺菠蘿",
+        "count": 1.0
+      },
+      {
+        "name": "薯條",
+        "count": 1.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "需持續通入塔瑪茄醬(1 fl/s)；由麵包、芝士碎、刺菠蘿與薯條組裝而成；含有刺菠蘿(氣味刺鼻)。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "殺手薄餅",
+    "machine": "自動廚師機",
+    "fluidType": "塔瑪茄醬",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "玉米餅",
+        "count": 1.0
+      },
+      {
+        "name": "史萊姆肉餡",
+        "count": 1.0
+      },
+      {
+        "name": "芝士碎",
+        "count": 1.0
+      },
+      {
+        "name": "酸奶油",
+        "count": 1.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "需持續通入塔瑪茄醬(1 fl/s)；由玉米餅、史萊姆肉餡、芝士碎與酸奶油組裝而成；涉及奶酪與奶油雙重時序熟成。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "混亂日式炒飯",
+    "machine": "自動廚師機",
+    "fluidType": "油",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "打工小妖炒飯",
+        "count": 1.0
+      },
+      {
+        "name": "臭蛇蛋",
+        "count": 1.0
+      },
+      {
+        "name": "香豆蔻",
+        "count": 1.0
+      },
+      {
+        "name": "小蒜",
+        "count": 1.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "需持續通入油(1 fl/s)；由打工小妖炒飯、臭蛇蛋、香豆蔻與小蒜組裝而成；涉及蛇蛋30秒時序腐壞。"
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "爆烈雞肉飯",
+    "machine": "自動廚師機",
+    "fluidType": "炙烈紅油",
+    "fluidRate": 1.0,
+    "inputs": [
+      {
+        "name": "打工小妖炒飯",
+        "count": 1.0
+      },
+      {
+        "name": "生鷹身女妖肉",
+        "count": 1.0
+      },
+      {
+        "name": "菠菜",
+        "count": 1.0
+      },
+      {
+        "name": "辛辣沙沙醬",
+        "count": 1.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "需持續通入炙烈紅油(1 fl/s)；由打工小妖炒飯、生鷹身女妖肉、菠菜與辛辣沙沙醬組裝而成；生鷹身女妖肉具食物中毒屬性。"
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "驚嚇醃薑",
+    "machine": "自動廚師機",
+    "fluidType": "無",
+    "fluidRate": 0.0,
+    "inputs": [
+      {
+        "name": "醋",
+        "count": 1.0
+      },
+      {
+        "name": "姜姜",
+        "count": 1.0
+      },
+      {
+        "name": "E127",
+        "count": 1.0
+      },
+      {
+        "name": "無",
+        "count": 0.0
+      }
+    ],
+    "cycleTime": 5.0,
+    "outputCount": 1.0,
+    "notes": "由醋、姜姜與E127組裝而成；E127具氣味刺鼻屬性。"
+  }
+]

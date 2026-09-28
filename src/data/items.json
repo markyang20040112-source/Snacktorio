@@ -1,0 +1,1762 @@
+[
+  {
+    "island": "常規物資",
+    "name": "煤炭",
+    "source": "採掘機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "燃燒發電"
+  },
+  {
+    "island": "常規物資",
+    "name": "物品管道",
+    "source": "裝配機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "用於傳輸物品"
+  },
+  {
+    "island": "常規物資",
+    "name": "液體管道",
+    "source": "裝配機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "用於傳輸液體"
+  },
+  {
+    "island": "常規物資",
+    "name": "電線",
+    "source": "裝配機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "用於傳輸電力"
+  },
+  {
+    "island": "常規物資",
+    "name": "梯子",
+    "source": "裝配機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "用於攀爬"
+  },
+  {
+    "island": "常規物資",
+    "name": "腳手架",
+    "source": "裝配機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "作為實體方塊使用；可放置於液體表面"
+  },
+  {
+    "island": "常規物資",
+    "name": "平台",
+    "source": "裝配機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "可從頂部往下穿的實體(按方向鍵即可穿透)；可放置於液體表面"
+  },
+  {
+    "island": "常規物資",
+    "name": "鬼魅菇",
+    "source": "地圖生成",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "生長於石頭"
+  },
+  {
+    "island": "常規物資",
+    "name": "鬼魅菇孢子",
+    "source": "收割機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "合成打工小妖精材料"
+  },
+  {
+    "island": "常規物資",
+    "name": "傳送帶",
+    "source": "裝配機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "輸送物品/食材"
+  },
+  {
+    "island": "常規物資",
+    "name": "彈簧板",
+    "source": "裝配機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "使角色彈跳更高"
+  },
+  {
+    "island": "常規物資",
+    "name": "發酵好的打工小妖精",
+    "source": "烤箱",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "建造機器用"
+  },
+  {
+    "island": "常規物資",
+    "name": "鐵",
+    "source": "烤箱",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "合成用"
+  },
+  {
+    "island": "常規物資",
+    "name": "沙塊",
+    "source": "烤箱",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "燃燒形成玻璃"
+  },
+  {
+    "island": "常規物資",
+    "name": "玻璃",
+    "source": "烤箱",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "合成用"
+  },
+  {
+    "island": "常規物資",
+    "name": "合金塊",
+    "source": "無法取得",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "無法破壞"
+  },
+  {
+    "island": "常規物資",
+    "name": "樹脂",
+    "source": "收割機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "燃燒形成橡膠"
+  },
+  {
+    "island": "常規物資",
+    "name": "樹脂樹",
+    "source": "地圖生成",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "生長於草地"
+  },
+  {
+    "island": "常規物資",
+    "name": "橡膠",
+    "source": "烤箱",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "合成用"
+  },
+  {
+    "island": "常規物資",
+    "name": "黏土",
+    "source": "採掘機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "常規物資",
+    "name": "哥布林肉排",
+    "source": "角色死亡",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "食物中毒",
+    "notes": "烤箱放入不支持物品時產生"
+  },
+  {
+    "island": "常規物資",
+    "name": "灰燼",
+    "source": "烤箱",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "將無法燒的物品放入烤箱形成"
+  },
+  {
+    "island": "常規物資",
+    "name": "粉塵",
+    "source": "研磨機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "將除巫妖骸骨外的物品放入研磨機形成，用於合成麵團"
+  },
+  {
+    "island": "常規物資",
+    "name": "虛空汙泥",
+    "source": "物質操縱機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "氣味刺鼻",
+    "notes": "物質操縱機通電通虛空但未輸入物品或未設定產物時產出；可作為虛空泵機超頻燃料（每5秒消耗1個，流量提速至8 fl/s）。"
+  },
+  {
+    "island": "常規物資",
+    "name": "水",
+    "source": "虛空泵機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "常規物資",
+    "name": "虛空",
+    "source": "虛空泵機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "常規物資",
+    "name": "槌子",
+    "source": "開局獲得",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "可用於敲起植物進行移植",
+    "notes": "拆除放置建物、管道等等"
+  },
+  {
+    "island": "常規物資",
+    "name": "板手",
+    "source": "開局獲得",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "改變物品管道內物品走向、機器輸入/出口設定"
+  },
+  {
+    "island": "常規物資",
+    "name": "藍圖",
+    "source": "開局獲得",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "常規物資",
+    "name": "橡皮擦",
+    "source": "創造模式開局獲得",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "草地",
+    "source": "地圖生成",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "種植植物；不同草地效果皆相通"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "鹽(礦石方塊)",
+    "source": "採掘機直接開採",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "鹽",
+    "source": "採掘機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "石頭",
+    "source": "地圖生成",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "種植植物；不同石頭效果皆相通"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "煤炭(礦石方塊)",
+    "source": "地圖生成",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "鐵礦石",
+    "source": "採掘機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "豆肉蔻(礦石方塊)",
+    "source": "地圖生成",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "豆肉蔻",
+    "source": "採掘機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "沙塊",
+    "source": "採掘機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "日桂葉",
+    "source": "收割機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "日桂葉植株",
+    "source": "地圖生成",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "生長於石頭"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "塔瑪茄",
+    "source": "收割機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "塔瑪茄植株",
+    "source": "地圖生成",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "生長於草地"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "洋蔥蔥",
+    "source": "收割機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "洋蔥蔥植株",
+    "source": "地圖生成",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "生長於草地"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "·椒",
+    "source": "收割機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "·椒植株",
+    "source": "地圖生成",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "生長於沙塊"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "蜘蛛蛋",
+    "source": "物質操縱機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "巫妖骸骨",
+    "source": "物質操縱機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "綠色史萊姆",
+    "source": "物質操縱機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "麵包麵團",
+    "source": "混合機",
+    "isPerishable": true,
+    "spoilTime": 15.0,
+    "spoilProduct": "發酵麵糰",
+    "attributes": "發酵膨脹",
+    "notes": ""
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "發酵麵糰",
+    "source": "麵包麵糰發酵",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "麵包",
+    "source": "烤箱",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "玉米餅",
+    "source": "混合機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "多林多滋",
+    "source": "油炸鍋",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "義大利麵團",
+    "source": "混合機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "生通心粉",
+    "source": "擠出機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "煮熟的通心粉",
+    "source": "煮鍋",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "生千層麵",
+    "source": "擠出機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "煮熟的千層麵皮",
+    "source": "煮鍋",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "生義大利麵",
+    "source": "擠出機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "煮熟的義大利麵",
+    "source": "煮鍋",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "油",
+    "source": "虛空泵機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "塔瑪茄醬",
+    "source": "攪拌機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "麵糊",
+    "source": "攪拌機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "青醬",
+    "source": "攪拌機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "潮濕草地",
+    "source": "地圖生成",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "黏土石",
+    "source": "地圖生成",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "香豆蔻(香料方塊)",
+    "source": "地圖生成",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "香豆蔻",
+    "source": "採掘機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "黏土礦脈",
+    "source": "地圖生成",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "歐琴",
+    "source": "收割機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "歐琴植株",
+    "source": "地圖生成",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "生長於草地"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "小蒜",
+    "source": "收割機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "氣味刺鼻",
+    "notes": ""
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "小蒜植株",
+    "source": "地圖生成",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "生長於石頭"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "土豆",
+    "source": "收割機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "土豆塊莖",
+    "source": "地圖生成",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "生長於草地"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "水稻",
+    "source": "收割機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "水稻植株",
+    "source": "物質操縱機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "生長於水裡"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "刺菠蘿",
+    "source": "收割機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "氣味刺鼻",
+    "notes": ""
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "刺波羅樹",
+    "source": "地圖生成",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "生長於沙塊"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "致命傘菇",
+    "source": "收割機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "食物中毒, 有毒/危險菇類",
+    "notes": ""
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "致命傘菇叢",
+    "source": "地圖生成",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "生長於草地"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "蛇蛋",
+    "source": "物質操縱機",
+    "isPerishable": true,
+    "spoilTime": 30.0,
+    "spoilProduct": "臭蛇蛋",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "臭蛇蛋",
+    "source": "蛇蛋腐壞",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "泥沼蟑螂",
+    "source": "物質操縱機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "蟑螂奶油",
+    "source": "混合機",
+    "isPerishable": true,
+    "spoilTime": 30.0,
+    "spoilProduct": "酸奶油",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "酸奶油",
+    "source": "蟑螂奶油發酵",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "蟑螂黃油",
+    "source": "混合機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "軟質奶酪",
+    "source": "發酵罐",
+    "isPerishable": true,
+    "spoilTime": 20.0,
+    "spoilProduct": "中等熟成奶酪",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "中等熟成奶酪",
+    "source": "軟質奶酪發酵",
+    "isPerishable": true,
+    "spoilTime": 30.0,
+    "spoilProduct": "硬質奶酪",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "硬質奶酪",
+    "source": "中等熟成奶酪發酵",
+    "isPerishable": true,
+    "spoilTime": 60.0,
+    "spoilProduct": "藍紋奶酪",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "藍紋奶酪",
+    "source": "硬質奶酪發酵",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "肉汁",
+    "source": "攪拌機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "蟑螂奶",
+    "source": "攪拌機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "蒜泥蛋醬",
+    "source": "攪拌機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "白醬",
+    "source": "攪拌機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": ""
+  },
+  {
+    "island": "常規物資",
+    "name": "骨粉",
+    "source": "研磨機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "無",
+    "attributes": "無",
+    "notes": "巫妖骸骨經研磨機磨成，每次產出2個，用於合成義大利麵團。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "史萊姆肉餡",
+    "source": "研磨機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "無",
+    "attributes": "無",
+    "notes": "綠色史萊姆經研磨機絞碎產出（每次2個），用於製作惡鬼千層面。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "幽靈肉醬意麵",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "無",
+    "attributes": "無",
+    "notes": "波莫拉終端完成品料理"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "生史萊姆肉丸",
+    "source": "混合機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "由綠色史萊姆與豆肉蔻混和製成，用於油炸。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "炸史萊姆肉丸",
+    "source": "油炸鍋",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "由生史萊姆肉丸經油炸鍋炸成，用於組裝哀嚎肉丸。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "哀嚎肉丸",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "波莫拉終端料理：哀嚎肉丸。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "炒蜘蛛蛋",
+    "source": "混合機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "由蜘蛛蛋與鹽於混合機混和製成，用於組裝塔瑪茄炒蛋。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "塔瑪茄炒蛋",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "波莫拉終端料理：塔瑪茄炒蛋。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "瘟疫青醬麵",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "波莫拉終端料理：瘟疫青醬麵。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "炸蜘蛛蛋",
+    "source": "油炸鍋",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "由蜘蛛蛋經油炸鍋炸成，用於組裝煉獄魔蛋。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "煉獄魔蛋",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "波莫拉終端料理：煉獄魔蛋。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "塔瑪茄泥",
+    "source": "混合機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "由塔瑪茄與豆肉蔻於混合機製成，用於組裝驚魂北非蛋。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "驚魂北非蛋",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "波莫拉終端料理：驚魂北非蛋。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "生玉米餅",
+    "source": "混合機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "由骨粉與油於混合機製成，用於烘烤玉米餅。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "撕裂脆片蘸醬",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "波莫拉終端料理：撕裂脆片蘸醬。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "惡臭農場蛋",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "波莫拉終端料理：惡臭農場蛋。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "致命玉米片",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "波莫拉終端料理：致命玉米片。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "食屍鬼鮮莎莎",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "波莫拉終端料理：食屍鬼鮮莎莎。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "幽靈洋蔥湯",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "波莫拉終端料理：幽靈洋蔥湯。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "驚嚇炸洋蔥",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "波莫拉終端料理：驚嚇炸洋蔥。"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "暗淡洋蔥花",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "波莫拉終端料理：暗淡洋蔥花。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "末日麵團",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "氣味刺鼻",
+    "notes": "克洛文納終端料理：末日麵團。含有小蒜（氣味刺鼻）。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "咒語餃子",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "克洛文納終端料理：咒語餃子。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "墳墓茄包",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "克洛文納終端料理：墳墓茄包。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "暴徒烤麵包",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "克洛文納終端料理：暴徒烤麵包。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "爛蛋約翰",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "克洛文納終端料理：爛蛋約翰。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "怪物庫克先生",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "克洛文納終端料理：怪物庫克先生。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "墳墓土豆塊",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "氣味刺鼻",
+    "notes": "克洛文納終端料理：墳墓土豆塊。含有小蒜（氣味刺鼻）。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "爆炸土豆塊",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "氣味刺鼻",
+    "notes": "克洛文納終端料理：爆炸土豆塊。含有小蒜（氣味刺鼻）。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "奶酪飛濺盤",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "克洛文納終端料理：奶酪飛濺盤。需精確規劃軟質、中等與藍紋奶酪三階時序熟成傳送帶。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "炸小蒜",
+    "source": "油炸鍋",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "氣味刺鼻",
+    "notes": "由小蒜經油炸鍋炸成，用於組裝恐慌帕尼爾。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "恐慌帕尼爾",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "克洛文納終端料理：恐慌帕尼爾。由軟質奶酪、炸小蒜、蟑螂奶油與歐琴組裝而成。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "殺戮芝士麵",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "克洛文納終端料理：殺戮芝士麵。由硬質奶酪、煮熟的通心粉、蟑螂黃油與歐琴組裝而成。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "麵包糠",
+    "source": "研磨機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "由麵包經研磨機磨成，用於恐懼炸芝士"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "恐懼炸芝士",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "克洛文納終端料理：恐懼炸芝士。由中等熟成奶酪、麵糊與麵包糠組裝而成。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "毒蘑菇·肉",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "食物中毒",
+    "notes": "克洛文納終端料理：毒蘑菇·肉。由綠色史萊姆、致命傘菇、酸奶油、香豆蔻組裝而成，並通入肉汁(1 fl/s)；具食物中毒屬性。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "打工小妖炒飯",
+    "source": "油炸鍋",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "水稻經油炸鍋在油中炒製而成，用於組裝罪人炒飯。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "罪人炒飯",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "克洛文納終端料理：罪人炒飯。由打工小妖炒飯、炸小蒜與香豆蔻組裝而成。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "骨味炸米團",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "克洛文納終端料理：骨味炸米團。由軟質奶酪、水稻、麵包糠組裝，並通入麵糊(1 fl/s)。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "撒旦紅燴飯",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "克洛文納終端料理：撒旦紅燴飯。由硬質奶酪、蟑螂黃油、水稻與·椒組裝，通入塔瑪茄醬(1 fl/s)。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "生薯條",
+    "source": "擠出機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "",
+    "notes": "土豆與鹽經擠出機成型"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "薯條",
+    "source": "油炸鍋",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "",
+    "notes": "生薯條經油炸鍋炸成"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "芝士碎",
+    "source": "研磨機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "",
+    "notes": "中等熟成奶酪研磨而成，每次產出2個"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "幽靈肉汁奶酪薯條",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "氣味刺鼻",
+    "notes": "克洛文納終端料理：幽靈肉汁奶酪薯條。由薯條、芝士碎組裝而成，並通入肉汁(1 fl/s)；含有小蒜(氣味刺鼻)。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "痛擊漢堡",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "克洛文納終端料理：痛擊漢堡。由史萊姆肉餡、麵包、芝士碎與薯條組裝而成。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "刺菠蘿披薩",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "氣味刺鼻",
+    "notes": "克洛文納終端料理：刺菠蘿披薩。由麵包、芝士碎、刺菠蘿與薯條組裝而成，通入塔瑪茄醬(1 fl/s)；含有刺菠蘿(氣味刺鼻)。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "殺手薄餅",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "克洛文納終端料理：殺手薄餅。由玉米餅、史萊姆肉餡、芝士碎與酸奶油組裝而成，通入塔瑪茄醬(1 fl/s)。"
+  },
+  {
+    "island": "克洛文納 (Clovina)",
+    "name": "混亂日式炒飯",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "克洛文納終端料理：混亂日式炒飯。由打工小妖炒飯、臭蛇蛋、香豆蔻與小蒜組裝，通入油(1 fl/s)。"
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "乾燥草地",
+    "source": "地圖生成",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": ""
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "砂岩",
+    "source": "地圖生成",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": ""
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "冰塊",
+    "source": "地圖生成",
+    "isPerishable": true,
+    "spoilTime": 1.0,
+    "spoilProduct": "糊糊",
+    "attributes": "無",
+    "notes": ""
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "菠菜",
+    "source": "收割機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": ""
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "菠菜植株",
+    "source": "地圖生成",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": ""
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "油荳蔻",
+    "source": "收割機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "氣味刺鼻",
+    "notes": ""
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "油荳蔻植株",
+    "source": "地圖生成",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": ""
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "松子",
+    "source": "收割機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "含有堅果",
+    "notes": ""
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "松樹",
+    "source": "地圖生成",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": ""
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "姜姜",
+    "source": "收割機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": ""
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "姜姜塊莖",
+    "source": "地圖生成",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": ""
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "辣椒",
+    "source": "收割機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": ""
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "辣椒植株",
+    "source": "地圖生成",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": ""
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "魔鬼椒",
+    "source": "",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": ""
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "哈瓦那魔椒",
+    "source": "",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": ""
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "辛辣沙沙醬",
+    "source": "混合機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "由洋蔥蔥、塔瑪茄與炙烈紅油於混合機混和製成，每次產出2個"
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "鷹身女妖翅膀",
+    "source": "物質操縱機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "食物中毒",
+    "notes": ""
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "年糕",
+    "source": "混合機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": ""
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "蟑螂酸奶",
+    "source": "發酵罐",
+    "isPerishable": true,
+    "spoilTime": 30.0,
+    "spoilProduct": "酸奶油",
+    "attributes": "無",
+    "notes": ""
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "胃復慘",
+    "source": "",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": ""
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "老爹脆辣辣椒",
+    "source": "混合機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "熾熱、氣味刺鼻",
+    "notes": ""
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "炙烈紅油",
+    "source": "注入機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "將注入機置於油池輸入辣椒原位轉化而成之持續流體"
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "致命沙沙醬",
+    "source": "攪拌機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": ""
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "終極炸彈",
+    "source": "",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": ""
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "醋",
+    "source": "注入機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "甘酒通過注入機注入水中原位轉化而成之調味液體。"
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "生鷹身女妖肉",
+    "source": "擠出機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "食物中毒",
+    "notes": "鷹身女妖翅膀經擠出機剝皮製成，具食物中毒屬性"
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "爆烈雞肉飯",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "斯科瓦拉終端料理：爆烈雞肉飯。由打工小妖炒飯、生鷹身女妖肉、菠菜與辛辣沙沙醬組裝，通入炙烈紅油(1 fl/s)。"
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "甘酒",
+    "source": "發酵罐",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "水稻於發酵罐在水中發酵而成的中間產物。"
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "粉紅仙子",
+    "source": "物質操縱機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
+    "notes": "物質操縱機消耗虛空(1 fl/s)等價重構之稀有食材，速率5秒1個。"
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "E127",
+    "source": "研磨機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "氣味刺鼻",
+    "notes": "由粉紅仙子於研磨機研磨而成之粉末(每次2個)，具氣味刺鼻屬性。"
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "驚嚇醃薑",
+    "source": "自動廚師機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "氣味刺鼻",
+    "notes": "斯科瓦拉終端配菜：由醋、姜姜與E127於自動廚師機組裝而成；E127具氣味刺鼻屬性。"
+  }
+]

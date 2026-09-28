@@ -5,19 +5,31 @@
 ---
 
 ## 1. 專案基本資訊 (Overview)
-* **專案名稱**：Snacktorio 產線規劃與平衡計算系統
-* **核心理念**：基於遊戲《Snacktorio》建立全製程產線平衡推導、連續流體與即時電網配置、以及試算表純資料庫驅動維護體系。
+* **專案名稱**：《異食工廠》(Snacktorio) 產線平衡計算與資料管理系統
+* **核心理念**：基於遊戲《異食工廠》建立全製程產線平衡推導、連續流體與即時電網配置、以及純文字資料驅動的 Web 應用與工作台。
 * **建立日期**：2026-09-29
 
 ---
 
 ## 2. 核心技術棧與資產 (Tech Stack & Assets)
-* **資料庫與試算表**：`Snacktorio 遊戲資料庫與生產規劃表.xlsx`（前台計算機、多料理並聯規劃、參數庫與底層母庫）
+* **現代 Web 應用**：React 19 + Vite 6 + TypeScript + Tailwind CSS + Lucide Icons
+  - 產線計算機：單料理動態推導、整數比、流體泵機階梯、發電熔爐 2:1:1 閉環、生化隔離警示。
+  - 多料理並聯規劃：支援最多 3 道菜單並聯，跨料理共通設備去重合併。
+  - 全能資料工作台：機器設備、食材與生化屬性、中間配方、終端食譜視覺化 CRUD。
+  - GitHub API 雲端同步：免終端機，網頁端一鍵提交 Git Commit 至 GitHub 倉庫。
+* **純文字資料庫 (Git/Diff 友善)**：
+  - `src/data/machines.json` (20 台設備)
+  - `src/data/items.json` (176 種食材與生化屬性)
+  - `src/data/intermediateRecipes.json` (64 道中間配方)
+  - `src/data/recipes.json` (39 道終端料理食譜)
+  - `src/data/calculatorDb.json` (402 道工序與 247 筆流體需量)
+* **自動部署 CI/CD**：`.github/workflows/deploy.yml`（Push 至 master 自動部署至 GitHub Pages）
 * **核心規範知識庫 (Git/Markdown 模組化體系)**：
   - `docs/README.md`（知識庫總覽、模組導航與核心原則）
   - `docs/01_production_logic_and_physics.md`（產線物理機制與平衡推導規範）
   - `docs/02_spreadsheet_architecture_and_formulas.md`（試算表架構與動態公式手冊）
   - `docs/03_recipe_ingestion_sop_and_case_studies.md`（食譜登錄 SOP 與實戰範本）
+* **備份試算表**：`Snacktorio 遊戲資料庫與生產規劃表.xlsx`（歷史資料備份母庫）
 * **Python 自動化與校驗環境**：`.venv`（Python 3.14，安裝有 `openpyxl`, `python-docx`, `pandas`）
 
 ---
@@ -25,14 +37,16 @@
 ## 3. 當前開發進度與狀態 (Roadmap & Status)
 - [x] 專案結構初始化與環境設定（已配置專屬 `.venv` 與 Python 依賴）
 - [x] 4 份舊版 Word 手冊解析、重構、去冗餘並全面轉化為 Git 友善之 Markdown 知識庫（`docs/`）
-- [x] 確立最高鐵律：Zero-Surprise Protocol（寫入試算表前必須明確提報範圍並獲玩家授權）
-- [x] 確立三大擴充原則（未來全面自適應、防資料膨脹、極致精簡體量）與除不盡分數化鐵律（如 `=1/3`, `=2/11`）
-- [x] 建立前後端分離規範（前台雙計算機由《計算機參數庫》平鋪驅動，前台零修改自動適配）
-- [ ] 接收新食譜截圖或文字並逆向剖析登錄
-- [ ] 支援單料理與多料理並聯產線推導與除錯
+- [x] 正式正名為《異食工廠》(Snacktorio)
+- [x] 完整解析 Excel 試算表，無損萃取 100% 既有資料至純文字 JSON
+- [x] 打造完整 React + Vite Web 應用（產線計算機 + 多料理並聯規劃 + 全能資料庫管理工作台）
+- [x] 實現網頁端新增/編輯/刪除機器、食材生化、配方、食譜
+- [x] 實現 GitHub REST API 一鍵雲端 Commit 同步與 GitHub Actions 自動部屬
+- [ ] 依遊戲推進持續登錄後半段新島嶼與高階配方
 
 ---
 
 ## 4. 近期重要決策日誌 (Decision Log)
 * **2026-09-29**：專案從暫存目錄遷移並正式初始化至標準專案目錄 `C:\Users\User\Projects\Snacktorio`，配置 Git 版本控制，並同步設定 `AGENTS.md`、`GEMINI.md` 與 `PROJECT_STATUS.md`。
 * **2026-09-29**：重構並整併原 4 份笨重之 Word 手冊，徹底消除重複段落與歷史修訂雜訊，升級為語意化、結構嚴謹且易於跨裝置 GitHub 同步的 Markdown 知識庫（位於 `docs/` 目錄），同步廢止舊版 `.docx` 文件。
+* **2026-09-29**：全面實施「Web 應用 + 純文字 JSON 資料庫」架構升級，建立全能遊戲資料工作台，支援在網頁端直接新增更新機器、食材、配方與食譜，並整合 GitHub API 一鍵提交與 GitHub Pages 自動部署，徹底解決試算表在 Git 中的二進位衝突痛點。
