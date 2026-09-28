@@ -42,14 +42,22 @@ const COOKED_GROUPS = [
   ['軟質奶酪', '中等熟成奶酪', '硬質奶酪'],
   ['粉塵底料', '粉塵'],
   ['蟑螂黃油', '黃油'],
-  ['蟑螂奶油', '奶油'],
+  ['蟑螂奶油', '奶油', '酸奶油'],
   ['香豆蔻', '豆肉蔻'],
   ['蛇蛋', '臭蛇蛋'],
   ['麵包麵團', '麵包麵糰', '發酵麵糰', '發酵麵團', '麵團', '麵糰']
 ];
 
+const ACTION_VERBS = /^(採收|採掘|開採|採集|重構|物質操縱|研磨|混和|混合|水煮|燉煮|清蒸|擠出|油炸|油煎|烘烤|烘焙|注入|發酵|切片|壓榨|離心|煎烤|熬煮|烹煮|絞碎|剝皮|攪拌|萃取|提煉|粉碎|打碎|調配|製造|加工)/;
+
 function normalizeMatName(str: string): string {
   return str.replace(/麵糰/g, '麵團');
+}
+
+function getBaseItemName(str: string): string {
+  return normalizeMatName(str)
+    .replace(/^(煮熟的|新鮮的|烘烤的|油炸的|生鮮的|熟的|生的|生|熟)/, '')
+    .trim();
 }
 
 function matchMaterial(prodItem: { name: string; isFluid: boolean }, reqItem: { name: string; isFluid: boolean }): boolean {
@@ -63,6 +71,12 @@ function matchMaterial(prodItem: { name: string; isFluid: boolean }, reqItem: { 
     const inReq = group.some(g => rNorm === normalizeMatName(g));
     if (inProd && inReq) return true;
   }
+
+  // Adaptive base name fallback for arbitrary future user recipes
+  const pBase = getBaseItemName(pNorm);
+  const rBase = getBaseItemName(rNorm);
+  if (pBase && rBase && pBase === rBase) return true;
+
   return false;
 }
 
@@ -78,7 +92,7 @@ function getProcessOutputItem(
   }
 
   if (p.machine === '攪拌機') {
-    const sauceName = p.processName.replace(/^(攪拌)/, '').replace(/\(.*\)/, '').trim();
+    const sauceName = p.processName.replace(/^(攪拌|萃取|熬煮|調配)/, '').replace(/\(.*\)/, '').trim();
     return { name: sauceName, isFluid: true };
   }
   if (p.machine === '注入機') {
@@ -86,7 +100,7 @@ function getProcessOutputItem(
     return { name: injName, isFluid: true };
   }
 
-  const stripped = p.processName.replace(/^(採收|採掘|開採|重構|物質操縱|研磨|混和|混合|水煮|擠出|油炸|烘烤|注入|發酵|切片|壓榨|離心|煎烤|熬煮|烹煮|絞碎|剝皮|攪拌)/, '').trim();
+  const stripped = p.processName.replace(ACTION_VERBS, '').trim();
 
   if (p.machine === '煮鍋') {
     const cookedName = '煮熟的' + stripped;
@@ -164,7 +178,7 @@ function getProcessInputItems(
   if (p.machine === '收割機' || p.machine === '採掘機') return [];
   if (p.machine === '物質操縱機') return [{ name: '重構底料', count: 1, isFluid: false }];
 
-  const stripped = p.processName.replace(/^(採收|採掘|開採|重構|物質操縱|研磨|混和|混合|水煮|擠出|油炸|烘烤|注入|發酵|切片|壓榨|離心|煎烤|熬煮|烹煮|絞碎|剝皮|攪拌)/, '').trim();
+  const stripped = p.processName.replace(ACTION_VERBS, '').trim();
   const cleanP = stripped.replace('皮', '');
 
   if (p.processName.includes('麵糊')) {
@@ -180,6 +194,10 @@ function getProcessInputItems(
 
   if (candidates.some(c => c.machine === p.machine)) {
     candidates = candidates.filter(c => c.machine === p.machine);
+  } else if (p.machine === '攪拌機') {
+    // Keep sauce candidates even if categorized under 混合機
+  } else {
+    candidates = [];
   }
 
   let best: IntermediateRecipe | null = null;
