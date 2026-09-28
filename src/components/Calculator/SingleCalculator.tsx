@@ -3,7 +3,7 @@ import { calculateSingleDish } from '../../services/solver';
 import { Recipe, FeederStrategy } from '../../types';
 import { 
   Zap, Droplet, Users, Cog, ShieldAlert,
-  Pipette, Sprout, ArrowRight, Activity, Sparkles
+  Sprout, Sparkles, Flame
 } from 'lucide-react';
 
 interface SingleCalculatorProps {
@@ -215,249 +215,275 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
             </div>
           )}
 
-          {/* Standard Four-Quadrant Dashboard (Row 7~13 完整標準重現) */}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+          {/* Station Cards: Fluid & Power Grid (與多料理並聯保持高度一致的 2 欄寬幅控制站) */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             
-            {/* Quadrant 1 (左區 A~D 欄): 全廠綜合總結算 */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between shadow-xl">
-              <div>
-                <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
-                  <span className="font-bold text-slate-100 text-xs flex items-center space-x-1.5">
-                    <Zap className="w-4 h-4 text-amber-400" />
-                    <span>【全廠綜合總結算】</span>
-                  </span>
-                  <span className="text-[11px] font-mono text-slate-400">
-                    實需主設備: {result.totalMachineCount} 台
-                  </span>
-                </div>
+            {/* Left Card: 全廠流體供應站 (自主超頻智慧階梯) */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 className="font-bold text-slate-200 text-sm flex items-center space-x-2">
+                  <Droplet className="w-4 h-4 text-cyan-400" />
+                  <span>全廠流體供應站 (自主超頻智慧階梯)</span>
+                </h3>
+                <span className="text-xs font-mono text-cyan-400 bg-cyan-950/60 border border-cyan-800/40 px-2 py-0.5 rounded whitespace-nowrap">
+                  {result.fluids.voidFluid.demand > 0 ? '全廠有虛空 (門檻 > 2 fl/s)' : '全廠無虛空 (門檻 > 6 fl/s)'}
+                </span>
+              </div>
 
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between items-center text-slate-400">
-                    <span className="whitespace-nowrap">主設備電力 (純料理):</span>
-                    <span className="font-mono text-slate-200 whitespace-nowrap">{result.powerGrid.mainEquipmentPower} FV/s</span>
+              <div className="space-y-3 text-xs">
+                {/* Water Pump */}
+                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 flex items-center justify-between">
+                  <div>
+                    <div className="font-bold text-slate-200 flex items-center space-x-1.5 whitespace-nowrap">
+                      <span className="w-2 h-2 rounded-full bg-cyan-400 shrink-0"></span>
+                      <span>全廠水資源外採</span>
+                    </div>
+                    <div className="text-slate-400 mt-0.5 whitespace-nowrap">
+                      需量：<span className="font-mono text-cyan-300 font-bold">{result.fluids.water.demand}</span> fl/s
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center text-slate-400">
-                    <span className="whitespace-nowrap">泵機與操縱機電力 (Q13):</span>
-                    <span className="font-mono text-cyan-300 whitespace-nowrap">{result.powerGrid.pumpManipulatorPower} FV/s</span>
-                  </div>
-                  
-                  {/* 重構底料機耗電 */}
-                  <div className={`flex justify-between items-center px-2 py-1 rounded-lg border ${
-                    result.baseFeeders.offsetCount > 0
-                      ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/20'
-                      : 'text-purple-300 bg-purple-500/10 border-purple-500/20'
-                  }`}>
-                    <div className="flex items-center space-x-1.5 whitespace-nowrap">
-                      <span>重構底料機耗電 ({result.baseFeeders.count} 台):</span>
-                      {result.baseFeeders.offsetCount > 0 && (
-                        <span className="text-[10px] px-1 py-0.5 rounded bg-emerald-900/60 text-emerald-300 font-bold whitespace-nowrap">
-                          已折抵 {result.baseFeeders.offsetCount} 台
+                  <div className="text-right">
+                    <div className="font-mono text-slate-200 font-bold whitespace-nowrap">
+                      {result.fluids.water.overclockPumps > 0 && (
+                        <span className="px-1.5 py-0.5 bg-purple-900/50 text-purple-300 rounded mr-1 whitespace-nowrap inline-block">
+                          超頻泵 {result.fluids.water.overclockPumps} 台
                         </span>
                       )}
+                      {result.fluids.water.regularPumps > 0 && (
+                        <span className="px-1.5 py-0.5 bg-cyan-900/50 text-cyan-300 rounded whitespace-nowrap inline-block">
+                          常規泵 {result.fluids.water.regularPumps} 台
+                        </span>
+                      )}
+                      {result.fluids.water.overclockPumps === 0 && result.fluids.water.regularPumps === 0 && (
+                        <span className="text-slate-500 whitespace-nowrap">無需外採</span>
+                      )}
                     </div>
-                    <span className="font-mono font-bold whitespace-nowrap">{result.powerGrid.baseFeederPower} FV/s</span>
-                  </div>
-
-                  <div className="flex justify-between items-center text-slate-400">
-                    <span className="whitespace-nowrap">採煤機耗電 ({result.powerGrid.coalMiners} 台):</span>
-                    <span className="font-mono text-slate-200 whitespace-nowrap">{result.powerGrid.coalMinerPower} FV/s</span>
-                  </div>
-
-                  <div className="border-t border-slate-800 pt-2 flex justify-between items-center text-sm font-bold text-amber-400">
-                    <span className="whitespace-nowrap">⚡ 全廠總電力負載:</span>
-                    <span className="font-mono text-base whitespace-nowrap">{result.powerGrid.totalLoad} FV/s</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Power supply generator specs & total goblins */}
-              <div className="mt-4 pt-3 border-t border-slate-800 text-xs space-y-1.5 bg-slate-950/70 p-3 rounded-xl border border-slate-850">
-                <div className="flex justify-between items-center text-slate-300">
-                  <span>所需虛空熔爐:</span>
-                  <span className="font-mono font-bold text-amber-300">
-                    {result.powerGrid.furnaces} 台 <span className="font-normal text-[10px] text-slate-400">({powerMode === 'overclock' ? '16 FV/s 模組' : '4 FV/s'})</span>
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-slate-400">
-                  <span>煤炭消耗速率:</span>
-                  <span className="font-mono">{result.powerGrid.coalRate} 個/秒</span>
-                </div>
-                <div className="flex justify-between items-center text-slate-300 pt-1 border-t border-slate-850 font-bold">
-                  <span className="flex items-center space-x-1">
-                    <Users className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>👥 全廠總小妖精:</span>
-                  </span>
-                  <span className="font-mono text-emerald-300 text-sm">
-                    {result.goblinsBreakdown.total} 個
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Quadrant 2 (中區一 E~G 欄): 廠內調配醬汁清單 */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between shadow-xl">
-              <div>
-                <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
-                  <span className="font-bold text-slate-100 text-xs flex items-center space-x-1.5">
-                    <Pipette className="w-4 h-4 text-amber-400" />
-                    <span>【廠內調配醬汁清單】</span>
-                  </span>
-                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 font-bold border border-amber-500/30">
-                    1:1 專線 (嚴禁合流)
-                  </span>
-                </div>
-
-                {result.fluids.sauces.length > 0 ? (
-                  <div className="space-y-2">
-                    {result.fluids.sauces.map((s, idx) => (
-                      <div key={idx} className="bg-slate-950 p-2.5 rounded-xl border border-slate-800 text-xs space-y-1">
-                        <div className="flex justify-between items-center font-bold text-slate-200">
-                          <span>{s.name}</span>
-                          <span className="font-mono text-cyan-300">{s.rate.toFixed(1)} fl/s</span>
-                        </div>
-                        <div className="text-[11px] text-slate-400 flex items-center justify-between">
-                          <span>來源: 攪拌機專線 (1:1)</span>
-                          <span className="font-mono text-amber-400">{s.dedicatedPipes} 條專線</span>
-                        </div>
+                    {result.fluids.water.sludgeManipulators > 0 && (
+                      <div className="text-[11px] text-purple-400 mt-1 whitespace-nowrap">
+                        附帶汙泥操縱機：{result.fluids.water.sludgeManipulators} 台
                       </div>
-                    ))}
+                    )}
                   </div>
-                ) : (
-                  <div className="p-6 text-center text-slate-500 text-xs">
-                    無廠內攪拌調配醬汁
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-3 text-[11px] text-slate-500 bg-slate-950/50 p-2.5 rounded-xl border border-slate-850">
-                💡 實體鐵律：多台攪拌機嚴禁合流為單管，必須各鋪設 1:1 專線直供需求端。
-              </div>
-            </div>
-
-            {/* Quadrant 3 (中區二 H~L 欄): 轉化流體專屬抽取泵機與超頻階梯配置 */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between shadow-xl">
-              <div>
-                <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
-                  <span className="font-bold text-slate-100 text-xs flex items-center space-x-1.5">
-                    <Activity className="w-4 h-4 text-purple-400" />
-                    <span>【原位轉化流體抽取泵】</span>
-                  </span>
-                  <span className="text-[10px] text-slate-400">注入機專屬</span>
                 </div>
 
-                {result.fluids.transformations.length > 0 ? (
-                  <div className="space-y-2">
+                {/* Oil Pump */}
+                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 flex items-center justify-between">
+                  <div>
+                    <div className="font-bold text-slate-200 flex items-center space-x-1.5 whitespace-nowrap">
+                      <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>
+                      <span>全廠油資源外採</span>
+                    </div>
+                    <div className="text-slate-400 mt-0.5 whitespace-nowrap">
+                      需量：<span className="font-mono text-amber-300 font-bold">{result.fluids.oil.demand}</span> fl/s
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-mono text-slate-200 font-bold whitespace-nowrap">
+                      {result.fluids.oil.overclockPumps > 0 && (
+                        <span className="px-1.5 py-0.5 bg-purple-900/50 text-purple-300 rounded mr-1 whitespace-nowrap inline-block">
+                          超頻泵 {result.fluids.oil.overclockPumps} 台
+                        </span>
+                      )}
+                      {result.fluids.oil.regularPumps > 0 && (
+                        <span className="px-1.5 py-0.5 bg-amber-900/50 text-amber-300 rounded whitespace-nowrap inline-block">
+                          常規泵 {result.fluids.oil.regularPumps} 台
+                        </span>
+                      )}
+                      {result.fluids.oil.overclockPumps === 0 && result.fluids.oil.regularPumps === 0 && (
+                        <span className="text-slate-500 whitespace-nowrap">無需外採</span>
+                      )}
+                    </div>
+                    {result.fluids.oil.sludgeManipulators > 0 && (
+                      <div className="text-[11px] text-purple-400 mt-1 whitespace-nowrap">
+                        附帶汙泥操縱機：{result.fluids.oil.sludgeManipulators} 台
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* In-situ Transformations */}
+                {result.fluids.transformations.length > 0 && (
+                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 space-y-2">
+                    <div className="font-bold text-slate-200 flex items-center space-x-1.5 whitespace-nowrap">
+                      <span className="w-2 h-2 rounded-full bg-rose-400 shrink-0"></span>
+                      <span>原位轉化專屬抽取泵機</span>
+                    </div>
                     {result.fluids.transformations.map((t, idx) => (
-                      <div key={idx} className="bg-slate-950 p-2.5 rounded-xl border border-purple-500/20 text-xs space-y-1.5">
-                        <div className="flex justify-between items-center font-bold text-purple-200">
-                          <span>{t.fluid} ({t.name})</span>
-                          <span className="font-mono text-cyan-300">{t.demand.toFixed(1)} fl/s</span>
-                        </div>
-                        <div className="text-[11px] text-slate-400 flex justify-between">
-                          <span>專屬抽取泵機:</span>
-                          <span className="font-mono text-slate-200 font-bold">
-                            {t.overclockPumps > 0 ? `${t.overclockPumps} 超頻泵 (8fl/s)` : `${t.regularPumps} 常規泵 (2fl/s)`}
-                          </span>
-                        </div>
-                        <div className="text-[10px] text-slate-400 flex items-center space-x-1 text-slate-500">
-                          <span>池中原位轉化</span>
-                          <ArrowRight className="w-3 h-3 text-purple-400" />
-                          <span className="text-purple-300">泵機抽取供液</span>
-                        </div>
+                      <div key={idx} className="flex items-center justify-between text-[11px] border-t border-slate-800 pt-1.5">
+                        <span className="text-slate-300 whitespace-nowrap">{t.name} ({t.fluid})</span>
+                        <span className="font-mono text-slate-200 font-bold whitespace-nowrap">
+                          {t.overclockPumps > 0 ? `超頻泵 ${t.overclockPumps} 台` : `常規泵 ${t.regularPumps} 台`}
+                        </span>
                       </div>
                     ))}
                   </div>
-                ) : (
-                  <div className="p-6 text-center text-slate-500 text-xs">
-                    本料理未涉及原位轉化
+                )}
+
+                {/* Sauces (1:1 dedicated pipes) */}
+                {result.fluids.sauces.length > 0 && (
+                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 space-y-2">
+                    <div className="font-bold text-slate-200 flex items-center justify-between whitespace-nowrap">
+                      <div className="flex items-center space-x-1.5">
+                        <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>
+                        <span>廠內調配醬汁 (1:1 專線直供)</span>
+                      </div>
+                      <span className="text-[10px] text-amber-400 font-mono">嚴禁混管合流</span>
+                    </div>
+                    {result.fluids.sauces.map((s, idx) => (
+                      <div key={idx} className="flex items-center justify-between text-[11px] border-t border-slate-800 pt-1.5">
+                        <span className="text-slate-300 whitespace-nowrap">{s.name} ({s.rate.toFixed(1)} fl/s)</span>
+                        <span className="font-mono text-amber-300 font-bold whitespace-nowrap">
+                          {s.dedicatedPipes} 條直供專線
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 )}
-              </div>
 
-              <div className="mt-3 text-[11px] text-slate-500 bg-slate-950/50 p-2.5 rounded-xl border border-slate-850">
-                💡 原位轉化鐵律：轉化後之流體池必須在工序中配置專屬虛空泵機抽取，不計入外採常規管線。
-              </div>
-            </div>
-
-            {/* Quadrant 4 (右區 M~Q 欄): 外採泵機流體與超頻階梯配置 */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between shadow-xl">
-              <div>
-                <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
-                  <span className="font-bold text-slate-100 text-xs flex items-center space-x-1.5">
-                    <Droplet className="w-4 h-4 text-cyan-400" />
-                    <span>【外採流體智慧泵機組】</span>
-                  </span>
-                  <span className="text-[10px] text-cyan-400 font-mono">自主判定超頻</span>
-                </div>
-
-                <div className="space-y-2 text-xs">
-                  {/* Water */}
-                  <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 flex justify-between items-center">
-                    <div>
-                      <span className="text-slate-300 font-bold">外採水: </span>
-                      <span className="font-mono text-cyan-300">{result.fluids.water.demand} fl/s</span>
+                {/* Void Fluid */}
+                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 flex items-center justify-between">
+                  <div>
+                    <div className="font-bold text-slate-200 flex items-center space-x-1.5 whitespace-nowrap">
+                      <span className="w-2 h-2 rounded-full bg-purple-400 shrink-0"></span>
+                      <span>全廠虛空流體總需量</span>
                     </div>
-                    <div className="text-[11px] font-mono text-slate-400">
-                      {result.fluids.water.overclockPumps > 0 ? (
-                        <span className="text-purple-400 font-bold">{result.fluids.water.overclockPumps} 超頻泵</span>
-                      ) : result.fluids.water.regularPumps > 0 ? (
-                        <span>{result.fluids.water.regularPumps} 常規泵</span>
-                      ) : (
-                        <span className="text-slate-600">0 泵</span>
-                      )}
+                    <div className="text-slate-400 mt-0.5 whitespace-nowrap">
+                      總閉環需量：<span className="font-mono text-purple-300 font-bold">{result.fluids.voidFluid.demand}</span> fl/s
+                    </div>
+                    <div className="text-[10px] text-slate-500 mt-0.5 whitespace-nowrap">
+                      工藝: {result.fluids.voidFluid.breakdown.processVoid} | 泵自耗: {result.fluids.voidFluid.breakdown.pumpSludgeVoid} | 發電自耗: {result.fluids.voidFluid.breakdown.generatorSludgeVoid}
                     </div>
                   </div>
-
-                  {/* Oil */}
-                  <div className="bg-slate-950 p-2 rounded-xl border border-slate-800 flex justify-between items-center">
-                    <div>
-                      <span className="text-slate-300 font-bold">外採油: </span>
-                      <span className="font-mono text-amber-300">{result.fluids.oil.demand} fl/s</span>
-                    </div>
-                    <div className="text-[11px] font-mono text-slate-400">
-                      {result.fluids.oil.overclockPumps > 0 ? (
-                        <span className="text-purple-400 font-bold">{result.fluids.oil.overclockPumps} 超頻泵</span>
-                      ) : result.fluids.oil.regularPumps > 0 ? (
-                        <span>{result.fluids.oil.regularPumps} 常規泵</span>
-                      ) : (
-                        <span className="text-slate-600">0 泵</span>
+                  <div className="text-right">
+                    <div className="font-mono text-slate-200 font-bold whitespace-nowrap">
+                      {result.fluids.voidFluid.overclockPumps > 0 && (
+                        <span className="px-1.5 py-0.5 bg-purple-900/50 text-purple-300 rounded mr-1 whitespace-nowrap inline-block">
+                          淨7超頻泵 {result.fluids.voidFluid.overclockPumps} 台
+                        </span>
+                      )}
+                      {result.fluids.voidFluid.regularPumps > 0 && (
+                        <span className="px-1.5 py-0.5 bg-slate-800 text-slate-300 rounded whitespace-nowrap inline-block">
+                          常規泵 {result.fluids.voidFluid.regularPumps} 台
+                        </span>
+                      )}
+                      {result.fluids.voidFluid.overclockPumps === 0 && result.fluids.voidFluid.regularPumps === 0 && (
+                        <span className="text-slate-500 whitespace-nowrap">無需外採</span>
                       )}
                     </div>
-                  </div>
-
-                  {/* Void */}
-                  <div className="bg-slate-950 p-2 rounded-xl border border-purple-500/30 flex justify-between items-center">
-                    <div>
-                      <span className="text-purple-300 font-bold">外採虛空: </span>
-                      <span className="font-mono text-purple-200">{result.fluids.voidFluid.demand} fl/s</span>
-                    </div>
-                    <div className="text-[11px] font-mono text-slate-400">
-                      {result.fluids.voidFluid.overclockPumps > 0 ? (
-                        <span className="text-purple-400 font-bold">{result.fluids.voidFluid.overclockPumps} 淨7超頻泵</span>
-                      ) : result.fluids.voidFluid.regularPumps > 0 ? (
-                        <span className="text-purple-300">{result.fluids.voidFluid.regularPumps} 常規泵</span>
-                      ) : (
-                        <span className="text-slate-600">0 泵</span>
-                      )}
-                    </div>
+                    {result.fluids.voidFluid.sludgeManipulators > 0 && (
+                      <div className="text-[11px] text-purple-400 mt-1 whitespace-nowrap">
+                        附帶汙泥操縱機：{result.fluids.voidFluid.sludgeManipulators} 台
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
 
-              {/* Total pumps & manipulators summary */}
-              <div className="mt-3 pt-2.5 border-t border-slate-800 space-y-1 text-[11px]">
-                <div className="font-bold text-slate-300 whitespace-nowrap">
-                  全廠泵機與操縱機總計:
-                </div>
-                <div className="bg-slate-950 p-2 rounded-xl border border-slate-800/80 space-y-0.5">
-                  <div className="text-cyan-300 font-bold font-mono whitespace-nowrap overflow-x-auto scrollbar-none">
-                    {result.fluids.totals.regularPumps} 常規泵 + {result.fluids.totals.overclockPumps} 超頻泵 + {result.fluids.totals.sludgeManipulators} 操縱機
+                {/* Total pumps & manipulators summary */}
+                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 space-y-1">
+                  <div className="text-slate-300 font-bold whitespace-nowrap flex items-center justify-between">
+                    <span>全廠泵機與操縱機總計:</span>
+                    <span className="text-cyan-300 font-mono font-bold whitespace-nowrap">
+                      {result.fluids.totals.regularPumps} 常規泵 + {result.fluids.totals.overclockPumps} 超頻泵 + {result.fluids.totals.sludgeManipulators} 操縱機
+                    </span>
                   </div>
                   {result.powerGrid.generatorSludgeManipulators > 0 && (
-                    <div className="text-[10px] text-purple-400 font-sans whitespace-nowrap">
+                    <div className="text-[10px] text-purple-400 font-sans whitespace-nowrap text-right">
                       (含電廠 2:1:1 模組供汙泥操縱機 {result.powerGrid.generatorSludgeManipulators} 台)
                     </div>
                   )}
+                </div>
+              </div>
+            </div>
+
+            {/* Right Card: 全廠電網負載與小妖精總結算 */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 className="font-bold text-slate-200 text-sm flex items-center space-x-2">
+                  <Zap className="w-4 h-4 text-amber-400" />
+                  <span>全廠電網負載與小妖精總結算</span>
+                </h3>
+                <div className="flex items-center space-x-2">
+                  <span className="text-xs text-slate-400 font-mono whitespace-nowrap">
+                    實需主設備: <strong className="text-cyan-300 font-bold">{result.totalMachineCount}</strong> 台
+                  </span>
+                  <span className="text-xs text-slate-500 font-mono">|</span>
+                  <span className="text-xs text-slate-400 font-mono whitespace-nowrap">
+                    {powerMode === 'overclock' ? '2:1:1 閉環發電模組 (16 FV/s)' : '4 FV/s 常規發電模組'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                {/* Furnace and Coal Miner */}
+                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="font-bold text-slate-200 flex items-center space-x-1.5 whitespace-nowrap">
+                      <Flame className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span>發電熔爐與採煤機配比</span>
+                    </div>
+                    <span className="text-xs font-mono font-bold text-amber-300 whitespace-nowrap">
+                      {result.powerGrid.furnaces} 熔爐 : {result.powerGrid.coalMiners} 採煤機
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-slate-400 text-[11px] border-t border-slate-800 pt-2">
+                    <div className="whitespace-nowrap">淨發電總量：<span className="font-mono text-amber-300 font-bold">{result.powerGrid.netPower} FV/s</span></div>
+                    <div className="whitespace-nowrap">電網盈餘：<span className="font-mono text-emerald-400 font-bold">+{result.powerGrid.surplusPower} FV/s</span></div>
+                    <div className="whitespace-nowrap">煤炭消耗率：<span className="font-mono text-slate-200 font-bold">{result.powerGrid.coalRate} 塊/秒</span></div>
+                    {powerMode === 'overclock' && (
+                      <div className="whitespace-nowrap">汙泥操縱機：<span className="font-mono text-purple-300 font-bold">{result.powerGrid.generatorSludgeManipulators} 台</span></div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Vertical Cumulative Power Load Breakdown */}
+                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 space-y-1.5 text-[11px]">
+                  <div className="font-bold text-slate-300 mb-1 whitespace-nowrap">電網垂直累加負載</div>
+                  <div className="flex justify-between items-center text-slate-400">
+                    <span className="whitespace-nowrap">1. 主要生產設備負載：</span>
+                    <span className="font-mono text-slate-200 font-bold whitespace-nowrap">{result.powerGrid.mainEquipmentPower.toFixed(1)} FV/s</span>
+                  </div>
+                  <div className="flex justify-between items-center text-slate-400">
+                    <span className="whitespace-nowrap">2. 流體泵機與操縱機自耗：</span>
+                    <span className="font-mono text-slate-200 font-bold whitespace-nowrap">{result.powerGrid.pumpManipulatorPower.toFixed(1)} FV/s</span>
+                  </div>
+                  <div className="flex justify-between items-center text-slate-400">
+                    <span className="whitespace-nowrap">3. 重構底料作物收割機：</span>
+                    <div className="flex items-center space-x-1.5 whitespace-nowrap">
+                      {result.baseFeeders.offsetCount > 0 && (
+                        <span className="text-[10px] px-1 py-0.5 rounded bg-emerald-900/60 text-emerald-300 font-bold">
+                          折抵 {result.baseFeeders.offsetCount} 台
+                        </span>
+                      )}
+                      <span className="font-mono text-slate-200 font-bold">{result.powerGrid.baseFeederPower.toFixed(1)} FV/s</span>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center text-slate-400">
+                    <span className="whitespace-nowrap">4. 採煤機運行負載：</span>
+                    <span className="font-mono text-slate-200 font-bold whitespace-nowrap">{result.powerGrid.coalMinerPower.toFixed(1)} FV/s</span>
+                  </div>
+                  <div className="flex justify-between items-center border-t border-slate-800 pt-1 font-bold text-amber-400">
+                    <span className="whitespace-nowrap">全廠實時總負載：</span>
+                    <span className="font-mono whitespace-nowrap">{result.powerGrid.totalLoad.toFixed(1)} FV/s</span>
+                  </div>
+                </div>
+
+                {/* Total Goblins */}
+                <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 flex items-center justify-between">
+                  <div>
+                    <div className="font-bold text-slate-200 flex items-center space-x-1.5">
+                      <Users className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>全廠所需小妖精總數</span>
+                    </div>
+                    <div className="text-[11px] text-slate-400 mt-0.5">
+                      包含主產線、底料收割、泵機、操縱機與電廠
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-2xl font-bold font-mono text-emerald-300">
+                      {result.goblinsBreakdown.total}
+                    </span>
+                    <span className="text-xs text-slate-400 ml-1">名</span>
+                  </div>
                 </div>
               </div>
             </div>
