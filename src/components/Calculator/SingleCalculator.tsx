@@ -55,7 +55,7 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                 <optgroup key={island} label={`🏝️ ${island}`}>
                   {list.map(r => (
                     <option key={r.name} value={r.name}>
-                      {r.name} {r.fluidType !== '無' ? `(+${r.fluidType})` : ''}
+                      {r.name}
                     </option>
                   ))}
                 </optgroup>
@@ -319,26 +319,6 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                   </div>
                 )}
 
-                {/* Sauces (1:1 dedicated pipes) */}
-                {result.fluids.sauces.length > 0 && (
-                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 space-y-2">
-                    <div className="font-bold text-slate-200 flex items-center justify-between whitespace-nowrap">
-                      <div className="flex items-center space-x-1.5">
-                        <span className="w-2 h-2 rounded-full bg-amber-400 shrink-0"></span>
-                        <span>廠內調配醬汁 (1:1 專線直供)</span>
-                      </div>
-                      <span className="text-[10px] text-amber-400 font-mono">嚴禁混管合流</span>
-                    </div>
-                    {result.fluids.sauces.map((s, idx) => (
-                      <div key={idx} className="flex items-center justify-between text-[11px] border-t border-slate-800 pt-1.5">
-                        <span className="text-slate-300 whitespace-nowrap">{s.name} ({s.rate.toFixed(1)} fl/s)</span>
-                        <span className="font-mono text-amber-300 font-bold whitespace-nowrap">
-                          {s.dedicatedPipes} 條直供專線
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
 
                 {/* Void Fluid */}
                 <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 flex items-center justify-between">
