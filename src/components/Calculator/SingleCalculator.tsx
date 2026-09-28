@@ -12,7 +12,7 @@ interface SingleCalculatorProps {
 
 export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) => {
   const [selectedDish, setSelectedDish] = useState<string>(recipes[0]?.name || '驚嚇醃薑');
-  const [targetRateMin, setTargetRateMin] = useState<number>(12); // dishes/min (12 份/分 = 0.2 份/秒)
+  const [targetRateMin, setTargetRateMin] = useState<number>(10); // dishes/min (default 10 份/分)
   const [powerMode, setPowerMode] = useState<'regular' | 'overclock'>('overclock');
   const [feederStrategy, setFeederStrategy] = useState<FeederStrategy>('dedicated');
 
@@ -80,7 +80,7 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                 className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono font-bold text-sm"
               />
               <div className="flex space-x-1">
-                {[6, 12, 18, 24].map(val => (
+                {[10, 20, 30].map(val => (
                   <button
                     key={val}
                     onClick={() => setTargetRateMin(val)}
@@ -161,7 +161,7 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                   <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0 inline" />
                   <span>副產物折抵</span>
                 </span>
-                <span className="font-normal text-[10px] text-slate-400 font-sans whitespace-nowrap">(智慧循環)</span>
+                <span className="font-normal text-[10px] text-emerald-400 font-sans whitespace-nowrap">(智慧循環)</span>
               </button>
             </div>
           </div>

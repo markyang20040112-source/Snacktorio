@@ -17,15 +17,15 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
   const [powerMode, setPowerMode] = useState<'regular' | 'overclock'>('overclock');
   const [feederStrategy, setFeederStrategy] = useState<FeederStrategy>('dedicated');
   const [plannedList, setPlannedList] = useState<PlannedDish[]>([
-    { id: '1', dishName: '哀嚎肉丸', rateMin: 12 },
-    { id: '2', dishName: '鮮紅濃湯', rateMin: 12 },
+    { id: '1', dishName: '哀嚎肉丸', rateMin: 10 },
+    { id: '2', dishName: '鮮紅濃湯', rateMin: 10 },
   ]);
 
   const addDish = () => {
     if (plannedList.length >= 3) return;
     const remaining = recipes.find(r => !plannedList.some(p => p.dishName === r.name));
     if (remaining) {
-      setPlannedList([...plannedList, { id: Date.now().toString(), dishName: remaining.name, rateMin: 12 }]);
+      setPlannedList([...plannedList, { id: Date.now().toString(), dishName: remaining.name, rateMin: 10 }]);
     }
   };
 
@@ -575,6 +575,21 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                   onChange={(e) => updateDish(item.id, { rateMin: parseFloat(e.target.value) || 0 })}
                   className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-100 font-mono font-bold focus:outline-none focus:ring-1 focus:ring-amber-500"
                 />
+                <div className="flex space-x-1 shrink-0">
+                  {[10, 20, 30].map(val => (
+                    <button
+                      key={val}
+                      onClick={() => updateDish(item.id, { rateMin: val })}
+                      className={`px-1.5 py-0.5 text-[10px] rounded border transition-all whitespace-nowrap ${
+                        item.rateMin === val
+                          ? 'bg-amber-500/20 border-amber-500 text-amber-300 font-bold'
+                          : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700'
+                      }`}
+                    >
+                      {val}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           ))}
