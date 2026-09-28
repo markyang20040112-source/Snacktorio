@@ -477,8 +477,6 @@ export function calculateSingleDish(
       offsetCount = Math.min(totalOffsetAvailable, maxAllowed);
 
       if (offsetCount > 0) {
-        offsetSource = `由${sources.join('、')}分流直供 (折抵 ${offsetCount} 台)`;
-
         // 標記提供過剩產能的供給設備 (Donor) 與接收底料的操縱機 (Recipient)
         const donorNodes = candidateNodes.filter(p => {
           const baseRateNum = parseFractionOrNumber(p.baseRate);
@@ -491,14 +489,43 @@ export function calculateSingleDish(
           ? manipulators.filter(m => m !== rootManipulator).slice(0, offsetCount)
           : manipulators.slice(0, offsetCount);
 
-        donorNodes.forEach(d => {
-          d.feederRole = 'donor';
-          const recNames = recipientManipulators.map(r => `【${r.processName}】`).join('、');
-          d.feederNote = `產能過剩，分流直供${recNames || '物質操縱機'}作為底料`;
+        // 依據各供給設備 (Donor) 之可用過剩容量，輪流 (Round-robin) 1:1 分配接收端操縱機 (Recipient)
+        const donorSlots = donorNodes.map(d => {
+          const baseRateNum = parseFractionOrNumber(d.baseRate);
+          const surplusRate = (d.countRounded - d.demandRate) * (baseRateNum > 0 ? baseRateNum : 0.2);
+          return {
+            donor: d,
+            available: Math.floor((surplusRate + 0.05) / 0.2),
+            recipients: [] as ProcessNode[]
+          };
+        });
 
-          if (!d.downstreamTargets) d.downstreamTargets = [];
-          recipientManipulators.forEach(r => {
-            if (!d.downstreamTargets!.some(t => t.processName === r.processName && t.isByproduct)) {
+        let rIndex = 0;
+        while (rIndex < recipientManipulators.length) {
+          let assignedInRound = false;
+          for (const ds of donorSlots) {
+            if (rIndex >= recipientManipulators.length) break;
+            if (ds.available > 0) {
+              ds.recipients.push(recipientManipulators[rIndex]);
+              ds.available--;
+              rIndex++;
+              assignedInRound = true;
+            }
+          }
+          if (!assignedInRound) break;
+        }
+
+        const actualSources: string[] = [];
+        donorSlots.forEach(ds => {
+          const d = ds.donor;
+          if (ds.recipients.length > 0) {
+            d.feederRole = 'donor';
+            const recNames = ds.recipients.map(r => `【${r.processName}】`).join('、');
+            d.feederNote = `產能過剩，分流直供${recNames}作為底料`;
+            actualSources.push(`【${d.processName}】過剩直供${recNames}`);
+
+            if (!d.downstreamTargets) d.downstreamTargets = [];
+            ds.recipients.forEach(r => {
               d.downstreamTargets!.push({
                 processName: r.processName,
                 machine: '物質操縱機',
@@ -506,15 +533,15 @@ export function calculateSingleDish(
                 isByproduct: true,
                 note: '副產物折抵'
               });
-            }
-          });
+              r.feederRole = 'recipient';
+              r.feederNote = `底料由【${d.processName}】過剩產能直供 (省 1 底料機)`;
+            });
+          }
         });
 
-        recipientManipulators.forEach(r => {
-          r.feederRole = 'recipient';
-          const donNames = donorNodes.map(d => `【${d.processName}】`).join('、');
-          r.feederNote = `底料由${donNames}過剩產能分流直供 (省 1 底料機)`;
-        });
+        if (actualSources.length > 0) {
+          offsetSource = `由${actualSources.join('、')} (折抵 ${offsetCount} 台)`;
+        }
       }
     }
   }

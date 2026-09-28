@@ -890,7 +890,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                 <th className="py-3 px-4 text-right text-slate-400 whitespace-nowrap">獨立合計</th>
                 <th className="py-3 px-4 text-right font-bold text-cyan-300 whitespace-nowrap">並聯實需</th>
                 <th className="py-3 px-4 text-center text-emerald-400 font-bold whitespace-nowrap">節省設備</th>
-                <th className="py-3 px-4 min-w-[280px]">物料關聯與拓撲說明</th>
+                <th className="py-3 px-4 min-w-[320px]">物料關聯與拓撲說明</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
@@ -1076,9 +1076,13 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                             return (
                               <div className="flex flex-col gap-y-1.5 w-fit">
                                 {chunkTargets(firstTargets).map((pair, rowIdx) => (
-                                  <div key={rowIdx} className="flex items-center space-x-3 whitespace-nowrap">
+                                  <div key={rowIdx} className="flex items-center space-x-2.5 whitespace-nowrap">
                                     {pair.map((t, tIdx) => (
-                                      <div key={tIdx} className="flex items-center space-x-1.5 whitespace-nowrap" title={`連至工序：【${t.processName}】`}>
+                                      <div
+                                        key={tIdx}
+                                        className={`flex items-center space-x-1.5 whitespace-nowrap ${tIdx === 0 && pair.length > 1 ? 'w-[140px] shrink-0' : ''}`}
+                                        title={`連至工序：【${t.processName}】`}
+                                      >
                                         <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass(t.machine, t.isByproduct)}`}>
                                           {t.machine}
                                         </span>
@@ -1111,9 +1115,13 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                                   )}
                                   <div className="flex flex-col gap-y-1.5 w-fit">
                                     {chunkTargets(dt.targets).map((pair, rowIdx) => (
-                                      <div key={rowIdx} className="flex items-center space-x-3 whitespace-nowrap">
+                                      <div key={rowIdx} className="flex items-center space-x-2.5 whitespace-nowrap">
                                         {pair.map((t, tIdx) => (
-                                          <div key={tIdx} className="flex items-center space-x-1.5 whitespace-nowrap" title={`連至工序：【${t.processName}】`}>
+                                          <div
+                                            key={tIdx}
+                                            className={`flex items-center space-x-1.5 whitespace-nowrap ${tIdx === 0 && pair.length > 1 ? 'w-[140px] shrink-0' : ''}`}
+                                            title={`連至工序：【${t.processName}】`}
+                                          >
                                             <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass(t.machine, t.isByproduct)}`}>
                                               {t.machine}
                                             </span>

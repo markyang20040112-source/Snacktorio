@@ -470,7 +470,7 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                     <th className="py-3 px-4 text-center whitespace-nowrap">最簡整數比</th>
                     <th className="py-3 px-4 text-right whitespace-nowrap">電力 (FV/s)</th>
                     <th className="py-3 px-4 text-right whitespace-nowrap">妖精</th>
-                    <th className="py-3 px-4 min-w-[240px]">分流拓撲與物理說明</th>
+                    <th className="py-3 px-4 min-w-[320px]">分流拓撲與物理說明</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
@@ -518,9 +518,13 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                         ) : p.downstreamTargets && p.downstreamTargets.length > 0 ? (
                           <div className="flex flex-col gap-y-1.5 w-fit">
                             {chunkTargets(p.downstreamTargets).map((pair, rowIdx) => (
-                              <div key={rowIdx} className="flex items-center space-x-3 whitespace-nowrap">
+                              <div key={rowIdx} className="flex items-center space-x-2.5 whitespace-nowrap">
                                 {pair.map((t, tIdx) => (
-                                  <div key={tIdx} className="flex items-center space-x-1.5 whitespace-nowrap" title={`連至工序：【${t.processName}】`}>
+                                  <div
+                                    key={tIdx}
+                                    className={`flex items-center space-x-1.5 whitespace-nowrap ${tIdx === 0 && pair.length > 1 ? 'w-[140px] shrink-0' : ''}`}
+                                    title={`連至工序：【${t.processName}】`}
+                                  >
                                     <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass(t.machine, t.isByproduct)}`}>
                                       {t.machine}
                                     </span>
