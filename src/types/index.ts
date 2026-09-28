@@ -65,6 +65,15 @@ export interface CalculatorMaterial {
   type: string;
 }
 
+export interface DownstreamTarget {
+  processName: string;
+  machine: string;
+  ratio: number;
+  isFluid?: boolean;
+  isByproduct?: boolean;
+  note?: string;
+}
+
 export interface ProcessNode {
   processName: string;
   machine: string;
@@ -79,6 +88,7 @@ export interface ProcessNode {
   fluidRate: number;
   fluidType: string;
   topology: string;
+  downstreamTargets?: DownstreamTarget[];
   warnings: string[];
   feederRole?: 'donor' | 'recipient';
   feederNote?: string;

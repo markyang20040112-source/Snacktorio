@@ -345,6 +345,7 @@ export function calculateSingleDish(
   nodeContexts.forEach(curr => {
     if (curr.node.machine === '自動廚師機') {
       curr.node.topology = '終端出餐 (大炮發射)';
+      curr.node.downstreamTargets = [];
       return;
     }
 
@@ -365,17 +366,46 @@ export function calculateSingleDish(
     if (consumers.length === 0) {
       if (curr.output.isFluid) {
         curr.node.topology = `專線直供【終端組裝】(自動廚師機) (1.0 fl/s)`;
+        curr.node.downstreamTargets = [{
+          processName: '終端組裝',
+          machine: '自動廚師機',
+          ratio: 1,
+          isFluid: true,
+          note: '1.0 fl/s'
+        }];
       } else if (curr.node.processName.includes('底料作物採集') || curr.node.processName.includes('底料專供')) {
         curr.node.topology = '直供【物質操縱機】(重構底料)';
+        curr.node.downstreamTargets = [{
+          processName: '重構底料',
+          machine: '物質操縱機',
+          ratio: 1
+        }];
       } else {
         curr.node.topology = '連至【終端組裝】(自動廚師機)';
+        curr.node.downstreamTargets = [{
+          processName: '終端組裝',
+          machine: '自動廚師機',
+          ratio: 1
+        }];
       }
     } else if (consumers.length === 1) {
       const c = consumers[0];
       if (c.isFluid) {
         curr.node.topology = `專線直供【${c.target.processName}】(${c.target.machine}) (1.0 fl/s)`;
+        curr.node.downstreamTargets = [{
+          processName: c.target.processName,
+          machine: c.target.machine,
+          ratio: 1,
+          isFluid: true,
+          note: '1.0 fl/s'
+        }];
       } else {
         curr.node.topology = `連至【${c.target.processName}】(${c.target.machine})`;
+        curr.node.downstreamTargets = [{
+          processName: c.target.processName,
+          machine: c.target.machine,
+          ratio: 1
+        }];
       }
     } else {
       const reqCounts = consumers.map(c => c.reqCount);
@@ -385,6 +415,12 @@ export function calculateSingleDish(
         ? `【${consumers[0].target.processName}】(${consumers[0].target.machine}) 與【${consumers[1].target.processName}】(${consumers[1].target.machine})`
         : consumers.slice(0, -1).map(c => `【${c.target.processName}】(${c.target.machine})`).join('、') + ` 與【${consumers[consumers.length - 1].target.processName}】(${consumers[consumers.length - 1].target.machine})`;
       curr.node.topology = `分流至${desc} 配比 ${ratioStr}`;
+      curr.node.downstreamTargets = consumers.map((c, idx) => ({
+        processName: c.target.processName,
+        machine: c.target.machine,
+        ratio: reqCounts[idx] / (g > 0 ? g : 1),
+        isFluid: c.isFluid
+      }));
     }
   });
 
@@ -459,6 +495,19 @@ export function calculateSingleDish(
           d.feederRole = 'donor';
           const recNames = recipientManipulators.map(r => `【${r.processName}】`).join('、');
           d.feederNote = `產能過剩，分流直供${recNames || '物質操縱機'}作為底料`;
+
+          if (!d.downstreamTargets) d.downstreamTargets = [];
+          recipientManipulators.forEach(r => {
+            if (!d.downstreamTargets!.some(t => t.processName === r.processName && t.isByproduct)) {
+              d.downstreamTargets!.push({
+                processName: r.processName,
+                machine: '物質操縱機',
+                ratio: 1,
+                isByproduct: true,
+                note: '副產物折抵'
+              });
+            }
+          });
         });
 
         recipientManipulators.forEach(r => {

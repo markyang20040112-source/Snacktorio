@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { Recipe, ProcessNode, FeederStrategy } from '../../types';
+import { Recipe, ProcessNode, FeederStrategy, DownstreamTarget } from '../../types';
 import { calculateSingleDish, sizeAutonomousPump } from '../../services/solver';
+import { getMachineBadgeClass } from '../../utils/machineBadge';
 import { Layers, Plus, Trash2, ShieldCheck, Zap, Droplets, Users, Flame, Sparkles, Sprout } from 'lucide-react';
 
 interface ParallelPlannerProps {
@@ -70,6 +71,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
       powerPerUnit: number;
       goblinsPerUnit: number;
       topologies: { dishName: string; text: string }[];
+      downstreamTargets: { dishName: string; targets: DownstreamTarget[] }[];
       feederRoles: { dishName: string; role: 'donor' | 'recipient'; note: string }[];
       isBaseFeeder?: boolean;
       baseFeederSummary?: {
@@ -100,6 +102,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
             powerPerUnit: p.countRounded > 0 ? p.power / p.countRounded : 0,
             goblinsPerUnit: p.countRounded > 0 ? p.goblins / p.countRounded : 0,
             topologies: [],
+            downstreamTargets: [],
             feederRoles: []
           });
         }
@@ -116,6 +119,12 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
 
         if (p.topology) {
           record.topologies.push({ dishName: item.dishName, text: p.topology });
+        }
+        if (p.downstreamTargets && p.downstreamTargets.length > 0) {
+          record.downstreamTargets.push({
+            dishName: item.dishName,
+            targets: p.downstreamTargets
+          });
         }
         if (p.feederRole && p.feederNote) {
           record.feederRoles.push({
@@ -146,6 +155,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
         powerPerUnit: 1.0,
         goblinsPerUnit: 1.0,
         topologies: [{ dishName: '全廠', text: '1:1 防堵專線直供物質操縱機' }],
+        downstreamTargets: [],
         feederRoles: [],
         isBaseFeeder: true,
         baseFeederSummary: {
@@ -956,11 +966,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                           ? 'bg-emerald-900/40 border-emerald-500/40 text-emerald-200'
                           : isBaseFeeder
                           ? 'bg-purple-900/50 border-purple-500/40 text-purple-200'
-                          : r.machine === '物質操縱機'
-                          ? 'bg-purple-500/20 border-purple-500/30 text-purple-300'
-                          : r.machine === '注入機'
-                          ? 'bg-indigo-500/20 border-indigo-500/30 text-indigo-300'
-                          : 'bg-slate-800 border-slate-700 text-slate-300'
+                          : getMachineBadgeClass(r.machine)
                       }`}>
                         {r.machine}
                       </span>
@@ -1031,45 +1037,114 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                     <td className="py-3 px-4 text-xs">
                       {isBaseFeeder ? (
                         r.baseFeederSummary && r.baseFeederSummary.offsetCount > 0 ? (
-                          <span className="text-emerald-300 font-medium leading-relaxed">
-                            🎉 智慧折抵：{r.baseFeederSummary.offsetDetails.join('；')}
-                            {r.parallelRounded > 0
-                              ? `；剩餘 ${r.parallelRounded} 台需 1:1 直供專線`
-                              : '；全廠底料收割機全額免建'}
-                            {' (需配置優先分流器防缺料)'}
-                          </span>
+                          <div className="flex items-center space-x-1.5 whitespace-nowrap" title={r.baseFeederSummary.offsetDetails.join('；')}>
+                            <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass('物質操縱機', true)}`}>
+                              物質操縱機
+                            </span>
+                            {r.parallelRounded === 0 ? (
+                              <span className="text-xs text-emerald-300 font-medium">
+                                🎉 (全廠副產物全額折抵免建)
+                              </span>
+                            ) : (
+                              <span className="text-xs text-emerald-300 font-medium">
+                                (已折抵 {r.baseFeederSummary.offsetCount} 台，剩餘需直供)
+                              </span>
+                            )}
+                          </div>
                         ) : (
-                          <span className="text-purple-300 leading-relaxed">
-                            專線直供物質操縱機，每秒消耗 1 份作物底料完成異界質量重構 (1:1 防堵專線)
-                          </span>
+                          <div className="flex items-center space-x-1.5 whitespace-nowrap" title="專線直供物質操縱機，每秒消耗 1 份作物底料完成異界質量重構 (1:1 防堵專線)">
+                            <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass('物質操縱機')}`}>
+                              物質操縱機
+                            </span>
+                            <span className="font-mono font-bold text-xs text-slate-200">1</span>
+                            <span className="text-xs text-purple-300 font-normal">
+                              (1:1 防堵專線)
+                            </span>
+                          </div>
                         )
-                      ) : r.feederRoles.length > 0 ? (
-                        <div className="space-y-1">
-                          {r.feederRoles.map((fr, fIdx) => (
-                            <div
-                              key={fIdx}
-                              className={fr.role === 'donor' ? 'text-emerald-300 font-medium' : 'text-purple-300'}
-                            >
-                              <span className="font-bold">{fr.role === 'donor' ? '⚡ 產能分流：' : '🌱 底料來源：'}</span>
-                              {plannedList.length > 1 && <span className="text-slate-300 font-bold">【{fr.dishName}】</span>}
-                              <span>{fr.note}</span>
+                      ) : r.machine === '自動廚師機' ? (
+                        <span className="text-amber-400 font-bold whitespace-nowrap">終端出餐 (大炮發射)</span>
+                      ) : r.downstreamTargets && r.downstreamTargets.length > 0 ? (
+                        (() => {
+                          const firstTargets = r.downstreamTargets[0]?.targets || [];
+                          const allSame = r.downstreamTargets.every(dt =>
+                            dt.targets.length === firstTargets.length &&
+                            dt.targets.every((t, i) => t.machine === firstTargets[i].machine && t.ratio === firstTargets[i].ratio && t.isByproduct === firstTargets[i].isByproduct)
+                          );
+
+                          if (allSame) {
+                            return firstTargets.length === 1 ? (
+                              <div className="flex items-center space-x-1.5 whitespace-nowrap" title={`連至工序：【${firstTargets[0].processName}】`}>
+                                <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass(firstTargets[0].machine, firstTargets[0].isByproduct)}`}>
+                                  {firstTargets[0].machine}
+                                </span>
+                                <span className={`font-mono font-bold text-xs ${firstTargets[0].isByproduct ? 'text-emerald-400' : 'text-slate-200'}`}>
+                                  {firstTargets[0].ratio}
+                                </span>
+                                {firstTargets[0].isFluid && (
+                                  <span className="text-[10px] text-cyan-400 font-normal font-sans">(1.0 fl/s)</span>
+                                )}
+                                {firstTargets[0].isByproduct && (
+                                  <span className="text-[10px] text-emerald-400 font-normal font-sans">(副產物折抵)</span>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 w-fit">
+                                {firstTargets.map((t, tIdx) => (
+                                  <div key={tIdx} className="flex items-center space-x-1.5 whitespace-nowrap" title={`連至工序：【${t.processName}】`}>
+                                    <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass(t.machine, t.isByproduct)}`}>
+                                      {t.machine}
+                                    </span>
+                                    <span className={`font-mono font-bold text-xs ${t.isByproduct ? 'text-emerald-400' : 'text-slate-200'}`}>
+                                      {t.ratio}
+                                    </span>
+                                    {t.isFluid && (
+                                      <span className="text-[10px] text-cyan-400 font-normal font-sans">(1.0 fl/s)</span>
+                                    )}
+                                    {t.isByproduct && (
+                                      <span className="text-[10px] text-emerald-400 font-normal font-sans">(副產物折抵)</span>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            );
+                          }
+
+                          return (
+                            <div className="space-y-1.5">
+                              {r.downstreamTargets.map((dt, dtIdx) => (
+                                <div key={dtIdx} className="flex items-center space-x-2">
+                                  {plannedList.length > 1 && (
+                                    <span className="text-slate-400 font-medium text-xs whitespace-nowrap">【{dt.dishName}】</span>
+                                  )}
+                                  <div className={dt.targets.length >= 2 ? "grid grid-cols-2 gap-x-4 gap-y-1.5 w-fit" : "flex items-center space-x-1.5 whitespace-nowrap"}>
+                                    {dt.targets.map((t, tIdx) => (
+                                      <div key={tIdx} className="flex items-center space-x-1.5 whitespace-nowrap" title={`連至工序：【${t.processName}】`}>
+                                        <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass(t.machine, t.isByproduct)}`}>
+                                          {t.machine}
+                                        </span>
+                                        <span className={`font-mono font-bold text-xs ${t.isByproduct ? 'text-emerald-400' : 'text-slate-200'}`}>
+                                          {t.ratio}
+                                        </span>
+                                        {t.isFluid && (
+                                          <span className="text-[10px] text-cyan-400 font-normal font-sans">(1.0 fl/s)</span>
+                                        )}
+                                        {t.isByproduct && (
+                                          <span className="text-[10px] text-emerald-400 font-normal font-sans">(副產物折抵)</span>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
+                          );
+                        })()
                       ) : (
                         <div className="text-slate-400">
                           {r.topologies.length > 0 ? (
                             r.topologies.length === 1 || r.topologies.every(t => t.text === r.topologies[0].text) ? (
-                              <span className={
-                                r.topologies[0].text.includes('大炮') ? 'text-amber-400 font-bold' :
-                                r.topologies[0].text.includes('分流') ? 'text-emerald-300' :
-                                r.topologies[0].text.includes('專線') ? 'text-cyan-300' :
-                                r.topologies[0].text.includes('連至') ? 'text-slate-300' :
-                                r.topologies[0].text.includes('重構') ? 'text-purple-300' :
-                                r.topologies[0].text.includes('轉化') ? 'text-indigo-300' : 'text-slate-400'
-                              }>
-                                {r.topologies[0].text}
-                              </span>
+                              <span>{r.topologies[0].text}</span>
                             ) : (
                               <div className="space-y-0.5">
                                 {r.topologies.map((t, tIdx) => (

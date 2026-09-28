@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { calculateSingleDish } from '../../services/solver';
 import { Recipe, FeederStrategy } from '../../types';
+import { getMachineBadgeClass } from '../../utils/machineBadge';
 import { 
   Zap, Droplet, Users, Cog, ShieldAlert,
   Sprout, Sparkles, Flame
@@ -489,13 +490,7 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                         )}
                       </td>
                       <td className="py-3 px-4 whitespace-nowrap">
-                        <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${
-                          p.machine === '物質操縱機'
-                            ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
-                            : p.machine === '注入機'
-                            ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
-                            : 'bg-slate-800 border-slate-700 text-slate-300'
-                        }`}>
+                        <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass(p.machine)}`}>
                           {p.machine}
                         </span>
                       </td>
@@ -518,16 +513,47 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                         {p.goblins}
                       </td>
                       <td className="py-3 px-4 text-xs">
-                        <span className={`font-medium ${
-                          p.topology.includes('大炮') ? 'text-amber-400 font-bold' :
-                          p.topology.includes('分流') ? 'text-emerald-300' :
-                          p.topology.includes('專線') ? 'text-cyan-300' :
-                          p.topology.includes('連至') ? 'text-slate-300' :
-                          p.topology.includes('重構') ? 'text-purple-300' :
-                          p.topology.includes('轉化') ? 'text-indigo-300' : 'text-slate-400'
-                        }`}>
-                          {p.topology}
-                        </span>
+                        {p.machine === '自動廚師機' || p.topology.includes('大炮') ? (
+                          <span className="text-amber-400 font-bold whitespace-nowrap">終端出餐 (大炮發射)</span>
+                        ) : p.downstreamTargets && p.downstreamTargets.length > 0 ? (
+                          p.downstreamTargets.length === 1 ? (
+                            <div className="flex items-center space-x-1.5 whitespace-nowrap" title={`連至工序：【${p.downstreamTargets[0].processName}】`}>
+                              <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass(p.downstreamTargets[0].machine, p.downstreamTargets[0].isByproduct)}`}>
+                                {p.downstreamTargets[0].machine}
+                              </span>
+                              <span className={`font-mono font-bold text-xs ${p.downstreamTargets[0].isByproduct ? 'text-emerald-400' : 'text-slate-200'}`}>
+                                {p.downstreamTargets[0].ratio}
+                              </span>
+                              {p.downstreamTargets[0].isFluid && (
+                                <span className="text-[10px] text-cyan-400 font-normal font-sans">(1.0 fl/s)</span>
+                              )}
+                              {p.downstreamTargets[0].isByproduct && (
+                                <span className="text-[10px] text-emerald-400 font-normal font-sans">(副產物折抵)</span>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 w-fit">
+                              {p.downstreamTargets.map((t, tIdx) => (
+                                <div key={tIdx} className="flex items-center space-x-1.5 whitespace-nowrap" title={`連至工序：【${t.processName}】`}>
+                                  <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass(t.machine, t.isByproduct)}`}>
+                                    {t.machine}
+                                  </span>
+                                  <span className={`font-mono font-bold text-xs ${t.isByproduct ? 'text-emerald-400' : 'text-slate-200'}`}>
+                                    {t.ratio}
+                                  </span>
+                                  {t.isFluid && (
+                                    <span className="text-[10px] text-cyan-400 font-normal font-sans">(1.0 fl/s)</span>
+                                  )}
+                                  {t.isByproduct && (
+                                    <span className="text-[10px] text-emerald-400 font-normal font-sans">(副產物折抵)</span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )
+                        ) : (
+                          <span className="text-slate-400">{p.topology}</span>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -565,17 +591,35 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                       <td className="py-3 px-4 text-right font-mono whitespace-nowrap">{result.baseFeeders.power.toFixed(1)}</td>
                       <td className="py-3 px-4 text-right font-mono whitespace-nowrap">{result.baseFeeders.goblins}</td>
                       <td className="py-3 px-4 text-xs">
-                        {result.baseFeeders.offsetCount > 0 ? (
-                          <span className="text-emerald-300 font-medium">
-                            {result.baseFeeders.count === 0 ? '🎉 ' : '⚡ '}
-                            {result.baseFeeders.offsetSource || `已由產線過剩副產物折抵 ${result.baseFeeders.offsetCount} 台`}
-                            {result.baseFeeders.count > 0 && `；剩餘 ${result.baseFeeders.count} 台需 1:1 直供專線`}
-                            {' (需配置優先分流器防缺料)'}
-                          </span>
+                        {result.baseFeeders.count === 0 ? (
+                          <div className="flex items-center space-x-1.5 whitespace-nowrap" title={result.baseFeeders.offsetSource || `已由產線過剩副產物折抵 ${result.baseFeeders.offsetCount} 台`}>
+                            <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass('物質操縱機', true)}`}>
+                              物質操縱機
+                            </span>
+                            <span className="text-xs text-emerald-300 font-medium">
+                              🎉 (副產物全額折抵免建)
+                            </span>
+                          </div>
+                        ) : result.baseFeeders.offsetCount > 0 ? (
+                          <div className="flex items-center space-x-1.5 whitespace-nowrap" title={result.baseFeeders.offsetSource || `已由副產物折抵 ${result.baseFeeders.offsetCount} 台`}>
+                            <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass('物質操縱機')}`}>
+                              物質操縱機
+                            </span>
+                            <span className="font-mono font-bold text-xs text-slate-200">1</span>
+                            <span className="text-xs text-emerald-300 font-medium">
+                              (已折抵 {result.baseFeeders.offsetCount} 台，剩餘需直供)
+                            </span>
+                          </div>
                         ) : (
-                          <span className="text-purple-300">
-                            專線直供物質操縱機，每秒消耗 1 份作物底料完成異界質量重構 (1:1 防堵專線)
-                          </span>
+                          <div className="flex items-center space-x-1.5 whitespace-nowrap" title="專線直供物質操縱機，每秒消耗 1 份作物底料完成異界質量重構 (1:1 防堵專線)">
+                            <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass('物質操縱機')}`}>
+                              物質操縱機
+                            </span>
+                            <span className="font-mono font-bold text-xs text-slate-200">1</span>
+                            <span className="text-xs text-purple-300 font-normal">
+                              (1:1 防堵專線)
+                            </span>
+                          </div>
                         )}
                       </td>
                     </tr>
