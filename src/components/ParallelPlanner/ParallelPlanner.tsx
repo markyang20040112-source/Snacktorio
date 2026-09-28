@@ -440,8 +440,9 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
   return (
     <div className="space-y-6">
       {/* Selection Control Panel */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+        {/* Header Bar: Title on Left, Add Dish on Right */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-3">
           <div>
             <h2 className="text-base font-bold text-slate-100 flex items-center space-x-2">
               <Layers className="w-5 h-5 text-amber-400" />
@@ -452,71 +453,89 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
             </p>
           </div>
 
-          <div className="flex items-center space-x-3">
-            {/* Power Mode Toggle */}
-            <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800">
+          {plannedList.length < 3 && (
+            <button
+              onClick={addDish}
+              className="flex items-center space-x-1.5 px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-bold transition-all shadow-sm shrink-0 whitespace-nowrap self-start sm:self-center"
+            >
+              <Plus className="w-4 h-4" />
+              <span>新增並聯菜單 ({plannedList.length}/3)</span>
+            </button>
+          )}
+        </div>
+
+        {/* Global Strategy & Power Control Bar (與產線計算機樣式 100% 對齊，寬幅佈局拒絕折行) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Power Mode Toggle */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-2 whitespace-nowrap">
+              ⚡ 虛空熔爐發電模式
+            </label>
+            <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => setPowerMode('regular')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                className={`flex items-center justify-center space-x-1.5 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all whitespace-nowrap ${
                   powerMode === 'regular'
-                    ? 'bg-amber-500 text-slate-950 shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-amber-500/20 border-amber-500 text-amber-300 shadow-sm'
+                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-850 hover:text-slate-200'
                 }`}
               >
-                常規發電 (4 FV/s)
+                <span className="whitespace-nowrap">一級常規</span>
+                <span className="font-mono text-slate-400 whitespace-nowrap">(4 FV/s)</span>
               </button>
+
               <button
                 onClick={() => setPowerMode('overclock')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                className={`flex items-center justify-center space-x-1.5 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all whitespace-nowrap ${
                   powerMode === 'overclock'
-                    ? 'bg-purple-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-purple-500/20 border-purple-500 text-purple-300 shadow-sm'
+                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-850 hover:text-slate-200'
                 }`}
               >
-                超頻發電 (16 FV/s)
+                <span className="whitespace-nowrap">二級超頻 2:1:1</span>
+                <span className="font-mono text-purple-400 whitespace-nowrap">(16 FV/s)</span>
               </button>
             </div>
+          </div>
 
-            {/* Base Feeder Strategy Toggle */}
-            <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800">
+          {/* Base Feeder Strategy Toggle */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-300 mb-2 flex items-center justify-between whitespace-nowrap">
+              <span>🌱 重構底料供給策略</span>
+            </label>
+            <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => setFeederStrategy('dedicated')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                className={`flex items-center justify-center space-x-1.5 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all whitespace-nowrap ${
                   feederStrategy === 'dedicated'
-                    ? 'bg-purple-600 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-purple-500/20 border-purple-500 text-purple-300 shadow-sm'
+                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-850 hover:text-slate-200'
                 }`}
                 title="每台物質操縱機配屬 1 台專用收割機直供底料 (最安全防呆、零死鎖)"
               >
-                獨立專供底料
+                <span className="whitespace-nowrap">獨立專供</span>
+                <span className="font-normal text-[10px] text-slate-400 font-sans whitespace-nowrap">(安全防呆)</span>
               </button>
+
               <button
                 onClick={() => setFeederStrategy('recycle')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1 ${
+                className={`flex items-center justify-center space-x-1.5 px-3 py-2.5 rounded-xl border text-xs font-bold transition-all whitespace-nowrap ${
                   feederStrategy === 'recycle'
-                    ? 'bg-emerald-500 text-slate-950 shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
+                    ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 shadow-sm'
+                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-850 hover:text-slate-200'
                 }`}
                 title="自動利用研磨骨粉、發酵物等產線過剩副產物作為底料，節省收割機台數"
               >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>副產物折抵</span>
+                <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span className="whitespace-nowrap">副產物折抵</span>
+                <span className="font-normal text-[10px] text-emerald-400 font-sans whitespace-nowrap">(智慧循環)</span>
               </button>
             </div>
-
-            {plannedList.length < 3 && (
-              <button
-                onClick={addDish}
-                className="flex items-center space-x-1.5 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-bold transition-all shadow-sm"
-              >
-                <Plus className="w-4 h-4" />
-                <span>新增並聯菜單</span>
-              </button>
-            )}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Dish Selection Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
           {plannedList.map((item, idx) => (
             <div key={item.id} className="bg-slate-950 p-4 rounded-xl border border-slate-850 space-y-3 relative group">
               <div className="flex items-center justify-between">
