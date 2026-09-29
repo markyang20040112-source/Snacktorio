@@ -18,15 +18,26 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
   const [powerMode, setPowerMode] = useState<'regular' | 'overclock'>('overclock');
   const [feederStrategy, setFeederStrategy] = useState<FeederStrategy>('dedicated');
   const [plannedList, setPlannedList] = useState<PlannedDish[]>([
-    { id: '1', dishName: '哀嚎肉丸', rateMin: 10 },
-    { id: '2', dishName: '鮮紅濃湯', rateMin: 10 },
+    { id: '1', dishName: '哀嚎肉丸', rateMin: 12 },
+    { id: '2', dishName: '鮮紅濃湯', rateMin: 12 },
   ]);
+
+  // Group recipes by island
+  const islandGroups = useMemo(() => {
+    const map = new Map<string, Recipe[]>();
+    recipes.forEach(r => {
+      const isl = r.island || '其他島嶼';
+      if (!map.has(isl)) map.set(isl, []);
+      map.get(isl)!.push(r);
+    });
+    return Array.from(map.entries());
+  }, [recipes]);
 
   const addDish = () => {
     if (plannedList.length >= 3) return;
     const remaining = recipes.find(r => !plannedList.some(p => p.dishName === r.name));
     if (remaining) {
-      setPlannedList([...plannedList, { id: Date.now().toString(), dishName: remaining.name, rateMin: 10 }]);
+      setPlannedList([...plannedList, { id: Date.now().toString(), dishName: remaining.name, rateMin: 12 }]);
     }
   };
 
@@ -569,8 +580,14 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                   onChange={(e) => updateDish(item.id, { dishName: e.target.value })}
                   className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 font-medium focus:outline-none focus:ring-1 focus:ring-amber-500"
                 >
-                  {recipes.map(r => (
-                    <option key={r.name} value={r.name}>{r.name}</option>
+                  {islandGroups.map(([island, list]) => (
+                    <optgroup key={island} label={`🏝️ ${island}`}>
+                      {list.map(r => (
+                        <option key={r.name} value={r.name}>
+                          {r.name}
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
               </div>
@@ -586,7 +603,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                   className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-xs text-slate-100 font-mono font-bold focus:outline-none focus:ring-1 focus:ring-amber-500"
                 />
                 <div className="flex space-x-1 shrink-0">
-                  {[10, 20, 30].map(val => (
+                  {[12, 24, 36].map(val => (
                     <button
                       key={val}
                       onClick={() => updateDish(item.id, { rateMin: val })}

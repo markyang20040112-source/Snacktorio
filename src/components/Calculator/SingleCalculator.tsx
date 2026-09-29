@@ -13,7 +13,7 @@ interface SingleCalculatorProps {
 
 export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) => {
   const [selectedDish, setSelectedDish] = useState<string>(recipes[0]?.name || '驚嚇醃薑');
-  const [targetRateMin, setTargetRateMin] = useState<number>(10); // dishes/min (default 10 份/分)
+  const [targetRateMin, setTargetRateMin] = useState<number>(12); // dishes/min (default 12 份/分)
   const [powerMode, setPowerMode] = useState<'regular' | 'overclock'>('overclock');
   const [feederStrategy, setFeederStrategy] = useState<FeederStrategy>('dedicated');
 
@@ -81,7 +81,7 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                 className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500 font-mono font-bold text-sm"
               />
               <div className="flex space-x-1">
-                {[10, 20, 30].map(val => (
+                {[12, 24, 36].map(val => (
                   <button
                     key={val}
                     onClick={() => setTargetRateMin(val)}
