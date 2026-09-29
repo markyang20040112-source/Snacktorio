@@ -32,7 +32,7 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <div className="relative flex items-center">
                 <img
-                  src="/assets/snacktorio_logo.png"
+                  src={`${import.meta.env.BASE_URL}assets/snacktorio_logo.png`}
                   alt="Snacktorio"
                   className="h-8 sm:h-10 w-auto object-contain pixelated drop-shadow-[0_2px_10px_rgba(71,161,153,0.35)] group-hover:scale-105 transition-transform duration-200"
                 />

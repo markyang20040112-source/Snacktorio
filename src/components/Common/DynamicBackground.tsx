@@ -8,34 +8,36 @@ interface Scene {
   subtitle: string;
 }
 
+const BASE = import.meta.env.BASE_URL;
+
 const SCENES: Scene[] = [
   {
     id: 1,
-    src: '/assets/bg_scene_1.jpg',
+    src: `${BASE}assets/bg_scene_1.jpg`,
     title: '迷霧群山與地下虛空管網',
     subtitle: 'Misty Mountains & Void Liquid Grid'
   },
   {
     id: 2,
-    src: '/assets/bg_scene_2.jpg',
+    src: `${BASE}assets/bg_scene_2.jpg`,
     title: '蟑螂奶與乳品熟成輸送流水線',
     subtitle: 'Roach Milk & Dairy Processing Line'
   },
   {
     id: 3,
-    src: '/assets/bg_scene_3.jpg',
+    src: `${BASE}assets/bg_scene_3.jpg`,
     title: '辣醬工坊與高溫通油油炸區',
     subtitle: 'Salsa Murder Hot Sauce & Fryer Hub'
   },
   {
     id: 4,
-    src: '/assets/bg_scene_4.jpg',
+    src: `${BASE}assets/bg_scene_4.jpg`,
     title: '麵團烘焙與連續通水供液管網',
     subtitle: 'Bread Dough Baking & Water Pump Station'
   },
   {
     id: 5,
-    src: '/assets/bg_scene_5.jpg',
+    src: `${BASE}assets/bg_scene_5.jpg`,
     title: '立體高架輸送帶與發電工廠',
     subtitle: 'Multi-tier Conveyor & Power Furnace Grid'
   }

@@ -6,9 +6,9 @@ import { RefreshCw, Key, GitBranch, Github, CheckCircle2, AlertCircle, Sparkles 
 export const SyncSettings: React.FC = () => {
   const [config, setConfig] = useState<SyncConfig>({
     githubToken: '',
-    repoOwner: '',
+    repoOwner: 'markyang20040112-source',
     repoName: 'Snacktorio',
-    branch: 'master'
+    branch: 'main'
   });
   const [commitMessage, setCommitMessage] = useState('feat(data): update Snacktorio game databases from web workbench');
   const [isSyncing, setIsSyncing] = useState(false);
