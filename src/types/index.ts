@@ -97,6 +97,7 @@ export interface ProcessNode {
   warnings: string[];
   feederRole?: 'donor' | 'recipient';
   feederNote?: string;
+  dishTag?: string;
 }
 
 export interface FluidTierInfo {
@@ -116,6 +117,9 @@ export interface CalculationResult {
   powerMode: 'regular' | 'overclock'; // 4 FV/s vs 16 FV/s
   feederStrategy: FeederStrategy;
   processes: ProcessNode[];
+  isAutoPaired?: boolean;
+  pairedDishName?: string;
+  pairedDishRate?: number;
   
   // Base feeder harvesters for matter manipulators
   baseFeeders: {

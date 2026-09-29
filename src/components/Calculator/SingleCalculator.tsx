@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { calculateSingleDish } from '../../services/solver';
+import { calculateSingleDish, isScorchingDish, combineCalculationResults } from '../../services/solver';
+import { dataService } from '../../services/dataService';
 import { Recipe, FeederStrategy } from '../../types';
 import { getMachineBadgeClass, chunkTargets } from '../../utils/machineBadge';
 import { RecipeSearchSelect } from '../Common/RecipeSearchSelect';
@@ -22,10 +23,21 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
   // Rate in dishes/s for physical solver calculation
   const actualRateSec = targetRateMin / 60;
 
+  const items = useMemo(() => dataService.getItems(), []);
+  const isScorching = useMemo(() => isScorchingDish(selectedDish, items, recipes), [selectedDish, items, recipes]);
+
   // Calculation Result
   const result = useMemo(() => {
-    return calculateSingleDish(selectedDish, actualRateSec, powerMode, feederStrategy);
-  }, [selectedDish, actualRateSec, powerMode, feederStrategy]);
+    const mainResult = calculateSingleDish(selectedDish, actualRateSec, powerMode, feederStrategy);
+    if (!mainResult) return null;
+    if (isScorching) {
+      const peptoResult = calculateSingleDish('胃復慘', actualRateSec, powerMode, feederStrategy);
+      if (peptoResult) {
+        return combineCalculationResults(mainResult, peptoResult);
+      }
+    }
+    return mainResult;
+  }, [selectedDish, actualRateSec, powerMode, feederStrategy, isScorching]);
 
   return (
     <div className="space-y-6">
@@ -153,6 +165,28 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
 
       {result ? (
         <>
+          {/* Scorching Auto-Pairing Banner */}
+          {result.isAutoPaired && (
+            <div className="bg-amber-950/40 border border-amber-500/50 rounded-2xl p-4 shadow-xl flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="p-2.5 bg-amber-500/20 rounded-xl border border-amber-500/30 text-amber-400">
+                  <Flame className="w-5 h-5 text-amber-400" />
+                </div>
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <span className="font-bold text-amber-300 text-sm">🌶️ 熾熱菜餚自動配餐生效</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 whitespace-nowrap">
+                      系統已自動併入【胃復慘】
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-300 mt-0.5">
+                    檢測到【{selectedDish}】具備熾熱特性，巨獸食用時必須搭配【胃復慘】。系統已自動連帶併入相同出餐效率之【胃復慘】(<span className="font-mono font-bold text-amber-400">{targetRateMin} 份/分</span>) 共同推導，全廠流體泵站、電網負載與設備台數已全面整合！
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Biochemical Warnings Banner */}
           {result.biochemicalWarnings.length > 0 && (
             <div className="bg-[#1e1317] border border-rose-500/40 rounded-2xl p-4 shadow-xl">
@@ -467,7 +501,20 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                         <div className="flex items-center space-x-2">
                           <ItemIcon name={p.processName} size="xs" />
                           <div>
-                            <span>{p.processName}</span>
+                            <div className="flex items-center space-x-1.5">
+                              {p.dishTag && (
+                                <span className={`text-[10px] px-1.5 py-0.2 rounded font-bold border whitespace-nowrap ${
+                                  p.dishTag.includes('胃復慘')
+                                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                                    : p.dishTag === '全廠'
+                                    ? 'bg-purple-500/20 text-purple-300 border-purple-500/40'
+                                    : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+                                }`}>
+                                  {p.dishTag}
+                                </span>
+                              )}
+                              <span>{p.processName}</span>
+                            </div>
                             {p.feederRole === 'donor' && p.feederNote && (
                               <span className="text-[11px] text-emerald-400 block font-normal mt-0.5 whitespace-nowrap">
                                 ⚡ {p.feederNote}

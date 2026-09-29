@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Recipe, ProcessNode, FeederStrategy, DownstreamTarget } from '../../types';
-import { calculateSingleDish, sizeAutonomousPump } from '../../services/solver';
+import { calculateSingleDish, sizeAutonomousPump, isScorchingDish } from '../../services/solver';
+import { dataService } from '../../services/dataService';
 import { getMachineBadgeClass, chunkTargets } from '../../utils/machineBadge';
 import { RecipeSearchSelect } from '../Common/RecipeSearchSelect';
 import { ItemIcon } from '../Common/ItemIcon';
@@ -14,6 +15,7 @@ interface PlannedDish {
   id: string;
   dishName: string;
   rateMin: number; // dishes/min (e.g. 12 份/分 = 0.2 份/秒)
+  isAutoAdded?: boolean;
 }
 
 export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => {
@@ -24,6 +26,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
     { id: '2', dishName: '鮮紅濃湯', rateMin: 12 },
   ]);
 
+  const items = useMemo(() => dataService.getItems(), []);
 
   const addDish = () => {
     const remaining = recipes.find(r => !plannedList.some(p => p.dishName === r.name));
@@ -39,13 +42,51 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
     setPlannedList(plannedList.map(p => p.id === id ? { ...p, ...updates } : p));
   };
 
+  // 1. Identify all scorching dishes from user's planned list
+  const scorchingDishes = useMemo(() => {
+    return plannedList.filter(p => isScorchingDish(p.dishName, items, recipes));
+  }, [plannedList, items, recipes]);
+
+  // 2. Sum target rates of all scorching dishes
+  const totalScorchingRateMin = useMemo(() => {
+    return scorchingDishes.reduce((sum, p) => sum + (p.rateMin || 0), 0);
+  }, [scorchingDishes]);
+
+  // 3. Construct effective planned list
+  const effectivePlannedList = useMemo(() => {
+    if (totalScorchingRateMin <= 0) {
+      return plannedList;
+    }
+    const hasPepto = plannedList.some(p => p.dishName === '胃復慘');
+    if (hasPepto) {
+      return plannedList.map(p => {
+        if (p.dishName === '胃復慘') {
+          return {
+            ...p,
+            rateMin: Math.max(p.rateMin, totalScorchingRateMin)
+          };
+        }
+        return p;
+      });
+    }
+    return [
+      ...plannedList,
+      {
+        id: '__auto_pepto__',
+        dishName: '胃復慘',
+        rateMin: totalScorchingRateMin,
+        isAutoAdded: true
+      }
+    ];
+  }, [plannedList, totalScorchingRateMin]);
+
   // Compute individual calculation results (rate converted to dishes/s for solver)
   const individualResults = useMemo(() => {
-    return plannedList.map(p => ({
+    return effectivePlannedList.map(p => ({
       ...p,
       calc: calculateSingleDish(p.dishName, p.rateMin / 60, powerMode, feederStrategy)
     }));
-  }, [plannedList, powerMode, feederStrategy]);
+  }, [effectivePlannedList, powerMode, feederStrategy]);
 
   // Combined Biochemical Warnings across all parallel dishes
   const combinedBiochemicalWarnings = useMemo(() => {
@@ -621,8 +662,65 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
               </div>
             </div>
           ))}
+
+          {/* Auto-Added 胃復慘 Card for Scorching Dishes */}
+          {totalScorchingRateMin > 0 && !plannedList.some(p => p.dishName === '胃復慘') && (
+            <div className="bg-amber-950/20 p-4 rounded-xl border border-amber-500/40 space-y-3 relative group">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-amber-400 flex items-center space-x-1">
+                  <Flame className="w-3.5 h-3.5 text-amber-400" />
+                  <span>聯動配餐</span>
+                </span>
+                <span className="text-[10px] font-bold text-amber-300 bg-amber-500/20 border border-amber-500/40 px-1.5 py-0.5 rounded whitespace-nowrap">
+                  系統自動加總
+                </span>
+              </div>
+
+              <div className="flex items-center space-x-2.5 bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
+                <ItemIcon name="胃復慘" size="sm" />
+                <div>
+                  <div className="text-sm font-bold text-slate-100 flex items-center space-x-1.5">
+                    <span>胃復慘</span>
+                    <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-500/10 px-1 rounded">10份/批</span>
+                  </div>
+                  <div className="text-[11px] text-amber-400/90 mt-0.5">
+                    由 {scorchingDishes.length} 道熾熱料理自動配餐
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-800/80">
+                <span className="text-slate-400 whitespace-nowrap">連帶出餐速率：</span>
+                <span className="font-mono font-bold text-amber-300 text-sm whitespace-nowrap">
+                  {totalScorchingRateMin} <span className="text-xs text-slate-400 font-sans">份/分</span>
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Scorching Auto-Pairing Banner */}
+      {totalScorchingRateMin > 0 && (
+        <div className="bg-amber-950/40 border border-amber-500/50 rounded-2xl p-4 shadow-xl flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="p-2.5 bg-amber-500/20 rounded-xl border border-amber-500/30 text-amber-400">
+              <Flame className="w-5 h-5 text-amber-400" />
+            </div>
+            <div>
+              <div className="flex items-center space-x-2">
+                <span className="font-bold text-amber-300 text-sm">🌶️ 熾熱菜餚自動配餐生效</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 whitespace-nowrap">
+                  系統已自動並聯【胃復慘】
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 mt-0.5">
+                檢測到 {scorchingDishes.length} 道熾熱料理（{scorchingDishes.map(d => `${d.dishName} ${d.rateMin} 份/分`).join(' + ')}），巨獸食用時必須搭配【胃復慘】。系統已自動將其出餐效率加總並聯【胃復慘】合計 <span className="font-mono font-bold text-amber-400">{totalScorchingRateMin} 份/分</span> 同步出餐，全廠製程設備與基建負載已全面整合！
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Biochemical & Pipe Physical Isolation Alert (生化反應與管線實體隔離警示) */}
       {combinedBiochemicalWarnings.length > 0 && (
@@ -922,9 +1020,19 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
               <tr className="bg-slate-950/70 text-slate-400 border-b border-slate-800 text-xs">
                 <th className="py-3 px-4 whitespace-nowrap">工序項目</th>
                 <th className="py-3 px-4 whitespace-nowrap">設備</th>
-                {plannedList.map(p => (
+                {effectivePlannedList.map(p => (
                   <th key={p.id} className="py-3 px-4 text-right whitespace-nowrap">
-                    {p.dishName} ({p.rateMin} 份/分)
+                    <div className="flex flex-col items-end">
+                      <div className="flex items-center space-x-1">
+                        {p.isAutoAdded && (
+                          <span className="text-[10px] text-amber-400 font-bold bg-amber-500/20 px-1 py-0.2 rounded border border-amber-500/30 whitespace-nowrap">
+                            配餐
+                          </span>
+                        )}
+                        <span>{p.dishName}</span>
+                      </div>
+                      <span className="text-slate-400 font-mono text-[11px]">({p.rateMin} 份/分)</span>
+                    </div>
                   </th>
                 ))}
                 <th className="py-3 px-4 text-right whitespace-nowrap">並聯總需求</th>
@@ -966,7 +1074,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                           {r.feederRoles.filter(fr => fr.role === 'donor').map((fr, fIdx) => (
                             <span key={fIdx} className="inline-flex items-center space-x-1 text-[11px] text-emerald-400 font-normal whitespace-nowrap">
                               <Zap className="w-3 h-3 text-emerald-400 inline shrink-0" />
-                              <span>{plannedList.length > 1 ? `【${fr.dishName}】：` : ''}{fr.note}</span>
+                              <span>{effectivePlannedList.length > 1 ? `【${fr.dishName}】：` : ''}{fr.note}</span>
                             </span>
                           ))}
                         </div>
@@ -978,7 +1086,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                           {r.feederRoles.filter(fr => fr.role === 'recipient').map((fr, fIdx) => (
                             <span key={fIdx} className="inline-flex items-center space-x-1 text-[11px] text-purple-300 font-normal whitespace-nowrap">
                               <Sprout className="w-3 h-3 text-purple-400 inline shrink-0" />
-                              <span>{plannedList.length > 1 ? `【${fr.dishName}】：` : ''}{fr.note}</span>
+                              <span>{effectivePlannedList.length > 1 ? `【${fr.dishName}】：` : ''}{fr.note}</span>
                             </span>
                           ))}
                         </div>
@@ -1016,7 +1124,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                     </td>
 
                     {/* 3. 各料理需求 */}
-                    {plannedList.map(p => {
+                    {effectivePlannedList.map(p => {
                       const found = r.dishDemands.find(d => d.dishName === p.dishName);
                       return (
                         <td key={p.id} className="py-3 px-4 text-right font-mono text-xs text-slate-300 whitespace-nowrap">
@@ -1154,7 +1262,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                             <div className="space-y-1.5">
                               {r.downstreamTargets.map((dt, dtIdx) => (
                                 <div key={dtIdx} className="flex items-center space-x-2">
-                                  {plannedList.length > 1 && (
+                                  {effectivePlannedList.length > 1 && (
                                     <span className="text-slate-400 font-medium text-xs whitespace-nowrap">【{dt.dishName}】</span>
                                   )}
                                   <div className="flex flex-col gap-y-1.5 w-fit">
