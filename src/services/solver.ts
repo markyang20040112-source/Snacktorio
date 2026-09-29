@@ -601,7 +601,9 @@ export function calculateSingleDish(
     }
   }
 
-  const rateFactor = targetRate / 0.2;
+  const dishRecipe = recipes.find(r => r.name === dishName);
+  const chefBaseRate = 0.2 * (dishRecipe?.outputCount || 1);
+  const rateFactor = targetRate / (chefBaseRate > 0 ? chefBaseRate : 0.2);
   const demandWaterRaw = baseWater * rateFactor;
   const demandOilRaw = baseOil * rateFactor;
 
@@ -909,7 +911,20 @@ function assembleResult(params: any): CalculationResult {
       }
     }
 
-    // 5. 時效腐壞 (Strictly data-driven: item must have isPerishable && spoilTime)
+    // 5. 熾熱菜餚 (Strictly data-driven: item must have '熾熱' or '炽热' in attributes)
+    if ((attrs.includes('熾熱') || attrs.includes('炽热')) && !attrs.includes('中和') && !iname.includes('胃復慘')) {
+      const key = `${iname}-熾熱`;
+      if (!seenWarnings.has(key)) {
+        seenWarnings.add(key);
+        biochemicalWarnings.push({
+          item: iname,
+          type: '熾熱',
+          detail: '任何熾熱的菜餚都必須搭配【胃復慘】🌸 一起上菜，否則巨獸會消化不良！'
+        });
+      }
+    }
+
+    // 6. 時效腐壞 (Strictly data-driven: item must have isPerishable && spoilTime)
     if (isPerish && spoilTime) {
       const key = `${iname}-時效腐壞`;
       if (!seenWarnings.has(key)) {
@@ -923,8 +938,9 @@ function assembleResult(params: any): CalculationResult {
     }
   });
 
-  // Sort warnings: 氣味刺鼻 -> 食物中毒 -> 過敏原防護 -> 遇熱凝固 -> 時效腐壞
+  // Sort warnings: 熾熱 -> 氣味刺鼻 -> 食物中毒 -> 過敏原防護 -> 遇熱凝固 -> 時效腐壞
   const orderMap: Record<string, number> = {
+    熾熱: 0,
     氣味刺鼻: 1,
     食物中毒: 2,
     過敏原防護: 3,

@@ -29,22 +29,64 @@ class DataService {
   public loadAll() {
     try {
       const m = localStorage.getItem(STORAGE_KEYS.MACHINES);
-      this.machines = m ? JSON.parse(m) : initialMachines;
+      if (m) {
+        const parsedM = JSON.parse(m);
+        const existingMachineNames = new Set(parsedM.map((mac: any) => mac.name));
+        const missingMachines = (initialMachines as Machine[]).filter(mac => !existingMachineNames.has(mac.name));
+        this.machines = [...parsedM, ...missingMachines];
+      } else {
+        this.machines = initialMachines;
+      }
 
       const it = localStorage.getItem(STORAGE_KEYS.ITEMS);
-      this.items = it ? JSON.parse(it) : initialItems;
+      if (it) {
+        const parsedIt: Item[] = JSON.parse(it);
+        const existingItemNames = new Set(parsedIt.map(i => i.name));
+        const missingItems = (initialItems as Item[]).filter(i => !existingItemNames.has(i.name));
+        this.items = [...parsedIt, ...missingItems].map(item => {
+          const init = (initialItems as Item[]).find(i => i.name === item.name);
+          if (init && (!item.source || item.attributes === '無') && (init.source || init.attributes !== '無')) {
+            return {
+              ...item,
+              source: init.source || item.source,
+              attributes: init.attributes !== '無' ? init.attributes : item.attributes,
+              notes: init.notes || item.notes
+            };
+          }
+          return item;
+        });
+      } else {
+        this.items = initialItems;
+      }
 
       const ir = localStorage.getItem(STORAGE_KEYS.INTERMEDIATE);
-      this.intermediate = ir ? JSON.parse(ir) : initialIntermediate;
+      if (ir) {
+        const parsedIr = JSON.parse(ir);
+        const existingIrNames = new Set(parsedIr.map((rec: any) => rec.name));
+        const missingIr = (initialIntermediate as IntermediateRecipe[]).filter(rec => !existingIrNames.has(rec.name));
+        this.intermediate = [...parsedIr, ...missingIr];
+      } else {
+        this.intermediate = initialIntermediate;
+      }
 
       const r = localStorage.getItem(STORAGE_KEYS.RECIPES);
-      this.recipes = r ? JSON.parse(r) : initialRecipes;
+      if (r) {
+        const parsedR: Recipe[] = JSON.parse(r);
+        const existingNames = new Set(parsedR.map(rec => rec.name));
+        const missing = (initialRecipes as Recipe[]).filter(rec => !existingNames.has(rec.name));
+        this.recipes = [...parsedR, ...missing];
+      } else {
+        this.recipes = initialRecipes;
+      }
 
       const cd = localStorage.getItem(STORAGE_KEYS.CALC_DB);
       if (cd) {
         const parsed = JSON.parse(cd);
-        this.calcProcesses = parsed.processes || [];
-        this.calcMaterials = parsed.materials || [];
+        const existingDishes = new Set((parsed.processes || []).map((p: any) => p.dish));
+        const missingProcesses = (initialCalcDb.processes as CalculatorProcess[]).filter(p => !existingDishes.has(p.dish));
+        const missingMaterials = (initialCalcDb.materials as CalculatorMaterial[]).filter(m => !existingDishes.has(m.dish));
+        this.calcProcesses = [...(parsed.processes || []), ...missingProcesses];
+        this.calcMaterials = [...(parsed.materials || []), ...missingMaterials];
       } else {
         this.calcProcesses = initialCalcDb.processes;
         this.calcMaterials = initialCalcDb.materials;

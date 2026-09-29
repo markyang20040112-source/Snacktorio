@@ -1658,12 +1658,12 @@
   {
     "island": "斯科瓦拉",
     "name": "胃復慘",
-    "source": "",
+    "source": "自動廚師機",
     "isPerishable": false,
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": ""
+    "notes": "任何熾熱菜餚必須搭配胃復慘一起上菜，否則巨獸會消化不良；每次組裝產出 10 份"
   },
   {
     "island": "斯科瓦拉",

@@ -10,7 +10,7 @@ interface ItemManagerProps {
   onSave: (items: Item[]) => void;
 }
 
-const COMMON_TAGS = ['過敏原', '遇熱凝固', '氣味刺鼻', '中毒', '發酵膨脹', '虛空底料'];
+const COMMON_TAGS = ['熾熱', '過敏原', '遇熱凝固', '氣味刺鼻', '中毒', '發酵膨脹', '虛空底料'];
 
 const STANDARD_ISLANDS = [
   '常規物資',

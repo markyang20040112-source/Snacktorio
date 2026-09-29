@@ -1090,5 +1090,33 @@
     "cycleTime": 5,
     "outputCount": 1,
     "notes": "由醋、姜姜與E127組裝而成；E127具氣味刺鼻屬性。"
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "胃復慘",
+    "machine": "自動廚師機",
+    "fluidType": "蟑螂奶",
+    "fluidRate": 1,
+    "inputs": [
+      {
+        "name": "酸奶油",
+        "count": 1
+      },
+      {
+        "name": "綠色史萊姆",
+        "count": 1
+      },
+      {
+        "name": "無",
+        "count": 0
+      },
+      {
+        "name": "無",
+        "count": 0
+      }
+    ],
+    "cycleTime": 5,
+    "outputCount": 10,
+    "notes": "中和熾熱菜餚消化不良必備。每次組裝產出 10 份。需通入 1.0 fl/s 蟑螂奶；前置包含 3 台物質操縱機（綠色史萊姆 x1、泥沼蟑螂 x2）共耗 3.0 fl/s 虛空。"
   }
 ]

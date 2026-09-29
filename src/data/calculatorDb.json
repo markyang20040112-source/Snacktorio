@@ -3617,6 +3617,69 @@
       "power": 1,
       "goblins": 1,
       "order": 0
+    },
+    {
+      "dish": "胃復慘",
+      "processName": "終端組裝",
+      "machine": "自動廚師機",
+      "baseRate": 2,
+      "power": 1,
+      "goblins": 3,
+      "order": 0
+    },
+    {
+      "dish": "胃復慘",
+      "processName": "重構綠色史萊姆",
+      "machine": "物質操縱機",
+      "baseRate": 2,
+      "power": 1,
+      "goblins": 2,
+      "order": 0
+    },
+    {
+      "dish": "胃復慘",
+      "processName": "混和蟑螂奶油",
+      "machine": "混合機",
+      "baseRate": 2.5,
+      "power": 1,
+      "goblins": 2,
+      "order": 0
+    },
+    {
+      "dish": "胃復慘",
+      "processName": "開採鹽",
+      "machine": "採掘機",
+      "baseRate": 2,
+      "power": 1,
+      "goblins": 1,
+      "order": 0
+    },
+    {
+      "dish": "胃復慘",
+      "processName": "攪拌蟑螂奶(廚師機專線)",
+      "machine": "攪拌機",
+      "baseRate": 2,
+      "power": 1,
+      "goblins": 2,
+      "order": 0
+    },
+    {
+      "dish": "胃復慘",
+      "processName": "攪拌蟑螂奶(奶油專線)",
+      "machine": "攪拌機",
+      "baseRate": 2,
+      "power": 1,
+      "goblins": 2,
+      "order": 0
+    },
+    {
+      "dish": "胃復慘",
+      "processName": "重構泥沼蟑螂",
+      "machine": "物質操縱機",
+      "baseRate": 1,
+      "power": 1,
+      "goblins": 2,
+      "order": 0
     }
   ],
   "materials": [
@@ -5100,6 +5163,30 @@
       "dish": "驚嚇醃薑",
       "material": "虛空",
       "amount": 1,
+      "type": "液體"
+    },
+    {
+      "dish": "胃復慘",
+      "material": "綠色史萊姆",
+      "amount": 0.1,
+      "type": "固體"
+    },
+    {
+      "dish": "胃復慘",
+      "material": "鹽",
+      "amount": 0.1,
+      "type": "固體"
+    },
+    {
+      "dish": "胃復慘",
+      "material": "泥沼蟑螂",
+      "amount": 0.2,
+      "type": "固體"
+    },
+    {
+      "dish": "胃復慘",
+      "material": "虛空",
+      "amount": 3,
       "type": "液體"
     }
   ]

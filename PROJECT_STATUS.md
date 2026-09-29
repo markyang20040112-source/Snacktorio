@@ -21,8 +21,8 @@
   - `src/data/machines.json` (20 台設備)
   - `src/data/items.json` (176 種食材與生化屬性)
   - `src/data/intermediateRecipes.json` (64 道中間配方)
-  - `src/data/recipes.json` (39 道終端料理食譜)
-  - `src/data/calculatorDb.json` (402 道工序與 247 筆流體需量)
+  - `src/data/recipes.json` (40 道終端料理食譜)
+  - `src/data/calculatorDb.json` (409 道工序與 251 筆流體需量)
 * **自動部署 CI/CD**：`.github/workflows/deploy.yml`（Push 至 master 自動部署至 GitHub Pages）
 * **核心規範知識庫 (Git/Markdown 模組化體系)**：
   - `docs/README.md`（知識庫總覽、模組導航與核心原則）
@@ -287,5 +287,18 @@
         - **固定標題列 (Sticky Header)**：頂部標題與關閉「X」按鈕永遠置頂可見，不隨滾動偏移。
         - **獨立捲動表單區 (Scrollable Body)**：表單主體以 `flex-1 overflow-y-auto` 包覆，搭配專屬滑軌，滑鼠滾輪隨時順暢上下滑動，徹底告別縮放瀏覽器之困擾。
         - **固定操作列 (Sticky Footer)**：「取消」與「儲存」按鈕永遠常駐鎖定在彈窗最下方，不隨內容滑動被推擠遮擋，隨時可一鍵存檔，操作體驗大幅提升。
+* **2026-09-30**：全新第 40 道終端食譜【胃復慘】登錄與【熾熱】生化防護機制實裝（Stomach Relief / Pepto-Bismol Recipe Ingestion & Scorching Hot Warning）：
+   1. **實裝全新終端食譜【胃復慘】（斯科瓦拉）**：
+      - 依玩家實機擷圖與參數校準確認登錄：每次組裝產出 **10 份**（`outputCount: 10`，基準速率 2.0 份/秒），消耗固體食材 `酸奶油` x1、`綠色史萊姆` x1，持續通入 `蟑螂奶` 1.0 fl/s。
+      - 前置包含 3 台物質操縱機（1 台綠色史萊姆 + 2 台泥沼蟑螂，合計消耗 3.0 fl/s 虛空，完美對應原料卡 3 FL 虛空需量）。
+      - 2 台攪拌機分別專線直供自動廚師機 (1.0 fl/s) 與混合機 (0.5 fl/s)，混合機投入鹽與蟑螂奶產出蟑螂奶油，經 30 秒輸送帶/管道時序熟成轉化為酸奶油。
+      - 同步於 `recipes.json`、`items.json` 與 `calculatorDb.json`（7 道工序與 4 筆材料需量）完成精確登錄。
+   2. **實裝全新生化機制【🌶️ 熾熱 (Scorching Hot)】防護警示**：
+      - 依遊戲規則，任何帶有「熾熱」屬性之菜餚或食材（如老爹脆辣辣椒）必須搭配【胃復慘】一同出餐，否則巨獸會消化不良。
+      - `solver.ts` 生化警示引擎全面支援「🌶️ 熾熱」標籤動態識別，在產線計算機與多料理並聯規劃中自動提示玩家配置胃復慘專線。
+   3. **計算引擎全自動適配多份產出（Adaptive Multi-Output dishes/s）**：
+      - 解決首道多份產出料理（1 批 10 份）的計算係數，`rateFactor` 改為動態除以 `chefBaseRate`（$0.2 \times \text{outputCount}$），保障任何單批多出餐的全新料理皆能精準求解。
+   4. **跨裝置資料同步安全升級 (Smart Cache Merge)**：
+      - `dataService.ts` 升級為增量智慧合併模式，即使瀏覽器先前已存有本機快取，重新整理時亦能自動辨識並無損增補全新食譜與工序庫，徹底告別手動清除本機快取之痛點。
 
 
