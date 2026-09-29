@@ -129,40 +129,41 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
           <table className="w-full text-left border-collapse text-sm">
             <thead className="sticky top-0 z-10">
               <tr className="bg-slate-950 text-slate-400 border-b border-slate-800 text-xs shadow-sm">
-                <th className="py-3 px-4">所屬島嶼</th>
-                <th className="py-3 px-4">料理名稱</th>
-                <th className="py-3 px-4">固體食材清單 (1:1 配比)</th>
-                <th className="py-3 px-4">持續組裝流體</th>
-                <th className="py-3 px-4 text-right">出餐基準速率</th>
+                <th className="py-3 px-4 whitespace-nowrap">所屬島嶼</th>
+                <th className="py-3 px-4 whitespace-nowrap">料理名稱</th>
+                <th className="py-3 px-4 whitespace-nowrap">固體食材清單 (1:1 配比)</th>
+                <th className="py-3 px-4 whitespace-nowrap min-w-[140px]">持續組裝流體</th>
+                <th className="py-3 px-4 text-right whitespace-nowrap">出餐基準速率</th>
                 <th className="py-3 px-4">注意事項</th>
-                <th className="py-3 px-4 text-center">操作</th>
+                <th className="py-3 px-4 text-center whitespace-nowrap">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
               {filtered.map((r, idx) => (
                 <tr key={idx} className="hover:bg-slate-800/40 transition-colors">
-                  <td className="py-3 px-4 text-xs font-mono text-slate-400">
+                  <td className="py-3 px-4 text-xs font-mono text-slate-400 whitespace-nowrap">
                     {r.island}
                   </td>
-                  <td className="py-3 px-4 font-bold text-slate-100">
+                  <td className="py-3 px-4 font-bold text-slate-100 whitespace-nowrap">
                     {r.name}
                   </td>
                   <td className="py-3 px-4 text-xs">
                     <div className="flex flex-wrap gap-1">
                       {r.inputs.map((inp, iIdx) => (
-                        <span key={iIdx} className="bg-slate-950 px-2 py-0.5 rounded border border-slate-800 text-slate-200">
+                        <span key={iIdx} className="bg-slate-950 px-2 py-0.5 rounded border border-slate-800 text-slate-200 whitespace-nowrap">
                           {inp.name}
                         </span>
                       ))}
                     </div>
                   </td>
-                  <td className="py-3 px-4 text-xs font-mono">
+                  <td className="py-3 px-4 text-xs font-mono whitespace-nowrap">
                     {r.fluidType !== '無' ? (
-                      <span className="text-cyan-300 font-bold">
-                        {r.fluidType} (1.0 fl/s)
+                      <span className="text-cyan-300 font-bold whitespace-nowrap inline-flex items-center space-x-1">
+                        <span>{r.fluidType}</span>
+                        <span className="text-cyan-400 font-normal">({r.fluidRate || 1.0} fl/s)</span>
                       </span>
                     ) : (
-                      <span className="text-slate-500">無流體</span>
+                      <span className="text-slate-500 whitespace-nowrap">無流體</span>
                     )}
                   </td>
                   <td className="py-3 px-4 text-right font-mono text-amber-300 font-bold whitespace-nowrap">

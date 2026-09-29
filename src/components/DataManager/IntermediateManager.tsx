@@ -118,14 +118,14 @@ export const IntermediateManager: React.FC<IntermediateManagerProps> = ({
           <table className="w-full text-left border-collapse text-sm">
             <thead className="sticky top-0 z-10">
               <tr className="bg-slate-950 text-slate-400 border-b border-slate-800 text-xs shadow-sm">
-                <th className="py-3 px-4">產物名稱</th>
-                <th className="py-3 px-4">加工設備</th>
-                <th className="py-3 px-4">固體原料輸入 (1~4項)</th>
-                <th className="py-3 px-4">所需液體</th>
-                <th className="py-3 px-4 text-right">週期時間</th>
-                <th className="py-3 px-4 text-right">產量</th>
-                <th className="py-3 px-4 text-right">基準速率</th>
-                <th className="py-3 px-4 text-center">操作</th>
+                <th className="py-3 px-4 whitespace-nowrap">產物名稱</th>
+                <th className="py-3 px-4 whitespace-nowrap">加工設備</th>
+                <th className="py-3 px-4 whitespace-nowrap">固體原料輸入 (1~4項)</th>
+                <th className="py-3 px-4 whitespace-nowrap min-w-[130px]">所需液體</th>
+                <th className="py-3 px-4 text-right whitespace-nowrap">週期時間</th>
+                <th className="py-3 px-4 text-right whitespace-nowrap">產量</th>
+                <th className="py-3 px-4 text-right whitespace-nowrap">基準速率</th>
+                <th className="py-3 px-4 text-center whitespace-nowrap">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
@@ -133,25 +133,30 @@ export const IntermediateManager: React.FC<IntermediateManagerProps> = ({
                 const rateNum = r.cycleTime > 0 ? r.outputCount / r.cycleTime : 0;
                 return (
                   <tr key={idx} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="py-3 px-4 font-bold text-slate-100">
+                    <td className="py-3 px-4 font-bold text-slate-100 whitespace-nowrap">
                       {r.name}
                     </td>
-                    <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-xs text-slate-300 font-mono">
+                    <td className="py-3 px-4 whitespace-nowrap">
+                      <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-xs text-slate-300 font-mono whitespace-nowrap">
                         {r.machine}
                       </span>
                     </td>
                     <td className="py-3 px-4 text-xs text-slate-300">
                       <div className="flex flex-wrap gap-1">
                         {r.inputs.map((inp, iIdx) => (
-                          <span key={iIdx} className="bg-slate-950 px-2 py-0.5 rounded border border-slate-800">
+                          <span key={iIdx} className="bg-slate-950 px-2 py-0.5 rounded border border-slate-800 whitespace-nowrap">
                             {inp.name} ×{inp.count}
                           </span>
                         ))}
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-xs font-mono text-cyan-300">
-                      {r.fluidType !== '無' ? `${r.fluidType} (${r.fluidRate} fl/s)` : '-'}
+                    <td className="py-3 px-4 text-xs font-mono text-cyan-300 whitespace-nowrap">
+                      {r.fluidType !== '無' ? (
+                        <span className="inline-flex items-center space-x-1 whitespace-nowrap">
+                          <span>{r.fluidType}</span>
+                          <span className="text-cyan-400 font-normal">({r.fluidRate} fl/s)</span>
+                        </span>
+                      ) : '-'}
                     </td>
                     <td className="py-3 px-4 text-right font-mono text-slate-400">
                       {r.cycleTime} 秒
