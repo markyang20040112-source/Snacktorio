@@ -501,20 +501,25 @@ export const IntermediateManager: React.FC<IntermediateManagerProps> = ({
 
       {/* Edit / Create Modal */}
       {editingRecipe && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-xl w-full p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
-            <button
-              onClick={() => setEditingRecipe(null)}
-              className="absolute top-4 right-4 text-slate-400 hover:text-slate-200"
-            >
-              <X className="w-5 h-5" />
-            </button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl max-w-xl w-full shadow-2xl relative flex flex-col max-h-[90vh] my-auto overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 shrink-0">
+              <h3 className="text-lg font-bold text-slate-100 flex items-center space-x-2">
+                <span>{isNew ? '⚙️ 新增中間加工配方' : `✏️ 編輯配方：${editingRecipe.name}`}</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setEditingRecipe(null)}
+                className="text-slate-400 hover:text-slate-200 p-1 rounded-lg hover:bg-slate-800 transition-colors"
+                title="關閉"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-            <h3 className="text-lg font-bold text-slate-100 mb-4">
-              {isNew ? '⚙️ 新增中間加工配方' : `✏️ 編輯配方：${editingRecipe.name}`}
-            </h3>
-
-            <form onSubmit={handleSaveModal} className="space-y-4 text-sm">
+            <form onSubmit={handleSaveModal} className="flex flex-col flex-1 min-h-0 overflow-hidden text-sm">
+              <div className="p-6 overflow-y-auto space-y-4 flex-1">
               <IconUploader
                 value={editingRecipe.icon}
                 onChange={(icon) => setEditingRecipe({ ...editingRecipe, icon })}
@@ -806,17 +811,18 @@ export const IntermediateManager: React.FC<IntermediateManagerProps> = ({
                 />
               </div>
 
-              <div className="flex justify-end space-x-3 pt-3 border-t border-slate-800">
+              {/* Fixed Modal Footer */}
+              <div className="px-6 py-3.5 bg-slate-950/90 border-t border-slate-800 flex justify-end space-x-3 shrink-0">
                 <button
                   type="button"
                   onClick={() => setEditingRecipe(null)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-all"
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition-all text-xs sm:text-sm font-medium"
                 >
                   取消
                 </button>
                 <button
                   type="submit"
-                  className="flex items-center space-x-1.5 px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl shadow-md transition-all"
+                  className="flex items-center space-x-1.5 px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl shadow-md transition-all text-xs sm:text-sm"
                 >
                   <Check className="w-4 h-4" />
                   <span>儲存配方</span>

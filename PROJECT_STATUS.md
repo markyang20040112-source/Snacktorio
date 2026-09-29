@@ -277,4 +277,15 @@
    4. **食譜輸入樹雙向深層掃描（雙計算機同步受益）**：
       - 改變過去僅單向依賴 `processNodes` 的做法，改為雙向合併掃描：同時掃描《終端食譜》直屬固體食材（`recipe.inputs`）、組裝流體（`recipe.fluidType`）以及全部製程工序（`processNodes`），徹底根除因中間醬汁覆蓋原料名稱而漏判之可能。
       - 《產線計算機》與《多料理並聯規劃》100% 同步受惠，全遊戲 39 道料理嚴格與資料庫連動，達成 0 漏報、0 誤報、精準無死角。
+* **2026-09-29**：資料管理工作台彈窗捲動與固定按鈕架構全面升級（Data Manager Modal Scrollability & Sticky Action Footer Overhaul）：
+   1. **徹底解決彈窗無法上下滑動與縮放破版痛點**：
+      - 排查發現《食材生化管理》（ItemManager）與《機器管理》（MachineManager）彈窗缺少 `max-h` 與 `overflow-y-auto` 容器限制，導致在標準高度螢幕或瀏覽器放大（110%~125%+）時，彈窗超出螢幕且無法用滑鼠滾輪滑動，底部「取消」與「儲存」按鈕被硬生生推到可視區域外。
+   2. **四重彈窗標準化三層架構（Fixed Header + Scroll Body + Sticky Footer）**：
+      - 對齊升級全站四組核心彈窗（《食材生化管理》ItemManager、《機器管理》MachineManager、《食譜管理》RecipeManager、《中間配方管理》IntermediateManager）：
+        - **最外層容器**：加入 `p-3 sm:p-4 overflow-y-auto` 保障在極端超小視窗時亦能整頁捲動。
+        - **彈窗本體**：設定 `max-h-[90vh] flex flex-col my-auto overflow-hidden`，嚴格鎖定於視窗高度 90% 之內。
+        - **固定標題列 (Sticky Header)**：頂部標題與關閉「X」按鈕永遠置頂可見，不隨滾動偏移。
+        - **獨立捲動表單區 (Scrollable Body)**：表單主體以 `flex-1 overflow-y-auto` 包覆，搭配專屬滑軌，滑鼠滾輪隨時順暢上下滑動，徹底告別縮放瀏覽器之困擾。
+        - **固定操作列 (Sticky Footer)**：「取消」與「儲存」按鈕永遠常駐鎖定在彈窗最下方，不隨內容滑動被推擠遮擋，隨時可一鍵存檔，操作體驗大幅提升。
+
 
