@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Machine } from '../../types';
 import { Plus, Edit2, Trash2, Search, X, Check } from 'lucide-react';
+import { ItemIcon } from '../Common/ItemIcon';
+import { IconUploader } from '../Common/IconUploader';
 
 interface MachineManagerProps {
   machines: Machine[];
@@ -105,7 +107,10 @@ export const MachineManager: React.FC<MachineManagerProps> = ({ machines, onSave
                     {m.category}
                   </td>
                   <td className="py-3 px-4 font-bold text-slate-100">
-                    {m.name}
+                    <div className="flex items-center space-x-2.5">
+                      <ItemIcon name={m.name} icon={m.icon} size="sm" />
+                      <span>{m.name}</span>
+                    </div>
                   </td>
                   <td className="py-3 px-4 text-right font-mono text-emerald-400">
                     {m.goblins}
@@ -163,6 +168,12 @@ export const MachineManager: React.FC<MachineManagerProps> = ({ machines, onSave
             </h3>
 
             <form onSubmit={handleSaveModal} className="space-y-4 text-sm">
+              <IconUploader
+                value={editingMachine.icon}
+                onChange={(icon) => setEditingMachine({ ...editingMachine, icon })}
+                itemName={editingMachine.name}
+              />
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 mb-1">設備名稱</label>

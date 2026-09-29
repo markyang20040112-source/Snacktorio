@@ -3,6 +3,7 @@ import { Recipe, ProcessNode, FeederStrategy, DownstreamTarget } from '../../typ
 import { calculateSingleDish, sizeAutonomousPump } from '../../services/solver';
 import { getMachineBadgeClass, chunkTargets } from '../../utils/machineBadge';
 import { RecipeSearchSelect } from '../Common/RecipeSearchSelect';
+import { ItemIcon } from '../Common/ItemIcon';
 import { Layers, Plus, Trash2, ShieldCheck, Zap, Droplets, Users, Flame, Sparkles, Sprout } from 'lucide-react';
 
 interface ParallelPlannerProps {
@@ -910,7 +911,8 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                   >
                     {/* 1. 工序項目 */}
                     <td className="py-3 px-4 font-medium text-slate-100">
-                      <div className="flex items-center space-x-1.5 whitespace-nowrap">
+                      <div className="flex items-center space-x-2 whitespace-nowrap">
+                        <ItemIcon name={r.processName} size="xs" />
                         {isBaseFeeder && (
                           <Sprout className={`w-4 h-4 shrink-0 ${isFullyOffsetFeeder ? 'text-emerald-400' : 'text-purple-400'}`} />
                         )}
@@ -960,14 +962,15 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
 
                     {/* 2. 設備 */}
                     <td className="py-3 px-4 whitespace-nowrap">
-                      <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded text-xs font-mono border ${
+                      <span className={`inline-flex items-center space-x-1.5 whitespace-nowrap px-2 py-0.5 rounded text-xs font-mono border ${
                         isFullyOffsetFeeder
                           ? 'bg-emerald-900/40 border-emerald-500/40 text-emerald-200'
                           : isBaseFeeder
                           ? 'bg-purple-900/50 border-purple-500/40 text-purple-200'
                           : getMachineBadgeClass(r.machine)
                       }`}>
-                        {r.machine}
+                        <ItemIcon name={r.machine} size="xs" showBorder={false} />
+                        <span>{r.machine}</span>
                       </span>
                     </td>
 
@@ -1082,8 +1085,9 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                                         className={`flex items-center space-x-1.5 whitespace-nowrap ${tIdx === 0 && pair.length > 1 ? 'w-[98px] shrink-0' : ''}`}
                                         title={`連至工序：【${t.processName}】`}
                                       >
-                                        <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass(t.machine, t.isByproduct)}`}>
-                                          {t.machine}
+                                        <span className={`inline-flex items-center space-x-1 whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass(t.machine, t.isByproduct)}`}>
+                                          <ItemIcon name={t.machine} size="xs" showBorder={false} />
+                                          <span>{t.machine}</span>
                                         </span>
                                         {t.isFluid ? (
                                           <span className="font-mono font-bold text-xs text-cyan-300">

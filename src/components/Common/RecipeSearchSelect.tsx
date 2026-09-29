@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Recipe } from '../../types';
 import { Search, ChevronDown, Check, X, UtensilsCrossed } from 'lucide-react';
+import { ItemIcon } from './ItemIcon';
 
 interface RecipeSearchSelectProps {
   recipes: Recipe[];
@@ -256,11 +257,19 @@ export const RecipeSearchSelect: React.FC<RecipeSearchSelectProps> = ({
                         >
                           <div className="truncate pr-2">
                             <span className="block truncate">{r.name}</span>
-                            {matchedIngredient && (
-                              <span className="block text-[10px] text-amber-400/80 font-normal">
-                                包含食材: {matchedIngredient.name}
-                              </span>
-                            )}
+                            <div className="flex items-center space-x-1 mt-0.5">
+                              {r.inputs?.slice(0, 4).map((inp, iIdx) => (
+                                <ItemIcon key={iIdx} name={inp.name} size="xs" showBorder={false} />
+                              ))}
+                              {r.fluidType && r.fluidType !== '無' && (
+                                <ItemIcon name={r.fluidType} size="xs" showBorder={false} />
+                              )}
+                              {matchedIngredient && (
+                                <span className="text-[10px] text-amber-400/80 font-normal ml-1">
+                                  (包含: {matchedIngredient.name})
+                                </span>
+                              )}
+                            </div>
                           </div>
                           {isSelected && (
                             <Check className="w-4 h-4 text-amber-400 shrink-0 ml-1" />

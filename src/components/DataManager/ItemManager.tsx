@@ -2,6 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { Item } from '../../types';
 import { Plus, Edit2, Trash2, Search, X, Check, Droplet, Box } from 'lucide-react';
 import { SearchableSelect, SelectOptionGroup } from '../Common/SearchableSelect';
+import { ItemIcon } from '../Common/ItemIcon';
+import { IconUploader } from '../Common/IconUploader';
 
 interface ItemManagerProps {
   items: Item[];
@@ -157,7 +159,8 @@ export const ItemManager: React.FC<ItemManagerProps> = ({ items, onSave }) => {
       spoilTime: null,
       spoilProduct: '',
       attributes: '',
-      notes: ''
+      notes: '',
+      icon: undefined
     });
     setIsCustomIsland(false);
     setCustomIslandInput('');
@@ -312,7 +315,10 @@ export const ItemManager: React.FC<ItemManagerProps> = ({ items, onSave }) => {
                       {it.island}
                     </td>
                     <td className="py-3 px-4 font-bold text-slate-100 whitespace-nowrap">
-                      {it.name}
+                      <div className="flex items-center space-x-2.5">
+                        <ItemIcon name={it.name} icon={it.icon} size="sm" />
+                        <span>{it.name}</span>
+                      </div>
                     </td>
                     <td className="py-3 px-4 text-xs whitespace-nowrap">
                       {isFluid ? (
@@ -404,6 +410,13 @@ export const ItemManager: React.FC<ItemManagerProps> = ({ items, onSave }) => {
             </h3>
 
             <form onSubmit={handleSaveModal} className="space-y-4 text-sm">
+              {/* Photo & Icon Uploader Section */}
+              <IconUploader
+                value={editingItem.icon}
+                onChange={(icon) => setEditingItem({ ...editingItem, icon })}
+                itemName={editingItem.name}
+              />
+
               {/* Row 1: Name and Island (Selection and Add New) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 relative z-40">
                 <div>

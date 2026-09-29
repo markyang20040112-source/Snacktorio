@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Search, ChevronDown, Check, X } from 'lucide-react';
+import { ItemIcon } from './ItemIcon';
 
 export interface SelectOption {
   value: string;
@@ -184,9 +185,12 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
           isOpen ? 'ring-1 ring-amber-500 border-amber-500' : ''
         }`}
       >
-        <span className={`truncate font-medium ${currentOption || value ? 'text-slate-100' : 'text-slate-500'}`}>
-          {displayText}
-        </span>
+        <div className="flex items-center space-x-2 truncate">
+          <ItemIcon name={value} size="xs" showBorder={false} />
+          <span className={`truncate font-medium ${currentOption || value ? 'text-slate-100' : 'text-slate-500'}`}>
+            {displayText}
+          </span>
+        </div>
         <ChevronDown
           className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 shrink-0 ml-1.5 ${
             isOpen ? 'rotate-180 text-amber-400' : ''
@@ -270,11 +274,14 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
                               : 'text-slate-300 hover:bg-slate-800/60 hover:text-slate-100'
                           }`}
                         >
-                          <div className="truncate pr-1.5">
-                            <span className="block truncate">{opt.label}</span>
-                            {opt.badge && (
-                              <span className="text-[10px] text-slate-400">{opt.badge}</span>
-                            )}
+                          <div className="flex items-center space-x-2 truncate pr-1.5">
+                            <ItemIcon name={opt.value} size="xs" showBorder={false} />
+                            <div className="truncate">
+                              <span className="block truncate">{opt.label}</span>
+                              {opt.badge && (
+                                <span className="text-[10px] text-slate-400">{opt.badge}</span>
+                              )}
+                            </div>
                           </div>
                           {isSelected && (
                             <Check className="w-3.5 h-3.5 text-amber-400 shrink-0 ml-1" />

@@ -3,6 +3,7 @@ import { calculateSingleDish } from '../../services/solver';
 import { Recipe, FeederStrategy } from '../../types';
 import { getMachineBadgeClass, chunkTargets } from '../../utils/machineBadge';
 import { RecipeSearchSelect } from '../Common/RecipeSearchSelect';
+import { ItemIcon } from '../Common/ItemIcon';
 import { 
   Zap, Droplet, Users, Cog, ShieldAlert,
   Sprout, Sparkles, Flame
@@ -458,21 +459,27 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                   {result.processes.map((p, idx) => (
                     <tr key={idx} className="hover:bg-slate-800/40 transition-colors">
                       <td className="py-3 px-4 font-medium text-slate-100">
-                        <span>{p.processName}</span>
-                        {p.feederRole === 'donor' && p.feederNote && (
-                          <span className="text-[11px] text-emerald-400 block font-normal mt-0.5 whitespace-nowrap">
-                            ⚡ {p.feederNote}
-                          </span>
-                        )}
-                        {p.feederRole === 'recipient' && p.feederNote && (
-                          <span className="text-[11px] text-purple-300 block font-normal mt-0.5 whitespace-nowrap">
-                            🌱 {p.feederNote}
-                          </span>
-                        )}
+                        <div className="flex items-center space-x-2">
+                          <ItemIcon name={p.processName} size="xs" />
+                          <div>
+                            <span>{p.processName}</span>
+                            {p.feederRole === 'donor' && p.feederNote && (
+                              <span className="text-[11px] text-emerald-400 block font-normal mt-0.5 whitespace-nowrap">
+                                ⚡ {p.feederNote}
+                              </span>
+                            )}
+                            {p.feederRole === 'recipient' && p.feederNote && (
+                              <span className="text-[11px] text-purple-300 block font-normal mt-0.5 whitespace-nowrap">
+                                🌱 {p.feederNote}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </td>
                       <td className="py-3 px-4 whitespace-nowrap">
-                        <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass(p.machine)}`}>
-                          {p.machine}
+                        <span className={`inline-flex items-center space-x-1.5 whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass(p.machine)}`}>
+                          <ItemIcon name={p.machine} size="xs" showBorder={false} />
+                          <span>{p.machine}</span>
                         </span>
                       </td>
                       <td className="py-3 px-4 text-right font-mono text-slate-300 whitespace-nowrap">
@@ -506,8 +513,9 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                                     className={`flex items-center space-x-1.5 whitespace-nowrap ${tIdx === 0 && pair.length > 1 ? 'w-[98px] shrink-0' : ''}`}
                                     title={`連至工序：【${t.processName}】`}
                                   >
-                                    <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass(t.machine, t.isByproduct)}`}>
-                                      {t.machine}
+                                    <span className={`inline-flex items-center space-x-1 whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass(t.machine, t.isByproduct)}`}>
+                                      <ItemIcon name={t.machine} size="xs" showBorder={false} />
+                                      <span>{t.machine}</span>
                                     </span>
                                     {t.isFluid ? (
                                       <span className="font-mono font-bold text-xs text-cyan-300">

@@ -7,6 +7,7 @@ export interface Machine {
   fluidRate: number; // fl/s
   baseRate: string;
   notes: string;
+  icon?: string;
 }
 
 export interface Item {
@@ -19,6 +20,7 @@ export interface Item {
   attributes?: string;
   notes?: string;
   isFluid?: boolean;
+  icon?: string;
 }
 
 export interface RecipeInput {
@@ -35,6 +37,7 @@ export interface IntermediateRecipe {
   cycleTime: number; // seconds
   outputCount: number;
   notes?: string;
+  icon?: string;
 }
 
 export interface Recipe {
@@ -47,6 +50,7 @@ export interface Recipe {
   cycleTime: number; // seconds (usually 5)
   outputCount: number; // usually 1
   notes?: string;
+  icon?: string;
 }
 
 export interface CalculatorProcess {

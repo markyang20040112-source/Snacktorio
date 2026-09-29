@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Recipe, Item, IntermediateRecipe } from '../../types';
 import { SearchableSelect, SelectOptionGroup } from '../Common/SearchableSelect';
 import { Plus, Edit2, Trash2, Search, X, Check } from 'lucide-react';
+import { ItemIcon } from '../Common/ItemIcon';
 
 interface RecipeManagerProps {
   recipes: Recipe[];
@@ -407,15 +408,17 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
                   <td className="py-3 px-4 text-xs">
                     <div className="flex flex-wrap gap-1">
                       {r.inputs.map((inp, iIdx) => (
-                        <span key={iIdx} className="bg-slate-950 px-2 py-0.5 rounded border border-slate-800 text-slate-200 whitespace-nowrap">
-                          {inp.name}
+                        <span key={iIdx} className="bg-slate-950 px-2 py-0.5 rounded border border-slate-800 text-slate-200 whitespace-nowrap inline-flex items-center space-x-1">
+                          <ItemIcon name={inp.name} size="xs" showBorder={false} />
+                          <span>{inp.name}</span>
                         </span>
                       ))}
                     </div>
                   </td>
                   <td className="py-3 px-4 text-xs font-mono whitespace-nowrap">
                     {r.fluidType !== '無' ? (
-                      <span className="text-cyan-300 font-bold whitespace-nowrap inline-flex items-center space-x-1">
+                      <span className="text-cyan-300 font-bold whitespace-nowrap inline-flex items-center space-x-1.5">
+                        <ItemIcon name={r.fluidType} size="xs" showBorder={false} />
                         <span>{r.fluidType}</span>
                         <span className="text-cyan-400 font-normal">({r.fluidRate || 1.0} fl/s)</span>
                       </span>

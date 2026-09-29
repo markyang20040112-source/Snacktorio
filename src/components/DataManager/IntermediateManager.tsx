@@ -3,6 +3,8 @@ import { IntermediateRecipe, Machine, Item } from '../../types';
 import { SearchableSelect, SelectOptionGroup } from '../Common/SearchableSelect';
 import { Plus, Edit2, Trash2, Search, X, Check, Lock, Sparkles } from 'lucide-react';
 import { formatFractionOrDecimal } from '../../utils/math';
+import { ItemIcon } from '../Common/ItemIcon';
+import { IconUploader } from '../Common/IconUploader';
 
 interface MachineConfig {
   outputType: 'solid' | 'liquid';
@@ -426,24 +428,29 @@ export const IntermediateManager: React.FC<IntermediateManagerProps> = ({
                 const isFluidProd = r.machine === '攪拌機' || r.machine === '注入機';
                 return (
                   <tr key={idx} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="py-3 px-4 font-bold text-slate-100 whitespace-nowrap flex items-center space-x-1.5">
-                      <span>{r.name}</span>
-                      {isFluidProd && (
-                        <span className="text-[10px] text-cyan-400 font-mono bg-cyan-500/10 px-1.5 py-0.2 rounded border border-cyan-500/20">
-                          💧 液態
-                        </span>
-                      )}
+                    <td className="py-3 px-4 font-bold text-slate-100 whitespace-nowrap">
+                      <div className="flex items-center space-x-2">
+                        <ItemIcon name={r.name} icon={r.icon} size="sm" />
+                        <span>{r.name}</span>
+                        {isFluidProd && (
+                          <span className="text-[10px] text-cyan-400 font-mono bg-cyan-500/10 px-1.5 py-0.2 rounded border border-cyan-500/20">
+                            💧 液態
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-3 px-4 whitespace-nowrap">
-                      <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-xs text-slate-300 font-mono whitespace-nowrap">
-                        {r.machine}
+                      <span className="inline-flex items-center space-x-1.5 px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-xs text-slate-300 font-mono whitespace-nowrap">
+                        <ItemIcon name={r.machine} size="xs" showBorder={false} />
+                        <span>{r.machine}</span>
                       </span>
                     </td>
                     <td className="py-3 px-4 text-xs text-slate-300">
                       <div className="flex flex-wrap gap-1">
                         {r.inputs.map((inp, iIdx) => (
-                          <span key={iIdx} className="bg-slate-950 px-2 py-0.5 rounded border border-slate-800 whitespace-nowrap">
-                            {inp.name} ×{inp.count}
+                          <span key={iIdx} className="bg-slate-950 px-2 py-0.5 rounded border border-slate-800 whitespace-nowrap inline-flex items-center space-x-1">
+                            <ItemIcon name={inp.name} size="xs" showBorder={false} />
+                            <span>{inp.name} ×{inp.count}</span>
                           </span>
                         ))}
                       </div>
@@ -451,6 +458,7 @@ export const IntermediateManager: React.FC<IntermediateManagerProps> = ({
                     <td className="py-3 px-4 text-xs font-mono text-cyan-300 whitespace-nowrap">
                       {r.fluidType !== '無' ? (
                         <span className="inline-flex items-center space-x-1 whitespace-nowrap">
+                          <ItemIcon name={r.fluidType} size="xs" showBorder={false} />
                           <span>{r.fluidType}</span>
                           <span className="text-cyan-400 font-normal">({r.fluidRate} fl/s)</span>
                         </span>
@@ -507,6 +515,12 @@ export const IntermediateManager: React.FC<IntermediateManagerProps> = ({
             </h3>
 
             <form onSubmit={handleSaveModal} className="space-y-4 text-sm">
+              <IconUploader
+                value={editingRecipe.icon}
+                onChange={(icon) => setEditingRecipe({ ...editingRecipe, icon })}
+                itemName={editingRecipe.name}
+              />
+
               <div className="grid grid-cols-2 gap-4 relative z-40">
                 <div>
                   <div className="flex items-center justify-between mb-1">
