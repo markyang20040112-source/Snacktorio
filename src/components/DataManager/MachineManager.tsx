@@ -267,6 +267,7 @@ export const MachineManager: React.FC<MachineManagerProps> = ({ machines, onSave
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:ring-1 focus:ring-amber-500"
                 />
               </div>
+              </div>
 
               {/* Fixed Modal Footer */}
               <div className="px-6 py-3.5 bg-slate-950/90 border-t border-slate-800 flex justify-end space-x-3 shrink-0">
