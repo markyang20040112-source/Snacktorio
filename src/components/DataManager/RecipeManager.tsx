@@ -427,7 +427,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
                     )}
                   </td>
                   <td className="py-3 px-4 text-right font-mono text-amber-300 font-bold whitespace-nowrap">
-                    12 <span className="text-[10px] text-slate-400">份/分</span>
+                    {Math.round(((r.outputCount || 1) * 60) / (r.cycleTime || 5))} <span className="text-[10px] text-slate-400">份/分</span>
                   </td>
                   <td className="py-3 px-4 text-xs text-slate-400 max-w-xs truncate" title={r.notes}>
                     {r.notes || '-'}
@@ -525,6 +525,39 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
                       className="mt-2 w-full bg-slate-900 border border-amber-500/50 rounded-xl px-3 py-1.5 text-xs text-amber-200 focus:outline-none focus:ring-1 focus:ring-amber-500"
                     />
                   )}
+                </div>
+              </div>
+
+              {/* Output Rate & Cycle Time Specs */}
+              <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">組裝週期 (秒)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={editingRecipe.cycleTime || 5}
+                    onChange={(e) => setEditingRecipe({ ...editingRecipe, cycleTime: parseInt(e.target.value) || 5 })}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 font-mono focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">單次組裝產出 (份)</label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={editingRecipe.outputCount || 1}
+                    onChange={(e) => setEditingRecipe({ ...editingRecipe, outputCount: parseInt(e.target.value) || 1 })}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 font-mono focus:outline-none focus:ring-1 focus:ring-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] text-slate-400 mb-1">基準出餐速率</label>
+                  <div className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-amber-300 flex items-center justify-between">
+                    <span>{Math.round(((editingRecipe.outputCount || 1) * 60) / (editingRecipe.cycleTime || 5))} 份/分</span>
+                    <span className="text-[10px] text-slate-500 font-normal">({(((editingRecipe.outputCount || 1)) / (editingRecipe.cycleTime || 5)).toFixed(2)} 份/秒)</span>
+                  </div>
                 </div>
               </div>
 
