@@ -12,13 +12,11 @@ interface ItemManagerProps {
 
 const COMMON_TAGS = ['過敏原', '遇熱凝固', '氣味刺鼻', '中毒', '發酵膨脹', '虛空底料'];
 
-const DEFAULT_ISLANDS = [
+const STANDARD_ISLANDS = [
   '常規物資',
+  '克洛文納 (Clovina)',
   '波莫拉 (Pomora)',
-  '克羅維納 (Clovina)',
-  '炙熱荒漠 (Karisma)',
-  '幽靈群島 (Umbril)',
-  '霜凍苔原 (Glacio)'
+  '斯科瓦拉'
 ];
 
 /**
@@ -48,13 +46,21 @@ export const ItemManager: React.FC<ItemManagerProps> = ({ items, onSave }) => {
   const [isCustomSource, setIsCustomSource] = useState(false);
   const [customSourceInput, setCustomSourceInput] = useState('');
 
-  // Dynamic island options from defaults + existing items
+  // Dynamic island options strictly derived from actual data, ordered with standard islands first
   const dynamicIslands = useMemo(() => {
-    const set = new Set<string>(DEFAULT_ISLANDS);
+    const presentIslands = new Set<string>();
     items.forEach(it => {
-      if (it.island?.trim()) set.add(it.island.trim());
+      if (it.island?.trim()) presentIslands.add(it.island.trim());
     });
-    return Array.from(set);
+    const ordered: string[] = [];
+    STANDARD_ISLANDS.forEach(isl => {
+      if (presentIslands.has(isl)) {
+        ordered.push(isl);
+        presentIslands.delete(isl);
+      }
+    });
+    Array.from(presentIslands).sort().forEach(isl => ordered.push(isl));
+    return ordered;
   }, [items]);
 
   // Grouped options for SearchableSelect: Machines and Natural sources

@@ -4,7 +4,7 @@ import { calculateSingleDish, sizeAutonomousPump } from '../../services/solver';
 import { getMachineBadgeClass, chunkTargets } from '../../utils/machineBadge';
 import { RecipeSearchSelect } from '../Common/RecipeSearchSelect';
 import { ItemIcon } from '../Common/ItemIcon';
-import { Layers, Plus, Trash2, ShieldCheck, Zap, Droplets, Users, Flame, Sparkles, Sprout } from 'lucide-react';
+import { Layers, Plus, Trash2, ShieldCheck, ShieldAlert, Zap, Droplets, Users, Flame, Sparkles, Sprout } from 'lucide-react';
 
 interface ParallelPlannerProps {
   recipes: Recipe[];
@@ -46,6 +46,24 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
       calc: calculateSingleDish(p.dishName, p.rateMin / 60, powerMode, feederStrategy)
     }));
   }, [plannedList, powerMode, feederStrategy]);
+
+  // Combined Biochemical Warnings across all parallel dishes
+  const combinedBiochemicalWarnings = useMemo(() => {
+    const seen = new Set<string>();
+    const warnings: { item: string; type: string; detail: string }[] = [];
+    individualResults.forEach(r => {
+      if (r.calc?.biochemicalWarnings) {
+        r.calc.biochemicalWarnings.forEach(w => {
+          const key = `${w.item}-${w.type}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            warnings.push(w);
+          }
+        });
+      }
+    });
+    return warnings;
+  }, [individualResults]);
 
   // Aggregate and deduplicate common processes across dishes
   const consolidated = useMemo(() => {
@@ -606,6 +624,24 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
         </div>
       </div>
 
+      {/* Biochemical & Pipe Physical Isolation Alert (生化反應與管線實體隔離警示) */}
+      {combinedBiochemicalWarnings.length > 0 && (
+        <div className="bg-[#1e1317] border border-rose-500/40 rounded-2xl p-4 shadow-xl">
+          <div className="flex items-center space-x-2 text-rose-400 font-bold mb-2.5">
+            <ShieldAlert className="w-5 h-5 text-rose-400" />
+            <span>生化反應與管線實體隔離警示</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+            {combinedBiochemicalWarnings.map((w, idx) => (
+              <div key={idx} className="bg-[#140b0f] p-2.5 rounded-xl border border-rose-500/30">
+                <span className="font-bold text-rose-300">【{w.type}】{w.item}：</span>
+                <span className="text-slate-200">{w.detail}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Plant-Wide Shared Utilities & Pump Station (移至表格上方，與產線計算機保持一致) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Fluids Pump Station */}
@@ -704,7 +740,12 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                 </div>
                 {consolidated.sizedTransformations.map((t, idx) => (
                   <div key={idx} className="flex items-center justify-between text-[11px] border-t border-slate-800 pt-1.5">
-                    <span className="text-slate-300 whitespace-nowrap">{t.name} ({t.fluid})</span>
+                    <div>
+                      <div className="text-slate-200 font-medium whitespace-nowrap">{t.name} ({t.fluid})</div>
+                      <div className="text-slate-400 text-[10px]">
+                        需量：<span className="font-mono text-rose-300 font-bold">{t.demand}</span> fl/s
+                      </div>
+                    </div>
                     <span className="font-mono text-slate-200 font-bold whitespace-nowrap">
                       {t.overclockPumps > 0 ? `超頻泵 ${t.overclockPumps} 台` : `常規泵 ${t.regularPumps} 台`}
                     </span>

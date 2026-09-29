@@ -266,7 +266,12 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                     </div>
                     {result.fluids.transformations.map((t, idx) => (
                       <div key={idx} className="flex items-center justify-between text-[11px] border-t border-slate-800 pt-1.5">
-                        <span className="text-slate-300 whitespace-nowrap">{t.name} ({t.fluid})</span>
+                        <div>
+                          <div className="text-slate-200 font-medium whitespace-nowrap">{t.name} ({t.fluid})</div>
+                          <div className="text-slate-400 text-[10px]">
+                            需量：<span className="font-mono text-rose-300 font-bold">{t.demand}</span> fl/s
+                          </div>
+                        </div>
                         <span className="font-mono text-slate-200 font-bold whitespace-nowrap">
                           {t.overclockPumps > 0 ? `超頻泵 ${t.overclockPumps} 台` : `常規泵 ${t.regularPumps} 台`}
                         </span>
