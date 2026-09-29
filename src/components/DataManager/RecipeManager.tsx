@@ -35,48 +35,114 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
   }, [recipes, items]);
   const islands = dynamicIslands;
 
-  // 2. Dynamic solid ingredients list: Intermediate recipe outputs + Base items
+  // 2. Dynamic solid ingredients list: Intermediate recipe outputs + Clean non-duplicate base items
   const solidOptions = useMemo(() => {
-    const interItems = intermediate.filter(r => r.name && r.name.trim() !== '');
-    const baseItems = items.filter(it => it.name && it.name.trim() !== '');
-    return {
-      intermediate: interItems,
-      items: baseItems
-    };
-  }, [intermediate, items]);
+    // Non-culinary machines and industrial items
+    const nonCulinaryMachines = new Set(['裝配機']);
+    const nonCulinaryNames = new Set(['鐵', '玻璃', '煤炭', '鐵礦石', '沙塊', '橡膠', '黏土', '灰燼', '粉塵', '黏土石']);
+    // Sauces are dedicated to the fluid dropdown; exclude from solid ingredients (except 醋 which is used in pickled food)
+    const pureSauceFluids = new Set(['塔瑪茄醬', '青醬', '白醬', '肉汁', '麵糊', '炙烈紅油', '蟑螂奶']);
 
-  // 3. Dynamic fluid list: Intermediate sauces/fluids + Base fluid items + existing recipe fluids
-  const fluidOptions = useMemo(() => {
-    const sauceList = new Set<string>();
+    // A. Intermediate products (deduplicated by product name)
+    const interSet = new Set<string>();
+    const intermediateList: { name: string; machine: string }[] = [];
+
     intermediate.forEach(r => {
-      if (r.machine === '攪拌機' || r.machine === '注入機' || r.fluidRate > 0) {
-        sauceList.add(r.name.trim());
-      }
-    });
+      const name = r.name?.trim();
+      const m = r.machine?.trim() || '';
+      if (!name || interSet.has(name)) return;
+      if (nonCulinaryMachines.has(m) || nonCulinaryNames.has(name) || pureSauceFluids.has(name)) return;
 
-    const baseFluidList = new Set<string>(['水', '油']);
+      interSet.add(name);
+      intermediateList.push({ name, machine: m || '中間配方' });
+    });
+    intermediateList.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'));
+
+    // B. Base raw / harvested / decay food items from items.json
+    // Strictly filter out:
+    // - items already present in intermediateList (prevents duplication)
+    // - terminal dishes (source === '自動廚師機' or present in recipes.json)
+    // - factory logistics / building items / tools (source in nonFoodSources)
+    // - pure piped fluids ('水', '油', '虛空')
+    // - map blocks and plant tiles ('方塊', '植株', '草地', '石頭', '樹', '叢', '塊莖', '砂岩', '冰塊', '礦脈')
+    const nonFoodSources = new Set(['裝配機', '開局獲得', '創造模式開局獲得', '無法取得', '自動廚師機']);
+    const terrainKeywords = ['方塊', '植株', '草地', '石頭', '樹', '叢', '塊莖', '砂岩', '冰塊', '礦脈'];
+    const pureFluids = new Set(['水', '油', '虛空']);
+    const recipeNames = new Set(recipes.map(r => r.name?.trim()));
+
+    const baseItemSet = new Set<string>();
+    const baseItemsList: { name: string; source: string; island?: string }[] = [];
+
     items.forEach(it => {
-      if (it.name.includes('水') || it.name.includes('油') || it.name.includes('奶') || it.name.includes('醬') || it.name.includes('酒') || it.name.includes('醋')) {
-        if (!sauceList.has(it.name.trim())) baseFluidList.add(it.name.trim());
-      }
-    });
+      const name = it.name?.trim();
+      const source = it.source?.trim() || '';
+      if (!name) return;
+      if (interSet.has(name) || pureSauceFluids.has(name) || nonCulinaryNames.has(name)) return;
+      if (recipeNames.has(name) || nonFoodSources.has(source)) return;
+      if (pureFluids.has(name)) return;
+      if (terrainKeywords.some(k => name.includes(k))) return;
+      if (baseItemSet.has(name)) return;
 
-    const existingFluids = new Set<string>();
-    recipes.forEach(r => {
-      if (r.fluidType && r.fluidType !== '無') {
-        const trimmed = r.fluidType.trim();
-        if (!sauceList.has(trimmed) && !baseFluidList.has(trimmed)) {
-          existingFluids.add(trimmed);
-        }
-      }
+      baseItemSet.add(name);
+      baseItemsList.push({ name, source: source || '採集/生成', island: it.island });
     });
+    baseItemsList.sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'));
 
     return {
-      sauces: Array.from(sauceList),
-      baseFluids: Array.from(baseFluidList),
-      otherFluids: Array.from(existingFluids)
+      intermediate: intermediateList,
+      items: baseItemsList
     };
   }, [intermediate, items, recipes]);
+
+  // 3. Dynamic fluid list: Base fluids (水, 油, 虛空) + Sauces (攪拌機, 注入機, 甘酒, 蒜泥蛋醬) + other recipe fluids
+  const fluidOptions = useMemo(() => {
+    const baseFluids = ['水', '油', '虛空'];
+    const fluidSet = new Set<string>(baseFluids);
+
+    // Liquid-producing machines in Snacktorio (攪拌機, 注入機) or known liquids
+    const sauceMachines = new Set(['攪拌機', '注入機']);
+    const knownLiquids = new Set(['甘酒', '蒜泥蛋醬', '醋']);
+
+    const sauces: string[] = [];
+
+    // Check intermediate recipe products
+    intermediate.forEach(r => {
+      const name = r.name?.trim();
+      if (!name || fluidSet.has(name)) return;
+      if (sauceMachines.has(r.machine) || knownLiquids.has(name)) {
+        fluidSet.add(name);
+        sauces.push(name);
+      }
+    });
+
+    // Also check fluids consumed by intermediate recipes (e.g. 蟑螂奶)
+    intermediate.forEach(r => {
+      const ft = r.fluidType?.trim();
+      if (ft && ft !== '無' && !fluidSet.has(ft)) {
+        fluidSet.add(ft);
+        sauces.push(ft);
+      }
+    });
+
+    sauces.sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+
+    // Other fluids actually used in recipes.json
+    const otherFluids: string[] = [];
+    recipes.forEach(r => {
+      const ft = r.fluidType?.trim();
+      if (ft && ft !== '無' && !fluidSet.has(ft)) {
+        fluidSet.add(ft);
+        otherFluids.push(ft);
+      }
+    });
+    otherFluids.sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+
+    return {
+      baseFluids,
+      sauces,
+      otherFluids
+    };
+  }, [intermediate, recipes]);
 
   const filtered = recipes.filter(r => {
     const matchesSearch = r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -87,7 +153,12 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
   });
 
   const handleEdit = (r: Recipe) => {
-    setEditingRecipe(JSON.parse(JSON.stringify(r)));
+    const recipeCopy: Recipe = JSON.parse(JSON.stringify(r));
+    // Filter out empty or '無' inputs so the modal only shows real ingredient rows
+    const cleanedInputs = (recipeCopy.inputs || []).filter(inp => inp.name && inp.name.trim() !== '' && inp.name !== '無');
+    const defaultItem = solidOptions.intermediate[0]?.name || solidOptions.items[0]?.name || '';
+    recipeCopy.inputs = cleanedInputs.length > 0 ? cleanedInputs : [{ name: defaultItem, count: 1 }];
+    setEditingRecipe(recipeCopy);
     setIsNew(false);
 
     if (r.island && !dynamicIslands.includes(r.island.trim())) {
@@ -98,7 +169,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
       setCustomIslandInput('');
     }
 
-    const allKnownFluids = ['無', ...fluidOptions.sauces, ...fluidOptions.baseFluids, ...fluidOptions.otherFluids];
+    const allKnownFluids = ['無', ...fluidOptions.baseFluids, ...fluidOptions.sauces, ...fluidOptions.otherFluids];
     if (r.fluidType && r.fluidType !== '無' && !allKnownFluids.includes(r.fluidType.trim())) {
       setIsCustomFluid(true);
       setCustomFluidInput(r.fluidType);
@@ -169,12 +240,19 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
 
     const finalRate = (finalFluid && finalFluid !== '無') ? 1.0 : 0.0;
 
+    // Pad inputs to 4 slots with { name: '無', count: 0 } to preserve exact recipe schema
+    const cleanInputs = editingRecipe.inputs.filter(inp => inp.name && inp.name.trim() !== '' && inp.name !== '無');
+    while (cleanInputs.length < 4) {
+      cleanInputs.push({ name: '無', count: 0 });
+    }
+
     const toSave: Recipe = {
       ...editingRecipe,
       name: editingRecipe.name.trim(),
       island: finalIsland,
       fluidType: finalFluid,
-      fluidRate: finalRate
+      fluidRate: finalRate,
+      inputs: cleanInputs
     };
 
     if (isNew) {
@@ -479,16 +557,16 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
                       className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-amber-500 font-medium"
                     >
                       <option value="無">無 (不需持續液體)</option>
-                      {fluidOptions.sauces.length > 0 && (
-                        <optgroup label="🥣 調配醬汁與加工流體 (中間配方)">
-                          {fluidOptions.sauces.map(f => (
+                      {fluidOptions.baseFluids.length > 0 && (
+                        <optgroup label="💧 基礎流體原料">
+                          {fluidOptions.baseFluids.map(f => (
                             <option key={f} value={f}>{f}</option>
                           ))}
                         </optgroup>
                       )}
-                      {fluidOptions.baseFluids.length > 0 && (
-                        <optgroup label="💧 基礎流體原料">
-                          {fluidOptions.baseFluids.map(f => (
+                      {fluidOptions.sauces.length > 0 && (
+                        <optgroup label="🥣 調配醬汁與加工流體 (中間配方)">
+                          {fluidOptions.sauces.map(f => (
                             <option key={f} value={f}>{f}</option>
                           ))}
                         </optgroup>
