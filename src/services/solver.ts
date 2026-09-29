@@ -750,7 +750,7 @@ export function calculateSingleDish(
       totalRegularPumps, totalOverclockPumps, totalSludgeManipulators, totalPumpManipulatorPower,
       mainEquipmentPower, coalMinerPower, totalLoad, furnaces, coalMiners,
       genSludgeManipulators: 0, coalRate, grossPower, netPower, surplusPower,
-      items, recipes, intermediateRecipes
+      items, recipes
     });
   } else {
     // 16 FV/s overclock mode (2:1:1 module: 2 furnaces, 1 miner, 1 manipulator)
@@ -771,7 +771,7 @@ export function calculateSingleDish(
       totalRegularPumps, totalOverclockPumps, totalSludgeManipulators, totalPumpManipulatorPower,
       mainEquipmentPower, coalMinerPower, totalLoad, furnaces, coalMiners,
       genSludgeManipulators, coalRate, grossPower, netPower, surplusPower,
-      items, recipes, intermediateRecipes
+      items, recipes
     });
   }
 }
@@ -810,7 +810,7 @@ function assembleResult(params: any): CalculationResult {
     totalRegularPumps, totalOverclockPumps, totalSludgeManipulators, totalPumpManipulatorPower,
     mainEquipmentPower, coalMinerPower, totalLoad, furnaces, coalMiners,
     genSludgeManipulators, coalRate, grossPower, netPower, surplusPower,
-    items, recipes, intermediateRecipes
+    items, recipes
   } = params;
 
   const totalMainMachines = processNodes.reduce((sum: number, p: ProcessNode) => sum + p.countRounded, 0);
