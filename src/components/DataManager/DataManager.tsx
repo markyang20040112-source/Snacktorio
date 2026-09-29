@@ -182,6 +182,7 @@ export const DataManager: React.FC<DataManagerProps> = ({
         <RecipeManager
           recipes={recipes}
           items={items}
+          intermediate={intermediate}
           onSave={handleSaveRecipes}
         />
       )}

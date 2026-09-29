@@ -1,16 +1,18 @@
-import React, { useState } from 'react';
-import { Recipe, Item } from '../../types';
+import React, { useState, useMemo } from 'react';
+import { Recipe, Item, IntermediateRecipe } from '../../types';
 import { Plus, Edit2, Trash2, Search, X, Check } from 'lucide-react';
 
 interface RecipeManagerProps {
   recipes: Recipe[];
   items: Item[];
+  intermediate: IntermediateRecipe[];
   onSave: (recipes: Recipe[]) => void;
 }
 
 export const RecipeManager: React.FC<RecipeManagerProps> = ({
   recipes,
   items,
+  intermediate,
   onSave
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -18,7 +20,63 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [isNew, setIsNew] = useState(false);
 
-  const islands = Array.from(new Set(recipes.map(r => r.island).filter(Boolean)));
+  // Custom input states for Island and Fluid
+  const [isCustomIsland, setIsCustomIsland] = useState(false);
+  const [customIslandInput, setCustomIslandInput] = useState('');
+  const [isCustomFluid, setIsCustomFluid] = useState(false);
+  const [customFluidInput, setCustomFluidInput] = useState('');
+
+  // 1. Dynamic list of islands from all recipes and items
+  const dynamicIslands = useMemo(() => {
+    const set = new Set<string>();
+    recipes.forEach(r => { if (r.island) set.add(r.island.trim()); });
+    items.forEach(it => { if (it.island && it.island !== '常規物資') set.add(it.island.trim()); });
+    return Array.from(set);
+  }, [recipes, items]);
+  const islands = dynamicIslands;
+
+  // 2. Dynamic solid ingredients list: Intermediate recipe outputs + Base items
+  const solidOptions = useMemo(() => {
+    const interItems = intermediate.filter(r => r.name && r.name.trim() !== '');
+    const baseItems = items.filter(it => it.name && it.name.trim() !== '');
+    return {
+      intermediate: interItems,
+      items: baseItems
+    };
+  }, [intermediate, items]);
+
+  // 3. Dynamic fluid list: Intermediate sauces/fluids + Base fluid items + existing recipe fluids
+  const fluidOptions = useMemo(() => {
+    const sauceList = new Set<string>();
+    intermediate.forEach(r => {
+      if (r.machine === '攪拌機' || r.machine === '注入機' || r.fluidRate > 0) {
+        sauceList.add(r.name.trim());
+      }
+    });
+
+    const baseFluidList = new Set<string>(['水', '油']);
+    items.forEach(it => {
+      if (it.name.includes('水') || it.name.includes('油') || it.name.includes('奶') || it.name.includes('醬') || it.name.includes('酒') || it.name.includes('醋')) {
+        if (!sauceList.has(it.name.trim())) baseFluidList.add(it.name.trim());
+      }
+    });
+
+    const existingFluids = new Set<string>();
+    recipes.forEach(r => {
+      if (r.fluidType && r.fluidType !== '無') {
+        const trimmed = r.fluidType.trim();
+        if (!sauceList.has(trimmed) && !baseFluidList.has(trimmed)) {
+          existingFluids.add(trimmed);
+        }
+      }
+    });
+
+    return {
+      sauces: Array.from(sauceList),
+      baseFluids: Array.from(baseFluidList),
+      otherFluids: Array.from(existingFluids)
+    };
+  }, [intermediate, items, recipes]);
 
   const filtered = recipes.filter(r => {
     const matchesSearch = r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -31,21 +89,44 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
   const handleEdit = (r: Recipe) => {
     setEditingRecipe(JSON.parse(JSON.stringify(r)));
     setIsNew(false);
+
+    if (r.island && !dynamicIslands.includes(r.island.trim())) {
+      setIsCustomIsland(true);
+      setCustomIslandInput(r.island);
+    } else {
+      setIsCustomIsland(false);
+      setCustomIslandInput('');
+    }
+
+    const allKnownFluids = ['無', ...fluidOptions.sauces, ...fluidOptions.baseFluids, ...fluidOptions.otherFluids];
+    if (r.fluidType && r.fluidType !== '無' && !allKnownFluids.includes(r.fluidType.trim())) {
+      setIsCustomFluid(true);
+      setCustomFluidInput(r.fluidType);
+    } else {
+      setIsCustomFluid(false);
+      setCustomFluidInput('');
+    }
   };
 
   const handleCreate = () => {
+    const defaultIsland = dynamicIslands[0] || '波莫拉 (Pomora)';
+    const defaultItem = solidOptions.intermediate[0]?.name || solidOptions.items[0]?.name || '';
     setEditingRecipe({
-      island: islands[0] || '波莫拉 (Pomora)',
+      island: defaultIsland,
       name: '',
       machine: '自動廚師機',
       fluidType: '無',
       fluidRate: 0.0,
-      inputs: [{ name: items[0]?.name || '', count: 1 }],
+      inputs: [{ name: defaultItem, count: 1 }],
       cycleTime: 5,
       outputCount: 1,
       notes: ''
     });
     setIsNew(true);
+    setIsCustomIsland(false);
+    setCustomIslandInput('');
+    setIsCustomFluid(false);
+    setCustomFluidInput('');
   };
 
   const handleDelete = (name: string) => {
@@ -56,9 +137,10 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
 
   const addInputRow = () => {
     if (!editingRecipe || editingRecipe.inputs.length >= 4) return;
+    const defaultItem = solidOptions.intermediate[0]?.name || solidOptions.items[0]?.name || '';
     setEditingRecipe({
       ...editingRecipe,
-      inputs: [...editingRecipe.inputs, { name: items[0]?.name || '', count: 1 }]
+      inputs: [...editingRecipe.inputs, { name: defaultItem, count: 1 }]
     });
   };
 
@@ -74,14 +156,35 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
     e.preventDefault();
     if (!editingRecipe || !editingRecipe.name.trim()) return;
 
+    const finalIsland = isCustomIsland ? customIslandInput.trim() : (editingRecipe.island || '').trim();
+    if (!finalIsland) {
+      alert('請選擇或填寫所屬島嶼！');
+      return;
+    }
+
+    let finalFluid = editingRecipe.fluidType;
+    if (isCustomFluid) {
+      finalFluid = customFluidInput.trim() || '無';
+    }
+
+    const finalRate = (finalFluid && finalFluid !== '無') ? 1.0 : 0.0;
+
+    const toSave: Recipe = {
+      ...editingRecipe,
+      name: editingRecipe.name.trim(),
+      island: finalIsland,
+      fluidType: finalFluid,
+      fluidRate: finalRate
+    };
+
     if (isNew) {
-      if (recipes.some(r => r.name === editingRecipe.name)) {
+      if (recipes.some(r => r.name === toSave.name)) {
         alert('已有相同名稱之終端料理！');
         return;
       }
-      onSave([...recipes, editingRecipe]);
+      onSave([...recipes, toSave]);
     } else {
-      onSave(recipes.map(r => r.name === editingRecipe.name ? editingRecipe : r));
+      onSave(recipes.map(r => r.name === toSave.name ? toSave : r));
     }
     setEditingRecipe(null);
   };
@@ -229,13 +332,37 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 mb-1">所屬島嶼</label>
-                  <input
-                    type="text"
-                    value={editingRecipe.island}
-                    onChange={(e) => setEditingRecipe({ ...editingRecipe, island: e.target.value })}
-                    placeholder="如：波莫拉 (Pomora)..."
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                  />
+                  <select
+                    value={isCustomIsland ? '__CUSTOM__' : editingRecipe.island}
+                    onChange={(e) => {
+                      if (e.target.value === '__CUSTOM__') {
+                        setIsCustomIsland(true);
+                        setCustomIslandInput('');
+                      } else {
+                        setIsCustomIsland(false);
+                        setEditingRecipe({ ...editingRecipe, island: e.target.value });
+                      }
+                    }}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:ring-1 focus:ring-amber-500 font-medium"
+                  >
+                    {dynamicIslands.map(isl => (
+                      <option key={isl} value={isl}>🏝️ {isl}</option>
+                    ))}
+                    <option value="__CUSTOM__">➕ 新增自訂島嶼...</option>
+                  </select>
+                  {isCustomIsland && (
+                    <input
+                      type="text"
+                      required
+                      placeholder="請輸入新島嶼名稱，如：新島嶼 (New Island)..."
+                      value={customIslandInput}
+                      onChange={(e) => {
+                        setCustomIslandInput(e.target.value);
+                        setEditingRecipe({ ...editingRecipe, island: e.target.value });
+                      }}
+                      className="mt-2 w-full bg-slate-900 border border-amber-500/50 rounded-xl px-3 py-1.5 text-xs text-amber-200 focus:outline-none focus:ring-1 focus:ring-amber-500"
+                    />
+                  )}
                 </div>
               </div>
 
@@ -273,9 +400,29 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
                       }}
                       className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none"
                     >
-                      {items.map(it => (
-                        <option key={it.name} value={it.name}>{it.name} ({it.source})</option>
-                      ))}
+                      {solidOptions.intermediate.length > 0 && (
+                        <optgroup label="⚙️ 中間配方產物 (半成品)">
+                          {solidOptions.intermediate.map(r => (
+                            <option key={`inter-${r.name}`} value={r.name}>
+                              {r.name} ({r.machine})
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+                      {solidOptions.items.length > 0 && (
+                        <optgroup label="🥗 基礎食材與採集品">
+                          {solidOptions.items.map(it => (
+                            <option key={`item-${it.name}`} value={it.name}>
+                              {it.name} ({it.source})
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+                      {!solidOptions.intermediate.some(r => r.name === inp.name) && !solidOptions.items.some(it => it.name === inp.name) && inp.name && (
+                        <optgroup label="✨ 當前食譜食材">
+                          <option value={inp.name}>{inp.name}</option>
+                        </optgroup>
+                      )}
                     </select>
 
                     <span className="text-xs font-mono text-slate-400 px-2 py-1 bg-slate-900 rounded border border-slate-800">
@@ -297,35 +444,92 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
 
               {/* Fluid Input (Max 1 fluid, 1.0 fl/s) */}
               <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
-                <div className="text-xs font-bold text-slate-300">
-                  終端組裝持續液體 (最多 1 種，固定 1.0 fl/s)
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-slate-300">
+                    終端組裝持續液體 (最多 1 種，固定 1.0 fl/s)
+                  </span>
+                  <span className="text-[11px] text-cyan-400 font-mono">
+                    {editingRecipe.fluidType && editingRecipe.fluidType !== '無' ? '持續通液：1.0 fl/s' : '無持續液體'}
+                  </span>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[11px] text-slate-400 mb-1">醬汁/液體種類</label>
-                    <input
-                      type="text"
-                      placeholder="無、塔瑪茄醬、白醬、炙烈紅油..."
-                      value={editingRecipe.fluidType}
+                    <select
+                      value={isCustomFluid ? '__CUSTOM__' : (editingRecipe.fluidType || '無')}
                       onChange={(e) => {
                         const val = e.target.value;
-                        setEditingRecipe({
-                          ...editingRecipe,
-                          fluidType: val,
-                          fluidRate: (val && val !== '無') ? 1.0 : 0.0
-                        });
+                        if (val === '__CUSTOM__') {
+                          setIsCustomFluid(true);
+                          setCustomFluidInput('');
+                          setEditingRecipe({
+                            ...editingRecipe,
+                            fluidType: '',
+                            fluidRate: 1.0
+                          });
+                        } else {
+                          setIsCustomFluid(false);
+                          setEditingRecipe({
+                            ...editingRecipe,
+                            fluidType: val,
+                            fluidRate: val !== '無' ? 1.0 : 0.0
+                          });
+                        }
                       }}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                    />
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-amber-500 font-medium"
+                    >
+                      <option value="無">無 (不需持續液體)</option>
+                      {fluidOptions.sauces.length > 0 && (
+                        <optgroup label="🥣 調配醬汁與加工流體 (中間配方)">
+                          {fluidOptions.sauces.map(f => (
+                            <option key={f} value={f}>{f}</option>
+                          ))}
+                        </optgroup>
+                      )}
+                      {fluidOptions.baseFluids.length > 0 && (
+                        <optgroup label="💧 基礎流體原料">
+                          {fluidOptions.baseFluids.map(f => (
+                            <option key={f} value={f}>{f}</option>
+                          ))}
+                        </optgroup>
+                      )}
+                      {fluidOptions.otherFluids.length > 0 && (
+                        <optgroup label="✨ 其他已登錄料理流體">
+                          {fluidOptions.otherFluids.map(f => (
+                            <option key={f} value={f}>{f}</option>
+                          ))}
+                        </optgroup>
+                      )}
+                      <option value="__CUSTOM__">➕ 新增自訂流體/醬汁...</option>
+                    </select>
+                    {isCustomFluid && (
+                      <input
+                        type="text"
+                        required
+                        placeholder="請輸入新流體名稱，如：自製醬汁..."
+                        value={customFluidInput}
+                        onChange={(e) => {
+                          setCustomFluidInput(e.target.value);
+                          setEditingRecipe({
+                            ...editingRecipe,
+                            fluidType: e.target.value,
+                            fluidRate: 1.0
+                          });
+                        }}
+                        className="mt-2 w-full bg-slate-900 border border-cyan-500/50 rounded-lg px-2.5 py-1.5 text-xs text-cyan-200 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                      />
+                    )}
                   </div>
                   <div>
                     <label className="block text-[11px] text-slate-400 mb-1">組裝流率 (fl/s)</label>
-                    <input
-                      type="number"
-                      disabled
-                      value={editingRecipe.fluidType !== '無' && editingRecipe.fluidType ? 1.0 : 0.0}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-400 font-mono disabled:opacity-75"
-                    />
+                    <div className="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-mono flex items-center justify-between text-slate-300">
+                      <span className={`font-bold ${editingRecipe.fluidType && editingRecipe.fluidType !== '無' ? 'text-cyan-300' : 'text-slate-500'}`}>
+                        {editingRecipe.fluidType && editingRecipe.fluidType !== '無' ? '1.0 fl/s' : '0.0 fl/s'}
+                      </span>
+                      <span className="text-[10px] text-slate-500">
+                        {editingRecipe.fluidType && editingRecipe.fluidType !== '無' ? '固定配比' : '無需流體'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
