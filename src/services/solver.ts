@@ -54,6 +54,10 @@ function normalizeMatName(str: string): string {
   return str.replace(/麵糰/g, '麵團');
 }
 
+function isRawItem(name: string): boolean {
+  return /^(生|生的|生鮮|生鮮的)/.test(name) && !/^(生產|生成)/.test(name);
+}
+
 function getBaseItemName(str: string): string {
   return normalizeMatName(str)
     .replace(/^(煮熟的|新鮮的|烘烤的|油炸的|生鮮的|熟的|生的|生|熟)/, '')
@@ -65,6 +69,13 @@ function matchMaterial(prodItem: { name: string; isFluid: boolean }, reqItem: { 
   const pNorm = normalizeMatName(prodItem.name);
   const rNorm = normalizeMatName(reqItem.name);
   if (pNorm === rNorm) return true;
+
+  // 生熟嚴格隔離：生料（如生通心粉、生千層麵、生史萊姆肉丸）絕不可直供需熟料之設備（自動廚師機），必須經由熱加工烹飪設備（煮鍋、油炸鍋等）
+  const pRaw = isRawItem(pNorm);
+  const rRaw = isRawItem(rNorm);
+  if (pRaw !== rRaw) {
+    return false;
+  }
 
   for (const group of COOKED_GROUPS) {
     const inProd = group.some(g => pNorm === normalizeMatName(g));
