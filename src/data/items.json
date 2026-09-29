@@ -947,7 +947,8 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": ""
+    "notes": "",
+    "isFluid": true
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -966,8 +967,9 @@
     "isPerishable": false,
     "spoilTime": null,
     "spoilProduct": "",
-    "attributes": "",
-    "notes": ""
+    "attributes": "無",
+    "notes": "",
+    "isFluid": true
   },
   {
     "island": "常規物資",
@@ -1223,7 +1225,9 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "克洛文納終端料理：暴徒烤麵包。"
+    "notes": "克洛文納終端料理：暴徒烤麵包。",
+    "isFluid": false,
+    "icon": "none"
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -1252,8 +1256,10 @@
     "isPerishable": false,
     "spoilTime": null,
     "spoilProduct": "-",
-    "attributes": "氣味刺鼻",
-    "notes": "克洛文納終端料理：墳墓土豆塊。含有小蒜（氣味刺鼻）。"
+    "attributes": "",
+    "notes": "克洛文納終端料理：墳墓土豆塊。含有小蒜（氣味刺鼻）。",
+    "isFluid": false,
+    "icon": "none"
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -1262,8 +1268,10 @@
     "isPerishable": false,
     "spoilTime": null,
     "spoilProduct": "-",
-    "attributes": "氣味刺鼻",
-    "notes": "克洛文納終端料理：爆炸土豆塊。含有小蒜（氣味刺鼻）。"
+    "attributes": "",
+    "notes": "克洛文納終端料理：爆炸土豆塊。含有小蒜（氣味刺鼻）。",
+    "isFluid": false,
+    "icon": "none"
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -1412,8 +1420,10 @@
     "isPerishable": false,
     "spoilTime": null,
     "spoilProduct": "-",
-    "attributes": "氣味刺鼻",
-    "notes": "克洛文納終端料理：幽靈肉汁奶酪薯條。由薯條、芝士碎組裝而成，並通入肉汁(1 fl/s)；含有小蒜(氣味刺鼻)。"
+    "attributes": "",
+    "notes": "克洛文納終端料理：幽靈肉汁奶酪薯條。由薯條、芝士碎組裝而成，並通入肉汁(1 fl/s)；含有小蒜(氣味刺鼻)。",
+    "isFluid": false,
+    "icon": "none"
   },
   {
     "island": "克洛文納 (Clovina)",
