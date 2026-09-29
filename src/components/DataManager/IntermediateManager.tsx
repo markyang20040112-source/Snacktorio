@@ -1,7 +1,184 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { IntermediateRecipe, Machine, Item } from '../../types';
-import { Plus, Edit2, Trash2, Search, X, Check } from 'lucide-react';
+import { SearchableSelect, SelectOptionGroup } from '../Common/SearchableSelect';
+import { Plus, Edit2, Trash2, Search, X, Check, Lock, Sparkles } from 'lucide-react';
 import { formatFractionOrDecimal } from '../../utils/math';
+
+interface MachineConfig {
+  outputType: 'solid' | 'liquid';
+  cycleTime: number;
+  outputCount: number;
+  fluidType: string;
+  fluidRate: number;
+  isFixedFluid: boolean;
+  isFixedRate: boolean;
+  ratePresets?: { label: string; cycle: number; count: number }[];
+  fluidPresets?: { type: string; rate: number; label: string }[];
+  description: string;
+}
+
+const MACHINE_CONFIGS: Record<string, MachineConfig> = {
+  '煮鍋': {
+    outputType: 'solid',
+    cycleTime: 5,
+    outputCount: 1,
+    fluidType: '水',
+    fluidRate: 1.0,
+    isFixedFluid: true,
+    isFixedRate: true,
+    description: '水煮熟化：固定通水 1.0 fl/s，基準速率 0.2/s (5秒1個)'
+  },
+  '油炸鍋': {
+    outputType: 'solid',
+    cycleTime: 5,
+    outputCount: 1,
+    fluidType: '油',
+    fluidRate: 1.0,
+    isFixedFluid: true,
+    isFixedRate: true,
+    description: '油炸熟化：固定通油 1.0 fl/s，基準速率 0.2/s (5秒1個)'
+  },
+  '物質操縱機': {
+    outputType: 'solid',
+    cycleTime: 5,
+    outputCount: 1,
+    fluidType: '虛空',
+    fluidRate: 1.0,
+    isFixedFluid: true,
+    isFixedRate: false,
+    ratePresets: [
+      { label: '5秒 1個 (0.2/s, 標準)', cycle: 5, count: 1 },
+      { label: '5秒 2個 (0.4/s, 蟑螂)', cycle: 5, count: 2 }
+    ],
+    description: '重構機：固定通虛空 1.0 fl/s，速率可選 0.2/s 或 0.4/s'
+  },
+  '烤箱': {
+    outputType: 'solid',
+    cycleTime: 5,
+    outputCount: 1,
+    fluidType: '無',
+    fluidRate: 0.0,
+    isFixedFluid: true,
+    isFixedRate: true,
+    description: '烘焙熟化：無需流體，基準速率 0.2/s (5秒1個)'
+  },
+  '擠出機': {
+    outputType: 'solid',
+    cycleTime: 4,
+    outputCount: 1,
+    fluidType: '無',
+    fluidRate: 0.0,
+    isFixedFluid: true,
+    isFixedRate: true,
+    description: '固體擠出：無需流體，基準速率 0.25/s (4秒1個)'
+  },
+  '研磨機': {
+    outputType: 'solid',
+    cycleTime: 2,
+    outputCount: 2,
+    fluidType: '無',
+    fluidRate: 0.0,
+    isFixedFluid: true,
+    isFixedRate: false,
+    ratePresets: [
+      { label: '2秒 2個 (1.0/s, 標準)', cycle: 2, count: 2 },
+      { label: '2秒 1個 (0.5/s, 精細)', cycle: 2, count: 1 }
+    ],
+    description: '固體研磨：無需流體，預設 2秒2個 (1.0/s)'
+  },
+  '攪拌機': {
+    outputType: 'liquid',
+    cycleTime: 5,
+    outputCount: 5,
+    fluidType: '無',
+    fluidRate: 0.0,
+    isFixedFluid: true,
+    isFixedRate: true,
+    description: '醬汁調配：產出液態醬汁 (1.0 fl/s = 5秒5個)'
+  },
+  '混合機': {
+    outputType: 'solid',
+    cycleTime: 4,
+    outputCount: 1,
+    fluidType: '無',
+    fluidRate: 0.0,
+    isFixedFluid: false,
+    isFixedRate: false,
+    ratePresets: [
+      { label: '4秒 1個 (0.25/s)', cycle: 4, count: 1 },
+      { label: '4秒 2個 (0.50/s)', cycle: 4, count: 2 },
+      { label: '4秒 3個 (0.75/s)', cycle: 4, count: 3 },
+      { label: '5秒 5個 (1.00/s)', cycle: 5, count: 5 }
+    ],
+    fluidPresets: [
+      { type: '無', rate: 0.0, label: '無液體 (0 fl/s)' },
+      { type: '水', rate: 0.5, label: '水 (0.5 fl/s)' },
+      { type: '油', rate: 0.5, label: '油 (0.5 fl/s)' },
+      { type: '蟑螂奶', rate: 0.5, label: '蟑螂奶 (0.5 fl/s)' },
+      { type: '炙烈紅油', rate: 0.5, label: '炙烈紅油 (0.5 fl/s)' }
+    ],
+    description: '多工混合：可選通液(0.5 fl/s)或不通液，速率可選 0.25 ~ 1.0/s'
+  },
+  '發酵罐': {
+    outputType: 'solid',
+    cycleTime: 10,
+    outputCount: 5,
+    fluidType: '水',
+    fluidRate: 1.0,
+    isFixedFluid: false,
+    isFixedRate: true,
+    fluidPresets: [
+      { type: '水', rate: 1.0, label: '水 (1.0 fl/s)' },
+      { type: '蟑螂奶', rate: 1.0, label: '蟑螂奶 (1.0 fl/s)' },
+      { type: '油', rate: 1.0, label: '油 (1.0 fl/s)' }
+    ],
+    description: '時序發酵：需發酵液(1.0 fl/s)，基準速率 10秒5個 (0.5/s)'
+  },
+  '注入機': {
+    outputType: 'liquid',
+    cycleTime: 5,
+    outputCount: 1,
+    fluidType: '油',
+    fluidRate: 2.0,
+    isFixedFluid: false,
+    isFixedRate: true,
+    fluidPresets: [
+      { type: '油', rate: 2.0, label: '環境油池 (2.0 fl/s)' },
+      { type: '水', rate: 0.0, label: '環境水池 (0.0 fl/s)' }
+    ],
+    description: '原位轉化：產出轉化液體，抽取環境液體池'
+  },
+  '收割機': {
+    outputType: 'solid',
+    cycleTime: 5,
+    outputCount: 1,
+    fluidType: '無',
+    fluidRate: 0.0,
+    isFixedFluid: true,
+    isFixedRate: true,
+    description: '植物收割：無需流體，0.2/s (5秒1個)'
+  },
+  '採掘機': {
+    outputType: 'solid',
+    cycleTime: 5,
+    outputCount: 1,
+    fluidType: '無',
+    fluidRate: 0.0,
+    isFixedFluid: true,
+    isFixedRate: true,
+    description: '礦物採掘：無需流體，0.2/s (5秒1個)'
+  },
+  '裝配機': {
+    outputType: 'solid',
+    cycleTime: 5,
+    outputCount: 8,
+    fluidType: '無',
+    fluidRate: 0.0,
+    isFixedFluid: true,
+    isFixedRate: true,
+    description: '基建組裝：無需流體，5秒8個 (1.6/s)'
+  }
+};
 
 interface IntermediateManagerProps {
   intermediate: IntermediateRecipe[];
@@ -18,7 +195,71 @@ export const IntermediateManager: React.FC<IntermediateManagerProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [editingRecipe, setEditingRecipe] = useState<IntermediateRecipe | null>(null);
+  const [outputType, setOutputType] = useState<'solid' | 'liquid'>('solid');
   const [isNew, setIsNew] = useState(false);
+
+  // Grouped options for Machine selection
+  const machineGroups = useMemo<SelectOptionGroup[]>(() => {
+    const map = new Map<string, Machine[]>();
+    machines.forEach(m => {
+      const cat = m.category || '其他設備';
+      if (!map.has(cat)) map.set(cat, []);
+      map.get(cat)!.push(m);
+    });
+
+    return Array.from(map.entries()).map(([cat, list]) => ({
+      label: `⚙️ ${cat}`,
+      options: list.map(m => ({
+        value: m.name,
+        label: `${m.name} (${m.category})`,
+        sublabel: m.baseRate || m.category
+      }))
+    }));
+  }, [machines]);
+
+  // Grouped options for raw material selection
+  const rawMaterialGroups = useMemo<SelectOptionGroup[]>(() => {
+    const groups: SelectOptionGroup[] = [];
+
+    // Intermediate recipes (excluding currently edited one to avoid direct self-cycle)
+    const interOptions = intermediate
+      .filter(r => !editingRecipe || r.name !== editingRecipe.name)
+      .map(r => ({
+        value: r.name,
+        label: `${r.name} (${r.machine})`,
+        sublabel: r.machine
+      }));
+
+    if (interOptions.length > 0) {
+      groups.push({
+        label: '⚙️ 中間配方半成品',
+        options: interOptions
+      });
+    }
+
+    // Base items (exclude fluids from solid raw materials)
+    const pureFluids = new Set(['水', '油', '虛空']);
+    const itemOptions = items
+      .filter(it => !it.isFluid && !pureFluids.has(it.name))
+      .map(it => ({
+        value: it.name,
+        label: `${it.name} (${it.source})`,
+        sublabel: it.source
+      }));
+
+    if (itemOptions.length > 0) {
+      groups.push({
+        label: '🥗 基礎食材與採集品',
+        options: itemOptions
+      });
+    }
+
+    return groups;
+  }, [intermediate, items, editingRecipe?.name]);
+
+  const flatRawOptions = useMemo(() => {
+    return rawMaterialGroups.flatMap(g => g.options);
+  }, [rawMaterialGroups]);
 
   const filtered = intermediate.filter(r =>
     r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -29,20 +270,68 @@ export const IntermediateManager: React.FC<IntermediateManagerProps> = ({
   const handleEdit = (r: IntermediateRecipe) => {
     setEditingRecipe(JSON.parse(JSON.stringify(r)));
     setIsNew(false);
+
+    const config = MACHINE_CONFIGS[r.machine];
+    if (r.machine === '攪拌機' || r.machine === '注入機' || r.notes?.includes('液態') || r.notes?.includes('醬汁')) {
+      setOutputType('liquid');
+    } else {
+      setOutputType(config ? config.outputType : 'solid');
+    }
   };
 
   const handleCreate = () => {
-    setEditingRecipe({
-      name: '',
-      machine: machines[0]?.name || '混合機',
+    const defaultMach = '混合機';
+    const config = MACHINE_CONFIGS[defaultMach] || {
+      outputType: 'solid',
+      cycleTime: 4,
+      outputCount: 1,
       fluidType: '無',
       fluidRate: 0.0,
-      inputs: [{ name: items[0]?.name || '', count: 1 }],
-      cycleTime: 5,
-      outputCount: 1,
+      isFixedFluid: false,
+      isFixedRate: false,
+      description: ''
+    };
+
+    const defaultInput = items[0]?.name || intermediate[0]?.name || '';
+
+    setEditingRecipe({
+      name: '',
+      machine: defaultMach,
+      fluidType: config.fluidType,
+      fluidRate: config.fluidRate,
+      inputs: [{ name: defaultInput, count: 1 }],
+      cycleTime: config.cycleTime,
+      outputCount: config.outputCount,
       notes: ''
     });
+    setOutputType(config.outputType);
     setIsNew(true);
+  };
+
+  const handleMachineChange = (machName: string) => {
+    if (!editingRecipe) return;
+    const config = MACHINE_CONFIGS[machName];
+
+    if (!config) {
+      const mach = machines.find(m => m.name === machName);
+      setEditingRecipe({
+        ...editingRecipe,
+        machine: machName,
+        fluidType: mach?.fluidType || '無',
+        fluidRate: mach?.fluidRate || 0.0
+      });
+      return;
+    }
+
+    setEditingRecipe({
+      ...editingRecipe,
+      machine: machName,
+      fluidType: config.fluidType,
+      fluidRate: config.fluidRate,
+      cycleTime: config.cycleTime,
+      outputCount: config.outputCount,
+    });
+    setOutputType(config.outputType);
   };
 
   const handleDelete = (name: string) => {
@@ -53,9 +342,10 @@ export const IntermediateManager: React.FC<IntermediateManagerProps> = ({
 
   const addInputRow = () => {
     if (!editingRecipe || editingRecipe.inputs.length >= 4) return;
+    const defaultItem = items[0]?.name || intermediate[0]?.name || '';
     setEditingRecipe({
       ...editingRecipe,
-      inputs: [...editingRecipe.inputs, { name: items[0]?.name || '', count: 1 }]
+      inputs: [...editingRecipe.inputs, { name: defaultItem, count: 1 }]
     });
   };
 
@@ -87,6 +377,8 @@ export const IntermediateManager: React.FC<IntermediateManagerProps> = ({
   const calculatedRate = editingRecipe && editingRecipe.cycleTime > 0
     ? editingRecipe.outputCount / editingRecipe.cycleTime
     : 0;
+
+  const currentMachConfig = editingRecipe ? MACHINE_CONFIGS[editingRecipe.machine] : null;
 
   return (
     <div className="space-y-4">
@@ -131,10 +423,16 @@ export const IntermediateManager: React.FC<IntermediateManagerProps> = ({
             <tbody className="divide-y divide-slate-800">
               {filtered.map((r, idx) => {
                 const rateNum = r.cycleTime > 0 ? r.outputCount / r.cycleTime : 0;
+                const isFluidProd = r.machine === '攪拌機' || r.machine === '注入機';
                 return (
                   <tr key={idx} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="py-3 px-4 font-bold text-slate-100 whitespace-nowrap">
-                      {r.name}
+                    <td className="py-3 px-4 font-bold text-slate-100 whitespace-nowrap flex items-center space-x-1.5">
+                      <span>{r.name}</span>
+                      {isFluidProd && (
+                        <span className="text-[10px] text-cyan-400 font-mono bg-cyan-500/10 px-1.5 py-0.2 rounded border border-cyan-500/20">
+                          💧 液態
+                        </span>
+                      )}
                     </td>
                     <td className="py-3 px-4 whitespace-nowrap">
                       <span className="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-xs text-slate-300 font-mono whitespace-nowrap">
@@ -162,10 +460,10 @@ export const IntermediateManager: React.FC<IntermediateManagerProps> = ({
                       {r.cycleTime} 秒
                     </td>
                     <td className="py-3 px-4 text-right font-mono text-slate-300">
-                      {r.outputCount} 個
+                      {r.outputCount} {isFluidProd ? 'fl' : '個'}
                     </td>
                     <td className="py-3 px-4 text-right font-mono text-amber-300 font-bold">
-                      {formatFractionOrDecimal(rateNum)} <span className="text-[10px] text-slate-400">/s</span>
+                      {formatFractionOrDecimal(rateNum)} <span className="text-[10px] text-slate-400">{isFluidProd ? 'fl/s' : '/s'}</span>
                     </td>
                     <td className="py-3 px-4 text-center">
                       <div className="flex items-center justify-center space-x-2">
@@ -209,9 +507,26 @@ export const IntermediateManager: React.FC<IntermediateManagerProps> = ({
             </h3>
 
             <form onSubmit={handleSaveModal} className="space-y-4 text-sm">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4 relative z-40">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">產物製品名稱</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-slate-400">產物製品名稱</label>
+                    <div className="flex items-center space-x-1.5 whitespace-nowrap">
+                      <span className="text-[11px] text-slate-500">型態:</span>
+                      <button
+                        type="button"
+                        onClick={() => setOutputType(outputType === 'liquid' ? 'solid' : 'liquid')}
+                        className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold border transition-colors ${
+                          outputType === 'liquid'
+                            ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/40 hover:bg-cyan-500/25'
+                            : 'bg-amber-500/15 text-amber-300 border-amber-500/40 hover:bg-amber-500/25'
+                        }`}
+                        title="點擊切換固態/液態"
+                      >
+                        {outputType === 'liquid' ? '💧 液態醬汁' : '📦 固態原料'}
+                      </button>
+                    </div>
+                  </div>
                   <input
                     type="text"
                     required
@@ -223,38 +538,40 @@ export const IntermediateManager: React.FC<IntermediateManagerProps> = ({
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">使用加工設備</label>
-                  <select
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-slate-400">使用加工設備</label>
+                    {currentMachConfig && (
+                      <span className="text-[11px] text-amber-400/90 font-mono truncate max-w-[130px] text-right">
+                        {currentMachConfig.outputType === 'liquid' ? '💧 產出流體' : '📦 產出固體'}
+                      </span>
+                    )}
+                  </div>
+                  <SearchableSelect
+                    groups={machineGroups}
                     value={editingRecipe.machine}
-                    onChange={(e) => {
-                      const machName = e.target.value;
-                      const mach = machines.find(m => m.name === machName);
-                      let defaultFluidType = mach?.fluidType || '無';
-                      let defaultFluidRate = mach?.fluidRate || 0.0;
-                      if (machName === '混合機') defaultFluidRate = 0.5;
-                      setEditingRecipe({
-                        ...editingRecipe,
-                        machine: machName,
-                        fluidType: defaultFluidType,
-                        fluidRate: defaultFluidRate
-                      });
-                    }}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                  >
-                    {machines.map(m => (
-                      <option key={m.name} value={m.name}>{m.name} ({m.category})</option>
-                    ))}
-                  </select>
+                    onChange={handleMachineChange}
+                    size="sm"
+                    className="w-full"
+                  />
+                  {currentMachConfig?.description && (
+                    <p className="text-[11px] text-amber-400/90 mt-1.5 flex items-center space-x-1">
+                      <Sparkles className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+                      <span className="truncate">{currentMachConfig.description}</span>
+                    </p>
+                  )}
                 </div>
               </div>
 
               {/* Solid Inputs (up to 4) */}
-              <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-3">
+              <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-3 relative z-30">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-slate-300">
-                    固體原料清單 (最多支援 4 項)
-                  </label>
+                  <div>
+                    <label className="text-xs font-bold text-slate-300">
+                      固體原料清單 (最多支援 4 項)
+                    </label>
+                    <p className="text-[11px] text-slate-400 mt-0.5">點擊選單可直接輸入關鍵字搜尋原料</p>
+                  </div>
                   {editingRecipe.inputs.length < 4 && (
                     <button
                       type="button"
@@ -266,100 +583,200 @@ export const IntermediateManager: React.FC<IntermediateManagerProps> = ({
                   )}
                 </div>
 
-                {editingRecipe.inputs.map((inp, idx) => (
-                  <div key={idx} className="flex items-center space-x-2">
-                    <select
-                      value={inp.name}
-                      onChange={(e) => {
-                        const newInputs = [...editingRecipe.inputs];
-                        newInputs[idx].name = e.target.value;
-                        setEditingRecipe({ ...editingRecipe, inputs: newInputs });
-                      }}
-                      className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none"
-                    >
-                      {items.map(it => (
-                        <option key={it.name} value={it.name}>{it.name} ({it.source})</option>
-                      ))}
-                    </select>
+                {editingRecipe.inputs.map((inp, idx) => {
+                  const isInList = flatRawOptions.some(opt => opt.value === inp.name);
+                  const rowGroups = (!isInList && inp.name)
+                    ? [
+                        ...rawMaterialGroups,
+                        {
+                          label: '✨ 當前原料',
+                          options: [{ value: inp.name, label: inp.name }]
+                        }
+                      ]
+                    : rawMaterialGroups;
 
-                    <input
-                      type="number"
-                      step="0.5"
-                      min="0.1"
-                      value={inp.count}
-                      onChange={(e) => {
-                        const newInputs = [...editingRecipe.inputs];
-                        newInputs[idx].count = parseFloat(e.target.value) || 1;
-                        setEditingRecipe({ ...editingRecipe, inputs: newInputs });
-                      }}
-                      className="w-20 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-100 font-mono text-right"
-                    />
+                  return (
+                    <div key={idx} className="flex items-center space-x-2 relative" style={{ zIndex: 10 - idx }}>
+                      <span className="text-xs text-slate-500 font-mono w-4 shrink-0">#{idx+1}</span>
+                      <SearchableSelect
+                        groups={rowGroups}
+                        value={inp.name}
+                        onChange={(val) => {
+                          const newInputs = [...editingRecipe.inputs];
+                          newInputs[idx].name = val;
+                          setEditingRecipe({ ...editingRecipe, inputs: newInputs });
+                        }}
+                        placeholder="搜尋原料名稱或來源設備..."
+                        size="xs"
+                        className="flex-1"
+                      />
 
-                    {editingRecipe.inputs.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeInputRow(idx)}
-                        className="text-slate-500 hover:text-red-400 p-1"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-                ))}
+                      <div className="flex items-center space-x-1 shrink-0">
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="0.1"
+                          value={inp.count}
+                          onChange={(e) => {
+                            const newInputs = [...editingRecipe.inputs];
+                            newInputs[idx].count = parseFloat(e.target.value) || 1;
+                            setEditingRecipe({ ...editingRecipe, inputs: newInputs });
+                          }}
+                          className="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1.5 text-xs text-slate-100 font-mono text-right focus:outline-none focus:ring-1 focus:ring-amber-500"
+                        />
+                        <span className="text-xs text-slate-400 font-mono">個</span>
+                      </div>
+
+                      {editingRecipe.inputs.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeInputRow(idx)}
+                          className="text-slate-500 hover:text-red-400 p-1 shrink-0"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Fluid input */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">所需液體種類</label>
-                  <input
-                    type="text"
-                    placeholder="無、水、油、虛空、醬汁..."
-                    value={editingRecipe.fluidType}
-                    onChange={(e) => setEditingRecipe({ ...editingRecipe, fluidType: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:ring-1 focus:ring-amber-500"
-                  />
+              <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2 relative z-20">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-300">所需液體配置</label>
+                  {currentMachConfig?.isFixedFluid ? (
+                    <span className="text-[11px] text-amber-400 font-mono flex items-center space-x-1">
+                      <Lock className="w-3 h-3" />
+                      <span>設備固定通液</span>
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-cyan-400 font-mono">可自訂液體與流速</span>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-400 mb-1">持續液體流量 (fl/s)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    value={editingRecipe.fluidRate}
-                    onChange={(e) => setEditingRecipe({ ...editingRecipe, fluidRate: parseFloat(e.target.value) || 0 })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 font-mono focus:outline-none focus:ring-1 focus:ring-amber-500"
-                  />
+
+                {/* Fluid Presets (if available) */}
+                {currentMachConfig?.fluidPresets && currentMachConfig.fluidPresets.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5 pb-1">
+                    <span className="text-[11px] text-slate-400 mr-1">常用液體預設：</span>
+                    {currentMachConfig.fluidPresets.map(fp => {
+                      const isActive = editingRecipe.fluidType === fp.type && editingRecipe.fluidRate === fp.rate;
+                      return (
+                        <button
+                          key={fp.label}
+                          type="button"
+                          onClick={() => setEditingRecipe({
+                            ...editingRecipe,
+                            fluidType: fp.type,
+                            fluidRate: fp.rate
+                          })}
+                          className={`px-2 py-0.5 rounded text-xs transition-colors ${
+                            isActive
+                              ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 font-bold'
+                              : 'bg-slate-900 border border-slate-700 text-slate-300 hover:bg-slate-800'
+                          }`}
+                        >
+                          {fp.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">所需液體種類</label>
+                    <input
+                      type="text"
+                      placeholder="無、水、油、虛空、醬汁..."
+                      value={editingRecipe.fluidType}
+                      onChange={(e) => setEditingRecipe({ ...editingRecipe, fluidType: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-amber-500 font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">持續液體流量 (fl/s)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={editingRecipe.fluidRate}
+                      onChange={(e) => setEditingRecipe({ ...editingRecipe, fluidRate: parseFloat(e.target.value) || 0 })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 font-mono focus:outline-none focus:ring-1 focus:ring-amber-500"
+                    />
+                  </div>
                 </div>
               </div>
 
               {/* Cycle & Output */}
-              <div className="grid grid-cols-3 gap-3 bg-slate-950 p-3.5 rounded-xl border border-slate-800">
-                <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">單次加工週期 (秒)</label>
-                  <input
-                    type="number"
-                    step="0.5"
-                    min="0.1"
-                    value={editingRecipe.cycleTime}
-                    onChange={(e) => setEditingRecipe({ ...editingRecipe, cycleTime: parseFloat(e.target.value) || 1 })}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 font-mono"
-                  />
+              <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-300">產能與加工週期</label>
+                  {currentMachConfig?.isFixedRate ? (
+                    <span className="text-[11px] text-amber-400 font-mono flex items-center space-x-1">
+                      <Lock className="w-3 h-3" />
+                      <span>設備固定基準速率</span>
+                    </span>
+                  ) : (
+                    <span className="text-[11px] text-cyan-400 font-mono">可選速率規格</span>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-[11px] text-slate-400 mb-1">單次產量 (個)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={editingRecipe.outputCount}
-                    onChange={(e) => setEditingRecipe({ ...editingRecipe, outputCount: parseFloat(e.target.value) || 1 })}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] text-amber-400 font-bold mb-1">自動折算速率 (=N/M)</label>
-                  <div className="text-sm font-bold text-amber-300 font-mono py-1.5">
-                    {formatFractionOrDecimal(calculatedRate)} <span className="text-xs text-slate-400">/s</span>
+
+                {/* Rate Presets (if available) */}
+                {currentMachConfig?.ratePresets && currentMachConfig.ratePresets.length > 0 && (
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5 pb-1">
+                    <span className="text-[11px] text-slate-400 mr-1">規格預設：</span>
+                    {currentMachConfig.ratePresets.map(preset => {
+                      const isActive = editingRecipe.cycleTime === preset.cycle && editingRecipe.outputCount === preset.count;
+                      return (
+                        <button
+                          key={preset.label}
+                          type="button"
+                          onClick={() => setEditingRecipe({
+                            ...editingRecipe,
+                            cycleTime: preset.cycle,
+                            outputCount: preset.count
+                          })}
+                          className={`px-2 py-0.5 rounded text-xs transition-colors ${
+                            isActive
+                              ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 font-bold'
+                              : 'bg-slate-900 border border-slate-700 text-slate-300 hover:bg-slate-800'
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-3 gap-3 pt-1">
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">單次加工週期 (秒)</label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="0.1"
+                      value={editingRecipe.cycleTime}
+                      onChange={(e) => setEditingRecipe({ ...editingRecipe, cycleTime: parseFloat(e.target.value) || 1 })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-slate-400 mb-1">單次產量 ({outputType === 'liquid' ? 'fl' : '個'})</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={editingRecipe.outputCount}
+                      onChange={(e) => setEditingRecipe({ ...editingRecipe, outputCount: parseFloat(e.target.value) || 1 })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] text-amber-400 font-bold mb-1">折算速率 (=N/M)</label>
+                    <div className="text-sm font-bold text-amber-300 font-mono py-1.5">
+                      {formatFractionOrDecimal(calculatedRate)} <span className="text-xs text-slate-400">{outputType === 'liquid' ? 'fl/s' : '/s'}</span>
+                    </div>
                   </div>
                 </div>
               </div>

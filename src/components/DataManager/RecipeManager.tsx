@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Recipe, Item, IntermediateRecipe } from '../../types';
+import { SearchableSelect, SelectOptionGroup } from '../Common/SearchableSelect';
 import { Plus, Edit2, Trash2, Search, X, Check } from 'lucide-react';
 
 interface RecipeManagerProps {
@@ -79,7 +80,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
       if (!name) return;
       if (interSet.has(name) || pureSauceFluids.has(name) || nonCulinaryNames.has(name)) return;
       if (recipeNames.has(name) || nonFoodSources.has(source)) return;
-      if (pureFluids.has(name)) return;
+      if (pureFluids.has(name) || it.isFluid) return;
       if (terrainKeywords.some(k => name.includes(k))) return;
       if (baseItemSet.has(name)) return;
 
@@ -104,6 +105,16 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
     const knownLiquids = new Set(['甘酒', '蒜泥蛋醬', '醋']);
 
     const sauces: string[] = [];
+
+    // Check items explicitly marked as fluid
+    items.forEach(it => {
+      const name = it.name?.trim();
+      if (!name || fluidSet.has(name)) return;
+      if (it.isFluid) {
+        fluidSet.add(name);
+        sauces.push(name);
+      }
+    });
 
     // Check intermediate recipe products
     intermediate.forEach(r => {
@@ -143,6 +154,71 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
       otherFluids
     };
   }, [intermediate, recipes]);
+
+  // Memoized select groups for SearchableSelect
+  const solidSelectGroups = useMemo<SelectOptionGroup[]>(() => {
+    const groups: SelectOptionGroup[] = [];
+    if (solidOptions.intermediate.length > 0) {
+      groups.push({
+        label: '⚙️ 中間配方產物 (半成品)',
+        options: solidOptions.intermediate.map(r => ({
+          value: r.name,
+          label: `${r.name} (${r.machine})`,
+          sublabel: r.machine
+        }))
+      });
+    }
+    if (solidOptions.items.length > 0) {
+      groups.push({
+        label: '🥗 基礎食材與採集品',
+        options: solidOptions.items.map(it => ({
+          value: it.name,
+          label: `${it.name} (${it.source})`,
+          sublabel: it.source
+        }))
+      });
+    }
+    return groups;
+  }, [solidOptions]);
+
+  const fluidSelectGroups = useMemo<SelectOptionGroup[]>(() => {
+    const groups: SelectOptionGroup[] = [
+      {
+        options: [
+          { value: '無', label: '無 (不需持續液體)' }
+        ]
+      }
+    ];
+
+    if (fluidOptions.baseFluids.length > 0) {
+      groups.push({
+        label: '💧 基礎流體原料',
+        options: fluidOptions.baseFluids.map(f => ({ value: f, label: f }))
+      });
+    }
+
+    if (fluidOptions.sauces.length > 0) {
+      groups.push({
+        label: '🥣 調配醬汁與加工流體 (中間配方)',
+        options: fluidOptions.sauces.map(f => ({ value: f, label: f }))
+      });
+    }
+
+    if (fluidOptions.otherFluids.length > 0) {
+      groups.push({
+        label: '✨ 其他已登錄料理流體',
+        options: fluidOptions.otherFluids.map(f => ({ value: f, label: f }))
+      });
+    }
+
+    groups.push({
+      options: [
+        { value: '__CUSTOM__', label: '➕ 新增自訂流體/醬汁...' }
+      ]
+    });
+
+    return groups;
+  }, [fluidOptions]);
 
   const filtered = recipes.filter(r => {
     const matchesSearch = r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -466,58 +542,51 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
                   )}
                 </div>
 
-                {editingRecipe.inputs.map((inp, idx) => (
-                  <div key={idx} className="flex items-center space-x-2">
-                    <span className="text-xs text-slate-500 font-mono w-4">#{idx+1}</span>
-                    <select
-                      value={inp.name}
-                      onChange={(e) => {
-                        const newInputs = [...editingRecipe.inputs];
-                        newInputs[idx].name = e.target.value;
-                        setEditingRecipe({ ...editingRecipe, inputs: newInputs });
-                      }}
-                      className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none"
-                    >
-                      {solidOptions.intermediate.length > 0 && (
-                        <optgroup label="⚙️ 中間配方產物 (半成品)">
-                          {solidOptions.intermediate.map(r => (
-                            <option key={`inter-${r.name}`} value={r.name}>
-                              {r.name} ({r.machine})
-                            </option>
-                          ))}
-                        </optgroup>
-                      )}
-                      {solidOptions.items.length > 0 && (
-                        <optgroup label="🥗 基礎食材與採集品">
-                          {solidOptions.items.map(it => (
-                            <option key={`item-${it.name}`} value={it.name}>
-                              {it.name} ({it.source})
-                            </option>
-                          ))}
-                        </optgroup>
-                      )}
-                      {!solidOptions.intermediate.some(r => r.name === inp.name) && !solidOptions.items.some(it => it.name === inp.name) && inp.name && (
-                        <optgroup label="✨ 當前食譜食材">
-                          <option value={inp.name}>{inp.name}</option>
-                        </optgroup>
-                      )}
-                    </select>
+                {editingRecipe.inputs.map((inp, idx) => {
+                  const isInList = solidOptions.intermediate.some(r => r.name === inp.name) ||
+                                   solidOptions.items.some(it => it.name === inp.name);
+                  const rowGroups = (!isInList && inp.name)
+                    ? [
+                        ...solidSelectGroups,
+                        {
+                          label: '✨ 當前食譜食材',
+                          options: [{ value: inp.name, label: inp.name }]
+                        }
+                      ]
+                    : solidSelectGroups;
 
-                    <span className="text-xs font-mono text-slate-400 px-2 py-1 bg-slate-900 rounded border border-slate-800">
-                      固定 1 個
-                    </span>
+                  return (
+                    <div key={idx} className="flex items-center space-x-2 relative" style={{ zIndex: 40 - idx }}>
+                      <span className="text-xs text-slate-500 font-mono w-4 shrink-0">#{idx+1}</span>
+                      <SearchableSelect
+                        groups={rowGroups}
+                        value={inp.name}
+                        onChange={(val) => {
+                          const newInputs = [...editingRecipe.inputs];
+                          newInputs[idx].name = val;
+                          setEditingRecipe({ ...editingRecipe, inputs: newInputs });
+                        }}
+                        placeholder="請選擇食材..."
+                        size="xs"
+                        className="flex-1"
+                      />
 
-                    {editingRecipe.inputs.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeInputRow(idx)}
-                        className="text-slate-500 hover:text-red-400 p-1"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-                ))}
+                      <span className="text-xs font-mono text-slate-400 px-2 py-1 bg-slate-900 rounded border border-slate-800 shrink-0">
+                        固定 1 個
+                      </span>
+
+                      {editingRecipe.inputs.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeInputRow(idx)}
+                          className="text-slate-500 hover:text-red-400 p-1 shrink-0"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
 
               {/* Fluid Input (Max 1 fluid, 1.0 fl/s) */}
@@ -531,12 +600,12 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
                   </span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
+                  <div className="relative z-20">
                     <label className="block text-[11px] text-slate-400 mb-1">醬汁/液體種類</label>
-                    <select
+                    <SearchableSelect
+                      groups={fluidSelectGroups}
                       value={isCustomFluid ? '__CUSTOM__' : (editingRecipe.fluidType || '無')}
-                      onChange={(e) => {
-                        const val = e.target.value;
+                      onChange={(val) => {
                         if (val === '__CUSTOM__') {
                           setIsCustomFluid(true);
                           setCustomFluidInput('');
@@ -554,32 +623,10 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
                           });
                         }
                       }}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-amber-500 font-medium"
-                    >
-                      <option value="無">無 (不需持續液體)</option>
-                      {fluidOptions.baseFluids.length > 0 && (
-                        <optgroup label="💧 基礎流體原料">
-                          {fluidOptions.baseFluids.map(f => (
-                            <option key={f} value={f}>{f}</option>
-                          ))}
-                        </optgroup>
-                      )}
-                      {fluidOptions.sauces.length > 0 && (
-                        <optgroup label="🥣 調配醬汁與加工流體 (中間配方)">
-                          {fluidOptions.sauces.map(f => (
-                            <option key={f} value={f}>{f}</option>
-                          ))}
-                        </optgroup>
-                      )}
-                      {fluidOptions.otherFluids.length > 0 && (
-                        <optgroup label="✨ 其他已登錄料理流體">
-                          {fluidOptions.otherFluids.map(f => (
-                            <option key={f} value={f}>{f}</option>
-                          ))}
-                        </optgroup>
-                      )}
-                      <option value="__CUSTOM__">➕ 新增自訂流體/醬汁...</option>
-                    </select>
+                      placeholder="請選擇流體或醬汁..."
+                      size="xs"
+                      className="w-full"
+                    />
                     {isCustomFluid && (
                       <input
                         type="text"

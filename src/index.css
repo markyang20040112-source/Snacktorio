@@ -4,22 +4,50 @@
 
 @layer base {
   body {
-    @apply bg-slate-950 text-slate-100 antialiased;
+    @apply bg-[#0b1216] text-slate-100 antialiased;
   }
 }
 
-/* Custom scrollbars */
+/* Pixel Art Image Rendering */
+.pixelated {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
+
+/* Snacktorio Factory Conveyor Caution Stripes */
+.conveyor-caution-bar {
+  background: repeating-linear-gradient(
+    45deg,
+    #f59e0b,
+    #f59e0b 10px,
+    #182329 10px,
+    #182329 20px
+  );
+}
+
+.conveyor-caution-slim {
+  background: repeating-linear-gradient(
+    45deg,
+    #f59e0b,
+    #f59e0b 6px,
+    #182329 6px,
+    #182329 12px
+  );
+}
+
+/* Custom Snacktorio Industrial Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: #0d1519;
 }
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #253842;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #3b5969;
 }

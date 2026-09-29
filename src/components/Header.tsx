@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calculator, Layers, Database, RefreshCw, ChefHat } from 'lucide-react';
+import { Calculator, Layers, Database, RefreshCw, ExternalLink } from 'lucide-react';
 
 interface HeaderProps {
   activeTab: 'single' | 'parallel' | 'data' | 'sync';
@@ -15,84 +15,112 @@ export const Header: React.FC<HeaderProps> = ({
   machinesCount
 }) => {
   return (
-    <header className="bg-slate-900 border-b border-slate-800 sticky top-0 z-40 shadow-lg">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo & Title */}
-          <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveTab('single')}>
-            <div className="bg-amber-500/10 p-2 rounded-xl border border-amber-500/20 text-amber-400">
-              <ChefHat className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center space-x-2">
-                <span className="text-xl font-bold bg-gradient-to-r from-amber-400 via-orange-400 to-amber-200 bg-clip-text text-transparent">
-                  異食工廠
-                </span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-mono border border-slate-700">
-                  Snacktorio v1.0
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 hidden sm:block">
-                自動化產線規劃與遊戲資料管理系統
-              </p>
-            </div>
-          </div>
+    <header className="sticky top-0 z-40 shadow-2xl">
+      {/* Snacktorio Conveyor Caution Warning Stripe */}
+      <div className="conveyor-caution-slim h-1 w-full opacity-90 shadow-sm" />
 
-          {/* Navigation Tabs */}
-          <nav className="flex space-x-1 sm:space-x-2">
-            <button
+      {/* Main Navigation Bar */}
+      <div className="bg-[#0e171c]/95 backdrop-blur-md border-b border-[#20343f]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16 sm:h-20 gap-4">
+            
+            {/* Authentic Logo & Game Branding */}
+            <div 
+              className="flex items-center space-x-3 cursor-pointer group select-none shrink-0" 
               onClick={() => setActiveTab('single')}
-              className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeTab === 'single'
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-              }`}
+              title="回到首頁：單料理產線計算機"
             >
-              <Calculator className="w-4 h-4" />
-              <span>產線計算機</span>
-            </button>
+              <div className="relative flex items-center">
+                <img
+                  src="/assets/snacktorio_logo.png"
+                  alt="Snacktorio"
+                  className="h-8 sm:h-10 w-auto object-contain pixelated drop-shadow-[0_2px_10px_rgba(71,161,153,0.35)] group-hover:scale-105 transition-transform duration-200"
+                />
+              </div>
 
-            <button
-              onClick={() => setActiveTab('parallel')}
-              className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeTab === 'parallel'
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-              }`}
-            >
-              <Layers className="w-4 h-4" />
-              <span>並聯規劃</span>
-            </button>
+              <div className="border-l border-[#243943] pl-3 hidden md:flex flex-col justify-center">
+                <div className="flex items-center space-x-2">
+                  <span className="text-base font-extrabold tracking-wide bg-gradient-to-r from-amber-400 via-orange-300 to-amber-200 bg-clip-text text-transparent">
+                    《異食工廠》
+                  </span>
+                  <span className="text-[10px] px-1.5 py-0.2 rounded font-mono font-bold bg-[#14232a] text-teal-300 border border-teal-500/30">
+                    PROD PLANNER
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 font-medium">
+                  全製程自動化產線平衡與物理資料管理系統
+                </p>
+              </div>
+            </div>
 
-            <button
-              onClick={() => setActiveTab('data')}
-              className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeTab === 'data'
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-              }`}
-            >
-              <Database className="w-4 h-4" />
-              <span className="flex items-center space-x-1">
-                <span>資料工作台</span>
-                <span className="text-xs px-1.5 py-0.2 rounded-full bg-slate-800 text-amber-400">
-                  {dishesCount}料理·{machinesCount}機
+            {/* Navigation Tabs */}
+            <nav className="flex items-center space-x-1 sm:space-x-2 overflow-x-auto py-1">
+              <button
+                onClick={() => setActiveTab('single')}
+                className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
+                  activeTab === 'single'
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-md shadow-amber-500/10'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#15232b]'
+                }`}
+              >
+                <Calculator className="w-4 h-4 text-amber-400" />
+                <span>產線計算機</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('parallel')}
+                className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
+                  activeTab === 'parallel'
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-md shadow-amber-500/10'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#15232b]'
+                }`}
+              >
+                <Layers className="w-4 h-4 text-amber-400" />
+                <span>並聯規劃</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('data')}
+                className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
+                  activeTab === 'data'
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-md shadow-amber-500/10'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#15232b]'
+                }`}
+              >
+                <Database className="w-4 h-4 text-amber-400" />
+                <span className="flex items-center space-x-1.5">
+                  <span>資料工作台</span>
+                  <span className="text-[11px] px-1.5 py-0.5 rounded-md bg-[#13222a] text-amber-400 font-mono border border-amber-500/30">
+                    {dishesCount}食譜·{machinesCount}機
+                  </span>
                 </span>
-              </span>
-            </button>
+              </button>
 
-            <button
-              onClick={() => setActiveTab('sync')}
-              className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                activeTab === 'sync'
-                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-              }`}
-            >
-              <RefreshCw className="w-4 h-4" />
-              <span className="hidden sm:inline">GitHub 同步</span>
-            </button>
-          </nav>
+              <button
+                onClick={() => setActiveTab('sync')}
+                className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
+                  activeTab === 'sync'
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-md shadow-cyan-500/10'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#15232b]'
+                }`}
+              >
+                <RefreshCw className="w-4 h-4 text-cyan-400" />
+                <span className="hidden sm:inline">GitHub 同步</span>
+              </button>
+
+              {/* Steam Game Link */}
+              <a
+                href="https://store.steampowered.com/app/1902940/Snacktorio/"
+                target="_blank"
+                rel="noreferrer"
+                className="hidden lg:flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-slate-400 hover:text-amber-300 bg-[#121f26] hover:bg-[#182933] border border-[#223945] transition-all ml-1"
+                title="前往 Steam 商店官方遊戲頁面"
+              >
+                <span>Steam 原作</span>
+                <ExternalLink className="w-3.5 h-3.5 opacity-70" />
+              </a>
+            </nav>
+          </div>
         </div>
       </div>
     </header>

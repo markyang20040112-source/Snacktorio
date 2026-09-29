@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { calculateSingleDish } from '../../services/solver';
 import { Recipe, FeederStrategy } from '../../types';
 import { getMachineBadgeClass, chunkTargets } from '../../utils/machineBadge';
+import { RecipeSearchSelect } from '../Common/RecipeSearchSelect';
 import { 
   Zap, Droplet, Users, Cog, ShieldAlert,
   Sprout, Sparkles, Flame
@@ -25,42 +26,22 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
     return calculateSingleDish(selectedDish, actualRateSec, powerMode, feederStrategy);
   }, [selectedDish, actualRateSec, powerMode, feederStrategy]);
 
-  // Group recipes by island
-  const islandGroups = useMemo(() => {
-    const map = new Map<string, Recipe[]>();
-    recipes.forEach(r => {
-      const isl = r.island || '其他島嶼';
-      if (!map.has(isl)) map.set(isl, []);
-      map.get(isl)!.push(r);
-    });
-    return Array.from(map.entries());
-  }, [recipes]);
-
   return (
     <div className="space-y-6">
       {/* Control Panel */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl relative z-30">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
           {/* Dish Selector */}
           <div>
             <label className="block text-sm font-semibold text-slate-300 mb-2">
               🍽️ 選擇目標出餐料理
             </label>
-            <select
+            <RecipeSearchSelect
+              recipes={recipes}
               value={selectedDish}
-              onChange={(e) => setSelectedDish(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:ring-2 focus:ring-amber-500 font-medium"
-            >
-              {islandGroups.map(([island, list]) => (
-                <optgroup key={island} label={`🏝️ ${island}`}>
-                  {list.map(r => (
-                    <option key={r.name} value={r.name}>
-                      {r.name}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
+              onChange={setSelectedDish}
+              size="md"
+            />
           </div>
 
           {/* Target Rate Input (份/分) */}
@@ -173,16 +154,16 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
         <>
           {/* Biochemical Warnings Banner */}
           {result.biochemicalWarnings.length > 0 && (
-            <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4">
-              <div className="flex items-center space-x-2 text-red-400 font-bold mb-2">
-                <ShieldAlert className="w-5 h-5" />
+            <div className="bg-[#1e1317] border border-rose-500/40 rounded-2xl p-4 shadow-xl">
+              <div className="flex items-center space-x-2 text-rose-400 font-bold mb-2.5">
+                <ShieldAlert className="w-5 h-5 text-rose-400" />
                 <span>生化反應與管線實體隔離警示</span>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                 {result.biochemicalWarnings.map((w, idx) => (
-                  <div key={idx} className="bg-slate-950/60 p-2.5 rounded-xl border border-red-500/20">
-                    <span className="font-bold text-red-300">【{w.type}】{w.item}：</span>
-                    <span className="text-slate-300">{w.detail}</span>
+                  <div key={idx} className="bg-[#140b0f] p-2.5 rounded-xl border border-rose-500/30">
+                    <span className="font-bold text-rose-300">【{w.type}】{w.item}：</span>
+                    <span className="text-slate-200">{w.detail}</span>
                   </div>
                 ))}
               </div>

@@ -18,6 +18,7 @@ export interface Item {
   spoilProduct?: string;
   attributes?: string;
   notes?: string;
+  isFluid?: boolean;
 }
 
 export interface RecipeInput {

@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Recipe, ProcessNode, FeederStrategy, DownstreamTarget } from '../../types';
 import { calculateSingleDish, sizeAutonomousPump } from '../../services/solver';
 import { getMachineBadgeClass, chunkTargets } from '../../utils/machineBadge';
+import { RecipeSearchSelect } from '../Common/RecipeSearchSelect';
 import { Layers, Plus, Trash2, ShieldCheck, Zap, Droplets, Users, Flame, Sparkles, Sprout } from 'lucide-react';
 
 interface ParallelPlannerProps {
@@ -22,16 +23,6 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
     { id: '2', dishName: '鮮紅濃湯', rateMin: 12 },
   ]);
 
-  // Group recipes by island
-  const islandGroups = useMemo(() => {
-    const map = new Map<string, Recipe[]>();
-    recipes.forEach(r => {
-      const isl = r.island || '其他島嶼';
-      if (!map.has(isl)) map.set(isl, []);
-      map.get(isl)!.push(r);
-    });
-    return Array.from(map.entries());
-  }, [recipes]);
 
   const addDish = () => {
     const remaining = recipes.find(r => !plannedList.some(p => p.dishName === r.name));
@@ -459,7 +450,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
   return (
     <div className="space-y-6">
       {/* Selection Control Panel */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4 relative z-30">
         {/* Header Bar: Title on Left, Add Dish on Right */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-3">
           <div>
@@ -556,7 +547,11 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
         {/* Dish Selection Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pt-1">
           {plannedList.map((item, idx) => (
-            <div key={item.id} className="bg-slate-950 p-4 rounded-xl border border-slate-850 space-y-3 relative group">
+            <div 
+              key={item.id} 
+              className="bg-slate-950 p-4 rounded-xl border border-slate-850 space-y-3 relative group"
+              style={{ zIndex: plannedList.length - idx + 10 }}
+            >
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-amber-400">料理 #{idx + 1}</span>
                 {plannedList.length > 1 && (
@@ -571,21 +566,12 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
               </div>
 
               <div>
-                <select
+                <RecipeSearchSelect
+                  recipes={recipes}
                   value={item.dishName}
-                  onChange={(e) => updateDish(item.id, { dishName: e.target.value })}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 font-medium focus:outline-none focus:ring-1 focus:ring-amber-500"
-                >
-                  {islandGroups.map(([island, list]) => (
-                    <optgroup key={island} label={`🏝️ ${island}`}>
-                      {list.map(r => (
-                        <option key={r.name} value={r.name}>
-                          {r.name}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
+                  onChange={(dishName) => updateDish(item.id, { dishName })}
+                  size="sm"
+                />
               </div>
 
               <div className="flex items-center space-x-2">
@@ -1207,12 +1193,12 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
           <div className="text-xs text-slate-500 mt-1">合併共通收割/研磨設備</div>
         </div>
 
-        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4">
+        <div className="bg-[#102922] border border-emerald-500/40 rounded-2xl p-4 shadow-lg shadow-emerald-950/20">
           <div className="text-xs text-emerald-400 mb-1 font-bold">🎉 為全廠節省設備</div>
           <div className="text-2xl font-bold text-emerald-300 font-mono">
             +{consolidated.totalSavedMachines} <span className="text-sm font-normal text-emerald-400">台</span>
           </div>
-          <div className="text-xs text-emerald-500 mt-1">大幅壓縮佔地與管線複雜度</div>
+          <div className="text-xs text-emerald-400/80 mt-1">大幅壓縮佔地與管線複雜度</div>
         </div>
 
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
