@@ -1,6 +1,5 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { Upload, X, Search, Image as ImageIcon, Check } from 'lucide-react';
-import { ItemIcon } from './ItemIcon';
+import { Upload, X, Search, Image as ImageIcon } from 'lucide-react';
 import { getItemIcon, getAllAvailableIcons } from '../../utils/iconHelper';
 
 export interface IconUploaderProps {
