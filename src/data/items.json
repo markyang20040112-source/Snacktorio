@@ -376,8 +376,8 @@
     "isPerishable": false,
     "spoilTime": null,
     "spoilProduct": "",
-    "attributes": "過敏原",
-    "notes": "含有高致敏物質，需設置獨立專用管道防護"
+    "attributes": "",
+    "notes": ""
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -866,7 +866,7 @@
     "isPerishable": true,
     "spoilTime": 30,
     "spoilProduct": "酸奶油",
-    "attributes": "遇熱凝固",
+    "attributes": "",
     "notes": ""
   },
   {
@@ -896,7 +896,7 @@
     "isPerishable": true,
     "spoilTime": 20,
     "spoilProduct": "中等熟成奶酪",
-    "attributes": "遇熱凝固",
+    "attributes": "",
     "notes": ""
   },
   {
@@ -906,7 +906,7 @@
     "isPerishable": true,
     "spoilTime": 30,
     "spoilProduct": "硬質奶酪",
-    "attributes": "遇熱凝固",
+    "attributes": "",
     "notes": ""
   },
   {
@@ -916,7 +916,7 @@
     "isPerishable": true,
     "spoilTime": 60,
     "spoilProduct": "藍紋奶酪",
-    "attributes": "遇熱凝固",
+    "attributes": "",
     "notes": ""
   },
   {
@@ -946,8 +946,8 @@
     "isPerishable": false,
     "spoilTime": null,
     "spoilProduct": "",
-    "attributes": "遇熱凝固",
-    "notes": "乳製品遇熱或辛辣物質會凝固堵管，需與熱源實體隔離"
+    "attributes": "",
+    "notes": ""
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -1532,7 +1532,7 @@
     "isPerishable": false,
     "spoilTime": null,
     "spoilProduct": "-",
-    "attributes": "含有堅果, 過敏原",
+    "attributes": "含有堅果",
     "notes": ""
   },
   {
@@ -1642,7 +1642,7 @@
     "isPerishable": true,
     "spoilTime": 30,
     "spoilProduct": "酸奶油",
-    "attributes": "遇熱凝固",
+    "attributes": "無",
     "notes": ""
   },
   {

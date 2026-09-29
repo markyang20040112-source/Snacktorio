@@ -857,11 +857,8 @@ function assembleResult(params: any): CalculationResult {
     const spoilTime = it.spoilTime;
     const spoilProduct = it.spoilProduct;
 
-    // 1. 氣味刺鼻
-    if (
-      attrs.includes('氣味刺鼻') ||
-      ['小蒜', '刺菠蘿', '油荳蔻', '老爹脆辣辣椒', 'E127', '炸小蒜', '虛空汙泥', '驚嚇醃薑'].includes(iname)
-    ) {
+    // 1. 氣味刺鼻 (Strictly data-driven: item must have '氣味刺鼻' in attributes)
+    if (attrs.includes('氣味刺鼻')) {
       const key = `${iname}-氣味刺鼻`;
       if (!seenWarnings.has(key)) {
         seenWarnings.add(key);
@@ -873,11 +870,8 @@ function assembleResult(params: any): CalculationResult {
       }
     }
 
-    // 2. 食物中毒
-    if (
-      attrs.includes('中毒') ||
-      ['致命傘菇', '哥布林肉排', '鷹身女妖翅膀', '生鷹身女妖肉', '毒蘑菇·肉'].includes(iname)
-    ) {
+    // 2. 食物中毒 (Strictly data-driven: item must have '中毒' in attributes)
+    if (attrs.includes('中毒')) {
       const key = `${iname}-食物中毒`;
       if (!seenWarnings.has(key)) {
         seenWarnings.add(key);
@@ -889,43 +883,33 @@ function assembleResult(params: any): CalculationResult {
       }
     }
 
-    // 3. 過敏原防護
-    if (
-      attrs.includes('過敏原') ||
-      attrs.includes('含有堅果') ||
-      attrs.includes('堅果') ||
-      ['豆肉蔻', '松子'].includes(iname)
-    ) {
+    // 3. 過敏原防護 (Strictly data-driven: item must have '過敏原' or '堅果' in attributes)
+    if (attrs.includes('過敏原') || attrs.includes('堅果')) {
       const key = `${iname}-過敏原防護`;
       if (!seenWarnings.has(key)) {
         seenWarnings.add(key);
         biochemicalWarnings.push({
           item: iname,
           type: '過敏原防護',
-          detail: '含有高致敏物質（如豆肉蔻、松子），必須設置專屬獨立專線，禁止與一般原料共用分流通道。'
+          detail: '含有高致敏物質（如堅果類），必須設置專屬獨立專線，禁止與一般原料共用分流通道。'
         });
       }
     }
 
-    // 4. 遇熱凝固
-    if (
-      attrs.includes('遇熱凝固') ||
-      ['蟑螂奶', '蟑螂奶油', '軟質奶酪', '中等熟成奶酪', '硬質奶酪', '蟑螂酸奶', '藍紋奶酪'].includes(iname) ||
-      iname.includes('奶酪') ||
-      iname.includes('蟑螂奶')
-    ) {
+    // 4. 遇熱凝固 (Strictly data-driven: item must have '遇熱凝固' in attributes)
+    if (attrs.includes('遇熱凝固')) {
       const key = `${iname}-遇熱凝固`;
       if (!seenWarnings.has(key)) {
         seenWarnings.add(key);
         biochemicalWarnings.push({
           item: iname,
           type: '遇熱凝固',
-          detail: '乳製品遇熱或辛辣物質會凝固堵管，傳送與儲存管線必須與熱源徹底實體隔離。'
+          detail: '遇熱或辛辣物質會凝固堵管，傳送與儲存管線必須與熱源徹底實體隔離。'
         });
       }
     }
 
-    // 5. 時效腐壞
+    // 5. 時效腐壞 (Strictly data-driven: item must have isPerishable && spoilTime)
     if (isPerish && spoilTime) {
       const key = `${iname}-時效腐壞`;
       if (!seenWarnings.has(key)) {
