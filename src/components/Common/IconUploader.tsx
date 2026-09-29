@@ -1,6 +1,7 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { Upload, X, Search, Image as ImageIcon, Trash2, RotateCcw, Ban } from 'lucide-react';
+import { Upload, X, Search, Image as ImageIcon, Trash2, RotateCcw, Ban, Sparkles, RefreshCw } from 'lucide-react';
 import { getItemIcon, getDefaultIcon, getAllAvailableIcons } from '../../utils/iconHelper';
+import { processAndBeautifyImage } from '../../utils/imageBeautifier';
 
 export interface IconUploaderProps {
   value?: string;
@@ -16,6 +17,10 @@ export const IconUploader: React.FC<IconUploaderProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showLibraryModal, setShowLibraryModal] = useState(false);
   const [librarySearch, setLibrarySearch] = useState('');
+  const [rawCustomUrl, setRawCustomUrl] = useState<string | null>(null);
+  const [beautifiedCustomUrl, setBeautifiedCustomUrl] = useState<string | null>(null);
+  const [isBeautified, setIsBeautified] = useState<boolean>(true);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
   const allIcons = useMemo(() => getAllAvailableIcons(), []);
 
@@ -40,39 +45,22 @@ export const IconUploader: React.FC<IconUploaderProps> = ({
       return;
     }
 
+    setIsProcessing(true);
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const dataUrl = event.target?.result as string;
       if (dataUrl) {
-        // Optimize image size using canvas if needed (clamp to max 64x64 or 128x128 for pixel icons)
-        const img = new Image();
-        img.onload = () => {
-          const maxDim = 64;
-          let w = img.width;
-          let h = img.height;
-          if (w > maxDim || h > maxDim) {
-            if (w > h) {
-              h = Math.round((h * maxDim) / w);
-              w = maxDim;
-            } else {
-              w = Math.round((w * maxDim) / h);
-              h = maxDim;
-            }
-          }
-          const canvas = document.createElement('canvas');
-          canvas.width = w;
-          canvas.height = h;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.imageSmoothingEnabled = false; // preserve pixel art!
-            ctx.drawImage(img, 0, 0, w, h);
-            const optimizedDataUrl = canvas.toDataURL('image/png');
-            onChange(optimizedDataUrl);
-          } else {
-            onChange(dataUrl);
-          }
-        };
-        img.src = dataUrl;
+        try {
+          const res = await processAndBeautifyImage(dataUrl);
+          setRawCustomUrl(res.rawUrl);
+          setBeautifiedCustomUrl(res.beautifiedUrl);
+          setIsBeautified(true);
+          onChange(res.beautifiedUrl);
+        } catch {
+          onChange(dataUrl);
+        } finally {
+          setIsProcessing(false);
+        }
       }
     };
     reader.readAsDataURL(file);
@@ -93,6 +81,20 @@ export const IconUploader: React.FC<IconUploaderProps> = ({
     onChange(undefined);
   };
 
+  const handleReBeautify = async () => {
+    if (!value || value === 'none' || value.includes('/icons/')) return;
+    setIsProcessing(true);
+    try {
+      const res = await processAndBeautifyImage(value);
+      setRawCustomUrl(res.rawUrl);
+      setBeautifiedCustomUrl(res.beautifiedUrl);
+      setIsBeautified(true);
+      onChange(res.beautifiedUrl);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <div className="bg-[#0b1419] p-3 rounded-xl border border-[#1f3542] space-y-3">
       <div className="flex items-center justify-between">
@@ -100,14 +102,16 @@ export const IconUploader: React.FC<IconUploaderProps> = ({
           <ImageIcon className="w-3.5 h-3.5 text-amber-400" />
           <span>物品照片 / 遊戲圖示連動</span>
         </label>
-        <span className="text-[11px] text-slate-400">
-          支援上傳、圖庫挑選與刪除圖片
+        <span className="text-[11px] text-amber-400/90 flex items-center space-x-1">
+          <Sparkles className="w-3 h-3 text-amber-400" />
+          <span>上傳自動智慧去背修邊</span>
         </span>
       </div>
 
       <div className="flex items-center space-x-4">
         {/* Preview Frame */}
         <div className="w-14 h-14 rounded-xl bg-[#081014] border-2 border-dashed border-[#233a46] flex items-center justify-center p-1 relative group shrink-0 shadow-inner">
+
           {activeIconUrl ? (
             <>
               <img
@@ -194,6 +198,65 @@ export const IconUploader: React.FC<IconUploaderProps> = ({
           )}
         </div>
       </div>
+
+      {/* Smart Beautifier Toggle Bar (Shown for custom uploaded images) */}
+      {isCustom && !value?.startsWith('http') && !value?.includes('/icons/') && (
+        <div className="flex flex-wrap items-center justify-between bg-[#081014] px-3 py-2 rounded-lg border border-[#1b2f3b] text-xs gap-2">
+          <div className="flex items-center space-x-1.5 text-slate-300">
+            <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+            <span className="font-semibold text-slate-200">去背與修邊模式：</span>
+            <span className="text-[11px] text-slate-400">
+              {isBeautified ? '已自動消除背景雜色與邊框' : '顯示未去背之完整原圖'}
+            </span>
+          </div>
+
+          <div className="flex items-center space-x-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                if (beautifiedCustomUrl) {
+                  onChange(beautifiedCustomUrl);
+                  setIsBeautified(true);
+                } else {
+                  handleReBeautify();
+                }
+              }}
+              disabled={isProcessing}
+              className={`flex items-center space-x-1 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all ${
+                isBeautified
+                  ? 'bg-amber-500/25 text-amber-300 border border-amber-500/50 shadow-sm'
+                  : 'bg-slate-800 text-slate-400 hover:text-slate-200 border border-transparent'
+              }`}
+            >
+              {isProcessing && isBeautified ? (
+                <RefreshCw className="w-3 h-3 animate-spin" />
+              ) : (
+                <Sparkles className="w-3 h-3 text-amber-400" />
+              )}
+              <span>✨ 智慧去背 (推薦)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (rawCustomUrl) {
+                  onChange(rawCustomUrl);
+                  setIsBeautified(false);
+                }
+              }}
+              disabled={!rawCustomUrl || isProcessing}
+              className={`flex items-center space-x-1 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all ${
+                !isBeautified
+                  ? 'bg-slate-700 text-slate-200 border border-slate-500 shadow-sm'
+                  : 'bg-slate-800/60 text-slate-400 hover:text-slate-200 border border-transparent'
+              }`}
+              title={rawCustomUrl ? '切換為原始完整截圖' : '當前無原始圖快取'}
+            >
+              <span>📷 原始原圖</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Library Selection Modal */}
       {showLibraryModal && (
