@@ -34,11 +34,9 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
   }, [recipes]);
 
   const addDish = () => {
-    if (plannedList.length >= 3) return;
     const remaining = recipes.find(r => !plannedList.some(p => p.dishName === r.name));
-    if (remaining) {
-      setPlannedList([...plannedList, { id: Date.now().toString(), dishName: remaining.name, rateMin: 12 }]);
-    }
+    const nextDishName = remaining ? remaining.name : (recipes[0]?.name || '鮮紅濃湯');
+    setPlannedList([...plannedList, { id: Date.now().toString(), dishName: nextDishName, rateMin: 12 }]);
   };
 
   const removeDish = (id: string) => {
@@ -467,22 +465,20 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
           <div>
             <h2 className="text-base font-bold text-slate-100 flex items-center space-x-2">
               <Layers className="w-5 h-5 text-amber-400" />
-              <span>多料理並聯排程控制台（支援最多 3 道菜單並聯）</span>
+              <span>多料理並聯排程控制台（支援多道菜單自由並聯）</span>
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
               自動去重合併共通收割機、研磨機、攪拌機與公用流體泵站，消除產能浪費，追求極致空間與設備利用率。
             </p>
           </div>
 
-          {plannedList.length < 3 && (
-            <button
-              onClick={addDish}
-              className="flex items-center space-x-1.5 px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-bold transition-all shadow-sm shrink-0 whitespace-nowrap self-start sm:self-center"
-            >
-              <Plus className="w-4 h-4" />
-              <span>新增並聯菜單 ({plannedList.length}/3)</span>
-            </button>
-          )}
+          <button
+            onClick={addDish}
+            className="flex items-center space-x-1.5 px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-bold transition-all shadow-sm shrink-0 whitespace-nowrap self-start sm:self-center"
+          >
+            <Plus className="w-4 h-4" />
+            <span>新增並聯菜單 ({plannedList.length})</span>
+          </button>
         </div>
 
         {/* Global Strategy & Power Control Bar (與產線計算機樣式 100% 對齊，雙行防溢出防折行) */}
@@ -558,7 +554,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
         </div>
 
         {/* Dish Selection Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pt-1">
           {plannedList.map((item, idx) => (
             <div key={item.id} className="bg-slate-950 p-4 rounded-xl border border-slate-850 space-y-3 relative group">
               <div className="flex items-center justify-between">
