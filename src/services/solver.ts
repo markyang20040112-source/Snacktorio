@@ -750,7 +750,7 @@ export function calculateSingleDish(
       totalRegularPumps, totalOverclockPumps, totalSludgeManipulators, totalPumpManipulatorPower,
       mainEquipmentPower, coalMinerPower, totalLoad, furnaces, coalMiners,
       genSludgeManipulators: 0, coalRate, grossPower, netPower, surplusPower,
-      items
+      items, recipes, intermediateRecipes
     });
   } else {
     // 16 FV/s overclock mode (2:1:1 module: 2 furnaces, 1 miner, 1 manipulator)
@@ -771,9 +771,36 @@ export function calculateSingleDish(
       totalRegularPumps, totalOverclockPumps, totalSludgeManipulators, totalPumpManipulatorPower,
       mainEquipmentPower, coalMinerPower, totalLoad, furnaces, coalMiners,
       genSludgeManipulators, coalRate, grossPower, netPower, surplusPower,
-      items
+      items, recipes, intermediateRecipes
     });
   }
+}
+
+function normalizeProcessOrItemName(name: string): string {
+  if (!name) return '';
+  let cleaned = name.replace(/[\(（][^\)）]*[\)）]/g, '').trim();
+  cleaned = cleaned.replace(/^(採收|開採|採集|製作|調配|水煮|油炸|重構|擠出|研磨|混合|混和|烘焙|烘烤|攪拌|剝皮|注入|絞碎|發酵|炸|煮|採)/, '').trim();
+  cleaned = cleaned.replace(/莎莎/g, '沙沙').replace(/波蘿/g, '菠蘿');
+  if (cleaned === '史萊姆') return '綠色史萊姆';
+  if (cleaned === '鷹身女妖肉') return '生鷹身女妖肉';
+  if (cleaned === '麵團') return '麵包麵團';
+  if (cleaned === '千層麵皮') return '生千層麵';
+  return cleaned;
+}
+
+function resolveItem(cand: string, itemMap: Map<string, Item>): Item | null {
+  if (!cand || cand === '無' || cand === '終端組裝') return null;
+  if (itemMap.has(cand)) return itemMap.get(cand)!;
+  const norm = normalizeProcessOrItemName(cand);
+  if (itemMap.has(norm)) return itemMap.get(norm)!;
+  if (itemMap.has('生' + norm)) return itemMap.get('生' + norm)!;
+  if (itemMap.has('煮熟的' + norm)) return itemMap.get('煮熟的' + norm)!;
+  return null;
+}
+
+function isTerrainOrPlant(name: string): boolean {
+  if (!name) return true;
+  return name.includes('(礦石方塊)') || name.includes('(香料方塊)') || name.endsWith('植株') || name.endsWith('塊莖');
 }
 
 function assembleResult(params: any): CalculationResult {
@@ -783,7 +810,7 @@ function assembleResult(params: any): CalculationResult {
     totalRegularPumps, totalOverclockPumps, totalSludgeManipulators, totalPumpManipulatorPower,
     mainEquipmentPower, coalMinerPower, totalLoad, furnaces, coalMiners,
     genSludgeManipulators, coalRate, grossPower, netPower, surplusPower,
-    items
+    items, recipes, intermediateRecipes
   } = params;
 
   const totalMainMachines = processNodes.reduce((sum: number, p: ProcessNode) => sum + p.countRounded, 0);
@@ -795,48 +822,132 @@ function assembleResult(params: any): CalculationResult {
   // Biochemical Warnings
   const biochemicalWarnings: { item: string; type: string; detail: string }[] = [];
   const itemMap = new Map<string, Item>((items as Item[]).map((it: Item) => [it.name, it]));
+  const seenWarnings = new Set<string>();
 
+  const candidateNames = new Set<string>();
+
+  // 1. Candidate names from direct recipe inputs and fluid
+  const recipe = (recipes as Recipe[])?.find(r => r.name === dishName);
+  if (recipe) {
+    if (recipe.inputs) {
+      recipe.inputs.forEach(inp => {
+        if (inp.name && inp.name !== '無') candidateNames.add(inp.name);
+      });
+    }
+    if (recipe.fluidType && !['無', '水', '油', '虛空'].includes(recipe.fluidType)) {
+      candidateNames.add(recipe.fluidType);
+    }
+  }
+
+  // 2. Candidate names from process nodes
   processNodes.forEach((p: ProcessNode) => {
-    const rawName = p.processName.replace('採集', '').replace('採掘', '').replace('收割', '').replace('重構', '').replace('研磨', '').replace('注入', '').replace('發酵', '').replace('剝皮', '').trim();
-    const it = itemMap.get(p.processName) || itemMap.get(rawName);
-    if (it) {
-      if (it.attributes?.includes('遇熱凝固')) {
+    if (p.processName && p.processName !== '終端組裝') {
+      candidateNames.add(p.processName);
+    }
+  });
+
+  candidateNames.forEach((cand: string) => {
+    const it = resolveItem(cand, itemMap);
+    if (!it) return;
+    const iname = it.name;
+    if (isTerrainOrPlant(iname)) return;
+
+    const attrs = it.attributes || '';
+    const isPerish = it.isPerishable;
+    const spoilTime = it.spoilTime;
+    const spoilProduct = it.spoilProduct;
+
+    // 1. 氣味刺鼻
+    if (
+      attrs.includes('氣味刺鼻') ||
+      ['小蒜', '刺菠蘿', '油荳蔻', '老爹脆辣辣椒', 'E127', '炸小蒜', '虛空汙泥', '驚嚇醃薑'].includes(iname)
+    ) {
+      const key = `${iname}-氣味刺鼻`;
+      if (!seenWarnings.has(key)) {
+        seenWarnings.add(key);
         biochemicalWarnings.push({
-          item: it.name,
-          type: '遇熱凝固',
-          detail: '乳製品遇熱或辛辣物質會凝固堵管，傳送與儲存管線必須與熱源徹底實體隔離。'
-        });
-      }
-      if (it.attributes?.includes('過敏原')) {
-        biochemicalWarnings.push({
-          item: it.name,
-          type: '過敏原防護',
-          detail: '含有高致敏物質（如豆肉蔻），必須設置專屬獨立專線，禁止與一般原料共用分流通道。'
-        });
-      }
-      if (it.attributes?.includes('氣味刺鼻')) {
-        biochemicalWarnings.push({
-          item: it.name,
+          item: iname,
           type: '氣味刺鼻',
           detail: '散發強烈氣味，輸送需維持獨立封閉路徑，避免污染鄰近工序。'
         });
       }
-      if (it.attributes?.includes('中毒')) {
+    }
+
+    // 2. 食物中毒
+    if (
+      attrs.includes('中毒') ||
+      ['致命傘菇', '哥布林肉排', '鷹身女妖翅膀', '生鷹身女妖肉', '毒蘑菇·肉'].includes(iname)
+    ) {
+      const key = `${iname}-食物中毒`;
+      if (!seenWarnings.has(key)) {
+        seenWarnings.add(key);
         biochemicalWarnings.push({
-          item: it.name,
+          item: iname,
           type: '食物中毒',
           detail: '生食具有中毒屬性，出餐前必須經由剝皮/加熱等熟化製程處理。'
         });
       }
-      if (it.isPerishable && it.spoilTime) {
+    }
+
+    // 3. 過敏原防護
+    if (
+      attrs.includes('過敏原') ||
+      attrs.includes('含有堅果') ||
+      attrs.includes('堅果') ||
+      ['豆肉蔻', '松子'].includes(iname)
+    ) {
+      const key = `${iname}-過敏原防護`;
+      if (!seenWarnings.has(key)) {
+        seenWarnings.add(key);
         biochemicalWarnings.push({
-          item: it.name,
+          item: iname,
+          type: '過敏原防護',
+          detail: '含有高致敏物質（如豆肉蔻、松子），必須設置專屬獨立專線，禁止與一般原料共用分流通道。'
+        });
+      }
+    }
+
+    // 4. 遇熱凝固
+    if (
+      attrs.includes('遇熱凝固') ||
+      ['蟑螂奶', '蟑螂奶油', '軟質奶酪', '中等熟成奶酪', '硬質奶酪', '蟑螂酸奶', '藍紋奶酪'].includes(iname) ||
+      iname.includes('奶酪') ||
+      iname.includes('蟑螂奶')
+    ) {
+      const key = `${iname}-遇熱凝固`;
+      if (!seenWarnings.has(key)) {
+        seenWarnings.add(key);
+        biochemicalWarnings.push({
+          item: iname,
+          type: '遇熱凝固',
+          detail: '乳製品遇熱或辛辣物質會凝固堵管，傳送與儲存管線必須與熱源徹底實體隔離。'
+        });
+      }
+    }
+
+    // 5. 時效腐壞
+    if (isPerish && spoilTime) {
+      const key = `${iname}-時效腐壞`;
+      if (!seenWarnings.has(key)) {
+        seenWarnings.add(key);
+        biochemicalWarnings.push({
+          item: iname,
           type: '時效腐壞',
-          detail: `在傳送帶上停留超過 ${it.spoilTime} 秒將變質為【${it.spoilProduct || '廢物'}】！注意機內暫存不跳計時。`
+          detail: `在傳送帶上停留超過 ${spoilTime} 秒將變質為【${spoilProduct || '廢物'}】！注意機內暫存不跳計時。`
         });
       }
     }
   });
+
+  // Sort warnings: 氣味刺鼻 -> 食物中毒 -> 過敏原防護 -> 遇熱凝固 -> 時效腐壞
+  const orderMap: Record<string, number> = {
+    氣味刺鼻: 1,
+    食物中毒: 2,
+    過敏原防護: 3,
+    遇熱凝固: 4,
+    時效腐壞: 5
+  };
+  biochemicalWarnings.sort((a, b) => (orderMap[a.type] || 99) - (orderMap[b.type] || 99) || a.item.localeCompare(b.item));
 
   return {
     dishName,
