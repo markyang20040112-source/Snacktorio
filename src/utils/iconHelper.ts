@@ -4,9 +4,13 @@ const itemIcons: Record<string, string> = itemIconsData as Record<string, string
 
 /**
  * Returns the resolved icon URL for an item or machine.
- * Supports custom uploaded Data URLs (data:image/...) or static icon assets.
+ * Supports custom uploaded Data URLs (data:image/...), static icon assets,
+ * or 'none' to explicitly indicate no icon should be shown.
  */
 export function getItemIcon(name: string, customIcon?: string): string | undefined {
+  if (customIcon === 'none') {
+    return undefined;
+  }
   if (customIcon && customIcon.trim()) {
     return customIcon.trim();
   }
@@ -42,6 +46,13 @@ export function getItemIcon(name: string, customIcon?: string): string | undefin
   }
 
   return undefined;
+}
+
+/**
+ * Returns the default system library icon for an item name, ignoring custom overrides.
+ */
+export function getDefaultIcon(name: string): string | undefined {
+  return getItemIcon(name, undefined);
 }
 
 /**

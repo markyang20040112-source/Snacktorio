@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo } from 'react';
-import { Upload, X, Search, Image as ImageIcon } from 'lucide-react';
-import { getItemIcon, getAllAvailableIcons } from '../../utils/iconHelper';
+import { Upload, X, Search, Image as ImageIcon, Trash2, RotateCcw, Ban } from 'lucide-react';
+import { getItemIcon, getDefaultIcon, getAllAvailableIcons } from '../../utils/iconHelper';
 
 export interface IconUploaderProps {
   value?: string;
@@ -26,7 +26,9 @@ export const IconUploader: React.FC<IconUploaderProps> = ({
   }, [allIcons, librarySearch]);
 
   const activeIconUrl = getItemIcon(itemName, value);
-  const isCustom = !!value;
+  const defaultIconUrl = getDefaultIcon(itemName);
+  const isDeleted = value === 'none';
+  const isCustom = !!value && value !== 'none';
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -83,7 +85,11 @@ export const IconUploader: React.FC<IconUploaderProps> = ({
     setShowLibraryModal(false);
   };
 
-  const handleClear = () => {
+  const handleDeleteImage = () => {
+    onChange('none');
+  };
+
+  const handleRestoreDefault = () => {
     onChange(undefined);
   };
 
@@ -95,7 +101,7 @@ export const IconUploader: React.FC<IconUploaderProps> = ({
           <span>物品照片 / 遊戲圖示連動</span>
         </label>
         <span className="text-[11px] text-slate-400">
-          支援上傳圖片或自遊戲圖庫選取
+          支援上傳、圖庫挑選與刪除圖片
         </span>
       </div>
 
@@ -103,14 +109,29 @@ export const IconUploader: React.FC<IconUploaderProps> = ({
         {/* Preview Frame */}
         <div className="w-14 h-14 rounded-xl bg-[#081014] border-2 border-dashed border-[#233a46] flex items-center justify-center p-1 relative group shrink-0 shadow-inner">
           {activeIconUrl ? (
-            <img
-              src={activeIconUrl}
-              alt="預覽"
-              className="w-full h-full object-contain pixelated"
-              style={{ imageRendering: 'pixelated' }}
-            />
+            <>
+              <img
+                src={activeIconUrl}
+                alt="預覽"
+                className="w-full h-full object-contain pixelated"
+                style={{ imageRendering: 'pixelated' }}
+              />
+              <button
+                type="button"
+                onClick={handleDeleteImage}
+                className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center shadow-md border border-rose-400 transition-transform hover:scale-110"
+                title="刪除/移除此圖片"
+              >
+                <Trash2 className="w-3 h-3" />
+              </button>
+            </>
+          ) : isDeleted ? (
+            <div className="flex flex-col items-center justify-center text-rose-400/90 text-center px-1">
+              <Ban className="w-5 h-5 mb-0.5" />
+              <span className="text-[9px] font-bold">已刪除圖片</span>
+            </div>
           ) : (
-            <div className="flex flex-col items-center justify-center text-slate-600">
+            <div className="flex flex-col items-center justify-center text-slate-600 text-center px-1">
               <ImageIcon className="w-5 h-5 mb-0.5 opacity-50" />
               <span className="text-[9px]">無圖示</span>
             </div>
@@ -146,15 +167,29 @@ export const IconUploader: React.FC<IconUploaderProps> = ({
             <span>自圖庫挑選 ({allIcons.length})</span>
           </button>
 
-          {isCustom && (
+          {/* Delete Image Button */}
+          {!isDeleted && activeIconUrl && (
             <button
               type="button"
-              onClick={handleClear}
-              className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 text-xs transition-all"
-              title="清除自訂照片，還原為系統預設"
+              onClick={handleDeleteImage}
+              className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/40 text-xs font-semibold transition-all"
+              title="刪除此物品的圖片 (設為無圖示)"
             >
-              <X className="w-3.5 h-3.5" />
-              <span>還原</span>
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>刪除圖片</span>
+            </button>
+          )}
+
+          {/* Restore Default Button (if customized or deleted, and default exists) */}
+          {(isCustom || isDeleted) && defaultIconUrl && (
+            <button
+              type="button"
+              onClick={handleRestoreDefault}
+              className="flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 text-xs transition-all"
+              title="還原為系統原生物品圖示"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+              <span>還原預設</span>
             </button>
           )}
         </div>
@@ -194,6 +229,28 @@ export const IconUploader: React.FC<IconUploaderProps> = ({
 
             {/* Icons Grid */}
             <div className="flex-1 overflow-y-auto min-h-[280px] max-h-[420px] p-2 bg-[#081014] rounded-xl border border-[#1b2d38] grid grid-cols-4 sm:grid-cols-6 gap-2">
+              {/* Option to clear/remove image */}
+              <button
+                type="button"
+                onClick={() => {
+                  handleDeleteImage();
+                  setShowLibraryModal(false);
+                }}
+                className="col-span-2 flex items-center space-x-2 p-2 rounded-xl bg-rose-950/20 hover:bg-rose-900/30 border border-rose-500/40 hover:border-rose-400 transition-all group text-left"
+              >
+                <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-rose-950/40 border border-rose-500/60 shrink-0 text-rose-400">
+                  <Ban className="w-5 h-5" />
+                </div>
+                <div className="truncate">
+                  <span className="block text-xs font-bold text-rose-300">
+                    移除圖片
+                  </span>
+                  <span className="block text-[10px] text-rose-400/80">
+                    不使用任何圖示
+                  </span>
+                </div>
+              </button>
+
               {filteredIcons.map((ic) => (
                 <button
                   type="button"
