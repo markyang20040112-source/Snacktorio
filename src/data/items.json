@@ -1598,12 +1598,13 @@
   {
     "island": "斯科瓦拉",
     "name": "魔鬼椒",
-    "source": "",
+    "source": "油炸鍋",
     "isPerishable": false,
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": ""
+    "notes": "",
+    "isFluid": false
   },
   {
     "island": "斯科瓦拉",
