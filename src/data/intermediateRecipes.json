@@ -1587,5 +1587,24 @@
     "cycleTime": 5,
     "outputCount": 1,
     "notes": ""
+  },
+  {
+    "name": "致命莎莎醬",
+    "machine": "攪拌機",
+    "fluidType": "無",
+    "fluidRate": 0,
+    "inputs": [
+      {
+        "name": "灰燼",
+        "count": 1
+      },
+      {
+        "name": "魔鬼椒",
+        "count": 1
+      }
+    ],
+    "cycleTime": 5,
+    "outputCount": 5,
+    "notes": ""
   }
 ]
