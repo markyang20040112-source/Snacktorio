@@ -134,7 +134,8 @@ function getProcessOutputItem(
     return { name: injName, isFluid: true };
   }
 
-  const stripped = p.processName.replace(ACTION_VERBS, '').trim();
+  const baseClean = p.processName.replace(/\(.*?\)/g, '').trim();
+  const stripped = baseClean.replace(ACTION_VERBS, '').trim();
 
   if (p.machine === '煮鍋') {
     const cookedName = '煮熟的' + stripped;
@@ -186,21 +187,21 @@ function getProcessOutputItem(
     if (p.processName.includes('薯條')) return { name: '薯條', isFluid: false };
   }
 
-  let inter = intermediateRecipes.find(r => (r.name === stripped || r.name === p.processName) && r.machine === p.machine);
+  let inter = intermediateRecipes.find(r => (r.name === stripped || r.name === p.processName || r.name === baseClean) && r.machine === p.machine);
   if (!inter) {
-    inter = intermediateRecipes.find(r => r.machine === p.machine && p.processName.endsWith(r.name));
+    inter = intermediateRecipes.find(r => r.machine === p.machine && (p.processName.endsWith(r.name) || baseClean.endsWith(r.name)));
   }
   if (!inter) {
-    inter = intermediateRecipes.find(r => r.name === stripped || r.name === p.processName);
+    inter = intermediateRecipes.find(r => r.name === stripped || r.name === p.processName || r.name === baseClean);
   }
   if (!inter) {
-    inter = intermediateRecipes.find(r => p.processName.endsWith(r.name));
+    inter = intermediateRecipes.find(r => p.processName.endsWith(r.name) || baseClean.endsWith(r.name));
   }
   if (inter) return { name: inter.name, isFluid: false };
 
   // Fallback: check if processName ends with any known item name (e.g. 未知動詞+物品名)
   const sortedItems = Array.from(allItems).sort((a, b) => b.length - a.length);
-  const matchedItem = sortedItems.find(iName => p.processName.endsWith(iName));
+  const matchedItem = sortedItems.find(iName => p.processName.endsWith(iName) || baseClean.endsWith(iName));
   if (matchedItem) return { name: matchedItem, isFluid: false };
 
   return { name: stripped, isFluid: false };
