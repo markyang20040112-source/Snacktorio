@@ -98,6 +98,7 @@ export interface ProcessNode {
   feederRole?: 'donor' | 'recipient';
   feederNote?: string;
   dishTag?: string;
+  tier?: number;
 }
 
 export interface FluidTierInfo {

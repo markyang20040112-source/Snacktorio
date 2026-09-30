@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Recipe, ProcessNode, FeederStrategy, DownstreamTarget } from '../../types';
-import { calculateSingleDish, sizeAutonomousPump, isScorchingDish, getProcessItemOutputRate } from '../../services/solver';
+import { calculateSingleDish, sizeAutonomousPump, isScorchingDish, getProcessItemOutputRate, sortProcessesDownstreamToUpstream } from '../../services/solver';
 import { dataService } from '../../services/dataService';
 import { getMachineBadgeClass, chunkTargets } from '../../utils/machineBadge';
 import { RecipeSearchSelect } from '../Common/RecipeSearchSelect';
@@ -144,6 +144,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
         offsetDetails: string[];
         consumerMachine?: string;
       };
+      tier?: number;
     }
 
     const processMap = new Map<string, ConsolidatedProcessRecord>();
@@ -551,7 +552,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
     const totalPlantGoblins = totalMainGoblins + furnaces * 1 + coalMiners * 1 + totalPlantPumpPower;
 
     return {
-      processes: list,
+      processes: sortProcessesDownstreamToUpstream(list),
       isSingleDish,
       totalIndependent,
       totalParallel,
@@ -1150,6 +1151,24 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                     {/* 1. 工序項目 */}
                     <td className="py-3 px-4 font-medium text-slate-100">
                       <div className="flex items-center space-x-2 whitespace-nowrap">
+                        <span
+                          className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded border shrink-0 ${
+                            r.machine === '自動廚師機'
+                              ? 'bg-amber-950/70 text-amber-300 border-amber-500/50'
+                              : isBaseFeeder
+                              ? 'bg-purple-950/70 text-purple-300 border-purple-500/50'
+                              : 'bg-slate-800/90 text-slate-300 border-slate-700/60'
+                          }`}
+                          title={
+                            r.machine === '自動廚師機'
+                              ? '終端出餐工序 (Tier 0)'
+                              : isBaseFeeder
+                              ? '全廠底料作物收割 (底料層)'
+                              : `第 ${r.tier ?? 1} 階加工工序 (由下游至上游)`
+                          }
+                        >
+                          {r.machine === '自動廚師機' ? '終端' : isBaseFeeder ? '底料' : `T${r.tier ?? 1}`}
+                        </span>
                         <ItemIcon name={r.processName} size="xs" />
                         {isBaseFeeder && (
                           <Sprout className={`w-4 h-4 shrink-0 ${isFullyOffsetFeeder ? 'text-emerald-400' : 'text-purple-400'}`} />

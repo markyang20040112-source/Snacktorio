@@ -471,6 +471,120 @@ export function getProcessItemOutputRate(
   return 1 / 5; // 0.2 items/s for 採掘機, 收割機, etc.
 }
 
+export function sortProcessesDownstreamToUpstream<T extends {
+  processName: string;
+  machine: string;
+  isBaseFeeder?: boolean;
+  downstreamTargets?: any[];
+  tier?: number;
+}>(processes: T[]): T[] {
+  const tierMap = new Map<string, number>();
+
+  // 1. Identify Terminal / Outermost downstream nodes (Tier 0)
+  processes.forEach(p => {
+    if (
+      p.machine === '自動廚師機' ||
+      p.processName.includes('終端出餐') ||
+      p.processName.includes('終端組裝')
+    ) {
+      tierMap.set(p.processName, 0);
+    }
+  });
+
+  // Helper to extract downstream target names and machines
+  const getDownstreamTargets = (p: T): { name: string; machine?: string }[] => {
+    const list: { name: string; machine?: string }[] = [];
+    if (!p.downstreamTargets) return list;
+
+    p.downstreamTargets.forEach((item: any) => {
+      if (item && item.targets && Array.isArray(item.targets)) {
+        item.targets.forEach((t: any) => {
+          if (t && t.processName) list.push({ name: t.processName, machine: t.machine });
+        });
+      } else if (item && item.processName) {
+        list.push({ name: item.processName, machine: item.machine });
+      }
+    });
+    return list;
+  };
+
+  // 2. Iterative relaxation to calculate topological distance to terminal (Tier 1, Tier 2, etc.)
+  let changed = true;
+  let iterations = 0;
+  while (changed && iterations < processes.length + 5) {
+    changed = false;
+    iterations++;
+
+    processes.forEach(p => {
+      if (p.isBaseFeeder) return;
+      const currentTier = tierMap.get(p.processName);
+      const dsTargets = getDownstreamTargets(p);
+
+      const reachableTiers: number[] = [];
+      dsTargets.forEach(tgt => {
+        processes.forEach(other => {
+          if (other === p) return;
+          const matches =
+            other.processName === tgt.name ||
+            (tgt.name !== '底料原料' && (other.processName.includes(tgt.name) || tgt.name.includes(other.processName))) ||
+            (tgt.machine === '自動廚師機' && other.machine === '自動廚師機');
+
+          if (matches) {
+            const t = tierMap.get(other.processName);
+            if (t !== undefined) {
+              reachableTiers.push(t);
+            }
+          }
+        });
+      });
+
+      if (reachableTiers.length > 0) {
+        const minT = Math.min(...reachableTiers);
+        const calculatedTier = minT + 1;
+        if (currentTier === undefined || calculatedTier < currentTier) {
+          tierMap.set(p.processName, calculatedTier);
+          changed = true;
+        }
+      }
+    });
+  }
+
+  // 3. Assign base feeders to highest tier (999) and fallback for unreached nodes
+  processes.forEach(p => {
+    if (p.isBaseFeeder) {
+      tierMap.set(p.processName, 999);
+    } else if (!tierMap.has(p.processName)) {
+      if (p.machine === '採掘機' || p.machine === '收割機') {
+        tierMap.set(p.processName, 80);
+      } else if (p.machine === '物質操縱機') {
+        tierMap.set(p.processName, 70);
+      } else {
+        tierMap.set(p.processName, 50);
+      }
+    }
+  });
+
+  // Assign tier property to each node
+  processes.forEach(p => {
+    p.tier = tierMap.get(p.processName) ?? 50;
+  });
+
+  // 4. Sort:
+  // 1) Tier ASC (0, 1, 2...)
+  // 2) Machine type (grouping same machine in same tier together)
+  // 3) Process name
+  return [...processes].sort((a, b) => {
+    const tierA = tierMap.get(a.processName) ?? 50;
+    const tierB = tierMap.get(b.processName) ?? 50;
+    if (tierA !== tierB) return tierA - tierB;
+
+    const machCmp = a.machine.localeCompare(b.machine, 'zh-Hant');
+    if (machCmp !== 0) return machCmp;
+
+    return a.processName.localeCompare(b.processName, 'zh-Hant');
+  });
+}
+
 export function calculateSingleDish(
   dishName: string,
   targetRate: number, // dishes/s (e.g. 0.2)
@@ -1235,7 +1349,7 @@ function assembleResult(params: any): CalculationResult {
     targetRateMin: Math.round(targetRate * 60),
     powerMode,
     feederStrategy: baseFeeders.strategy,
-    processes: processNodes,
+    processes: sortProcessesDownstreamToUpstream(processNodes),
     baseFeeders,
     fluids: {
       sauces,
