@@ -824,7 +824,8 @@ function assembleResult(params: any): CalculationResult {
   // Biochemical Warnings
   const biochemicalWarnings: { item: string; type: string; detail: string }[] = [];
   const itemMap = new Map<string, Item>((items as Item[]).map((it: Item) => [it.name, it]));
-  const interMap = new Map<string, IntermediateRecipe>((intermediateRecipes as IntermediateRecipe[]).map((r: IntermediateRecipe) => [r.name, r]));
+  const intermediateRecipesList = dataService.getIntermediateRecipes();
+  const interMap = new Map<string, IntermediateRecipe>(intermediateRecipesList.map((r: IntermediateRecipe) => [r.name, r]));
   const seenWarnings = new Set<string>();
 
   const candidateNames = new Set<string>();
@@ -869,8 +870,10 @@ function assembleResult(params: any): CalculationResult {
     return (attrStr.includes('炙熱') || attrStr.includes('熾熱') || attrStr.includes('炽热')) && !attrStr.includes('中和');
   };
 
+  const dishItem = itemMap.get(dishName);
   const hasHotItem = candidateItems.some(it => isHotAttr(it.attributes || '') && !it.name.includes('胃復慘')) ||
-    Boolean(recipe?.attributes && isHotAttr(recipe.attributes));
+    Boolean(dishItem?.attributes && isHotAttr(dishItem.attributes)) ||
+    Boolean(recipe?.notes && isHotAttr(recipe.notes));
 
   candidateItems.forEach((it: Item) => {
     const iname = it.name;
