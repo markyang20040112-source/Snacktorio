@@ -26,9 +26,13 @@ const MACHINE_CONFIGS: Record<string, MachineConfig> = {
     outputCount: 1,
     fluidType: '水',
     fluidRate: 1.0,
-    isFixedFluid: true,
+    isFixedFluid: false,
     isFixedRate: true,
-    description: '水煮熟化：固定通水 1.0 fl/s，基準速率 0.2/s (5秒1個)'
+    fluidPresets: [
+      { type: '水', rate: 1.0, label: '水 (1.0 fl/s, 標準水煮)' },
+      { type: '醋', rate: 1.0, label: '醋 (1.0 fl/s, 酸煮)' }
+    ],
+    description: '水煮熟化：支援水或特定液體 (1.0 fl/s)，基準速率 0.2/s (5秒1個)'
   },
   '油炸鍋': {
     outputType: 'solid',
@@ -36,9 +40,13 @@ const MACHINE_CONFIGS: Record<string, MachineConfig> = {
     outputCount: 1,
     fluidType: '油',
     fluidRate: 1.0,
-    isFixedFluid: true,
+    isFixedFluid: false,
     isFixedRate: true,
-    description: '油炸熟化：固定通油 1.0 fl/s，基準速率 0.2/s (5秒1個)'
+    fluidPresets: [
+      { type: '油', rate: 1.0, label: '油 (1.0 fl/s, 標準油炸)' },
+      { type: '炙烈紅油', rate: 1.0, label: '炙烈紅油 (1.0 fl/s, 熾熱油炸)' }
+    ],
+    description: '油炸熟化：支援油或特種液體 (1.0 fl/s)，基準速率 0.2/s (5秒1個)'
   },
   '物質操縱機': {
     outputType: 'solid',
@@ -279,6 +287,77 @@ export const IntermediateManager: React.FC<IntermediateManagerProps> = ({
   const flatRawOptions = useMemo(() => {
     return rawMaterialGroups.flatMap(g => g.options);
   }, [rawMaterialGroups]);
+
+  // Grouped options for fluid selection
+  const fluidSelectGroups = useMemo<SelectOptionGroup[]>(() => {
+    const groups: SelectOptionGroup[] = [
+      {
+        options: [
+          { value: '無', label: '無 (無需持續通液)' }
+        ]
+      }
+    ];
+
+    // 1. Base fluids
+    groups.push({
+      label: '💧 基礎外採流體',
+      options: [
+        { value: '水', label: '水 (外採水池)', sublabel: '常規外採' },
+        { value: '油', label: '油 (外採油池)', sublabel: '常規外採' },
+        { value: '虛空', label: '虛空 (異界裂隙)', sublabel: '異界裂隙' }
+      ]
+    });
+
+    // 2. Specialty oils (especially for fryers)
+    groups.push({
+      label: '🔥 高溫與特種油品 (油炸推薦)',
+      options: [
+        { value: '油', label: '油 (常規油池)', sublabel: '外採油池' },
+        { value: '炙烈紅油', label: '炙烈紅油 (注入機高溫油品)', sublabel: '注入機轉化' }
+      ]
+    });
+
+    // 3. Sauces and intermediate fluids
+    const sauceSet = new Set<string>();
+    intermediate.forEach(r => {
+      if (r.machine === '攪拌機' || r.machine === '注入機') sauceSet.add(r.name);
+      if (r.fluidType && r.fluidType !== '無') sauceSet.add(r.fluidType);
+    });
+    items.forEach(it => {
+      if (it.isFluid) sauceSet.add(it.name);
+    });
+
+    // Clean up duplicates already in base / specialty
+    ['無', '水', '油', '虛空', '炙烈紅油'].forEach(k => sauceSet.delete(k));
+
+    if (sauceSet.size > 0) {
+      groups.push({
+        label: '🥣 醬汁、乳製品與加工流體',
+        options: Array.from(sauceSet).sort().map(s => ({
+          value: s,
+          label: s,
+          sublabel: '加工流體'
+        }))
+      });
+    }
+
+    return groups;
+  }, [intermediate, items]);
+
+  const dynamicFluidGroups = useMemo<SelectOptionGroup[]>(() => {
+    if (!editingRecipe?.fluidType || editingRecipe.fluidType === '無') return fluidSelectGroups;
+    const allVals = fluidSelectGroups.flatMap(g => g.options.map(o => o.value));
+    if (!allVals.includes(editingRecipe.fluidType)) {
+      return [
+        {
+          label: '✨ 當前設定流體',
+          options: [{ value: editingRecipe.fluidType, label: editingRecipe.fluidType }]
+        },
+        ...fluidSelectGroups
+      ];
+    }
+    return fluidSelectGroups;
+  }, [fluidSelectGroups, editingRecipe?.fluidType]);
 
   const filtered = intermediate.filter(r =>
     r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -722,12 +801,21 @@ export const IntermediateManager: React.FC<IntermediateManagerProps> = ({
                 <div className="grid grid-cols-2 gap-3 pt-1">
                   <div>
                     <label className="block text-[11px] text-slate-400 mb-1">所需液體種類</label>
-                    <input
-                      type="text"
-                      placeholder="無、水、油、虛空、醬汁..."
-                      value={editingRecipe.fluidType}
-                      onChange={(e) => setEditingRecipe({ ...editingRecipe, fluidType: e.target.value })}
-                      className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 focus:outline-none focus:ring-1 focus:ring-amber-500 font-medium"
+                    <SearchableSelect
+                      groups={dynamicFluidGroups}
+                      value={editingRecipe.fluidType || '無'}
+                      onChange={(val) => {
+                        const newRate = val === '無' ? 0.0 : (editingRecipe.fluidRate > 0 ? editingRecipe.fluidRate : (currentMachConfig?.fluidRate || 1.0));
+                        setEditingRecipe({
+                          ...editingRecipe,
+                          fluidType: val,
+                          fluidRate: newRate
+                        });
+                      }}
+                      placeholder="選擇或搜尋液體..."
+                      size="sm"
+                      allowCustom={true}
+                      className="w-full"
                     />
                   </div>
                   <div>
