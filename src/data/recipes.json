@@ -1146,5 +1146,33 @@
     "cycleTime": 5,
     "outputCount": 1,
     "notes": "炙熱特性，需搭配胃復慘"
+  },
+  {
+    "island": "波莫拉 (Pomora)",
+    "name": "惡魔鷹身女妖",
+    "machine": "自動廚師機",
+    "fluidType": "致命莎莎醬",
+    "fluidRate": 1,
+    "inputs": [
+      {
+        "name": "灰燼",
+        "count": 1
+      },
+      {
+        "name": "哈瓦那魔椒",
+        "count": 1
+      },
+      {
+        "name": "炸鷹身女妖肉",
+        "count": 1
+      },
+      {
+        "name": "打工小妖炒飯",
+        "count": 1
+      }
+    ],
+    "cycleTime": 5,
+    "outputCount": 1,
+    "notes": "炙熱特性，需搭配胃復慘"
   }
 ]
