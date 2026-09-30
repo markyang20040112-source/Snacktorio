@@ -1655,10 +1655,10 @@
     "inputs": [
       {
         "name": "辣椒",
-        "count": 1.1
+        "count": 1
       }
     ],
-    "cycleTime": 5.1,
+    "cycleTime": 5,
     "outputCount": 1,
     "notes": ""
   }
