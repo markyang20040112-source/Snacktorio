@@ -41,7 +41,7 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
   const solidOptions = useMemo(() => {
     // Non-culinary machines and industrial items
     const nonCulinaryMachines = new Set(['裝配機']);
-    const nonCulinaryNames = new Set(['鐵', '玻璃', '煤炭', '鐵礦石', '沙塊', '橡膠', '黏土', '灰燼', '粉塵', '黏土石']);
+    const nonCulinaryNames = new Set(['鐵', '玻璃', '煤炭', '鐵礦石', '沙塊', '橡膠', '黏土', '黏土石']);
     // Sauces are dedicated to the fluid dropdown; exclude from solid ingredients (except 醋 which is used in pickled food)
     const pureSauceFluids = new Set(['塔瑪茄醬', '青醬', '白醬', '肉汁', '麵糊', '炙烈紅油', '蟑螂奶']);
 
