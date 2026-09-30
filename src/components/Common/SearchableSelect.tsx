@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { Search, ChevronDown, Check, X } from 'lucide-react';
+import { Search, ChevronDown, Check, X, Plus } from 'lucide-react';
 import { ItemIcon } from './ItemIcon';
 
 export interface SelectOption {
@@ -22,6 +22,7 @@ interface SearchableSelectProps {
   className?: string;
   size?: 'xs' | 'sm' | 'md';
   disabled?: boolean;
+  allowCustom?: boolean;
 }
 
 export const SearchableSelect: React.FC<SearchableSelectProps> = ({
@@ -32,6 +33,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   className = '',
   size = 'sm',
   disabled = false,
+  allowCustom = true,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -147,6 +149,8 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
       e.preventDefault();
       if (flatOptions[highlightedIndex]) {
         handleSelect(flatOptions[highlightedIndex].value);
+      } else if (allowCustom && searchQuery.trim()) {
+        handleSelect(searchQuery.trim());
       }
     }
   };
@@ -226,9 +230,23 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
             {/* Quick Result Counter or Tip */}
             <div className="flex items-center justify-between px-1 pt-1 text-[10px] text-slate-400">
               <span>{searchQuery ? `找到 ${flatOptions.length} 項` : `共 ${flatOptions.length} 項`}</span>
-              <span className="text-slate-500">可打字或方向鍵切換</span>
+              <span className="text-slate-500">可打字、Enter自訂或方向鍵選擇</span>
             </div>
           </div>
+
+          {/* Quick Custom Input Action if search query doesn't match an existing option */}
+          {allowCustom && searchQuery.trim() && !flatOptions.some(o => o.value.toLowerCase() === searchQuery.trim().toLowerCase()) && (
+            <div className="p-1 border-b border-slate-800/80 bg-amber-950/20">
+              <button
+                type="button"
+                onClick={() => handleSelect(searchQuery.trim())}
+                className="w-full flex items-center space-x-2 px-2 py-1.5 text-left text-xs font-bold text-amber-300 hover:bg-amber-500/20 rounded-md transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5 shrink-0 text-amber-400" />
+                <span className="truncate">使用自訂項目：「{searchQuery.trim()}」</span>
+              </button>
+            </div>
+          )}
 
           {/* Options List */}
           <div
@@ -236,9 +254,19 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
             className="max-h-56 sm:max-h-64 overflow-y-auto divide-y divide-slate-800/40 p-1 custom-scrollbar"
           >
             {filteredGroups.length === 0 ? (
-              <div className="py-6 text-center text-slate-400">
+              <div className="py-6 text-center text-slate-400 px-3">
                 <Search className="w-5 h-5 mx-auto mb-1.5 text-slate-600 opacity-60" />
-                <p className="text-xs font-medium text-slate-300">查無符合「{searchQuery}」的項目</p>
+                <p className="text-xs font-medium text-slate-300">查無符合「{searchQuery}」的預設項目</p>
+                {allowCustom && searchQuery.trim() && (
+                  <button
+                    type="button"
+                    onClick={() => handleSelect(searchQuery.trim())}
+                    className="mt-2.5 inline-flex items-center space-x-1.5 px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg text-xs font-bold transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>使用「{searchQuery.trim()}」作為自訂輸入</span>
+                  </button>
+                )}
               </div>
             ) : (
               filteredGroups.map((group, gIdx) => (

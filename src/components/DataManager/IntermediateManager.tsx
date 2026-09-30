@@ -223,6 +223,23 @@ export const IntermediateManager: React.FC<IntermediateManagerProps> = ({
   const rawMaterialGroups = useMemo<SelectOptionGroup[]>(() => {
     const groups: SelectOptionGroup[] = [];
 
+    // Special & Universal Base Matter (for 物質操縱機等泛用配方)
+    groups.push({
+      label: '✨ 特殊與泛用原料',
+      options: [
+        {
+          value: '任意物品',
+          label: '任意物品 (物質操縱機底料專供 / 任意固體作物)',
+          sublabel: '物質操縱機'
+        },
+        {
+          value: '無(空載)',
+          label: '無(空載) (物質操縱機空載凝結)',
+          sublabel: '物質操縱機'
+        }
+      ]
+    });
+
     // Intermediate recipes (excluding currently edited one to avoid direct self-cycle)
     const interOptions = intermediate
       .filter(r => !editingRecipe || r.name !== editingRecipe.name)
