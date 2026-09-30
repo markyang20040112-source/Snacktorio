@@ -866,8 +866,9 @@
     "isPerishable": true,
     "spoilTime": 30,
     "spoilProduct": "酸奶油",
-    "attributes": "",
-    "notes": ""
+    "attributes": "遇熱凝固",
+    "notes": "",
+    "isFluid": false
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -876,8 +877,9 @@
     "isPerishable": false,
     "spoilTime": null,
     "spoilProduct": "",
-    "attributes": "",
-    "notes": ""
+    "attributes": "遇熱凝固",
+    "notes": "",
+    "isFluid": false
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -886,8 +888,9 @@
     "isPerishable": false,
     "spoilTime": null,
     "spoilProduct": "",
-    "attributes": "",
-    "notes": ""
+    "attributes": "遇熱凝固",
+    "notes": "",
+    "isFluid": false
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -896,8 +899,9 @@
     "isPerishable": true,
     "spoilTime": 20,
     "spoilProduct": "中等熟成奶酪",
-    "attributes": "",
-    "notes": ""
+    "attributes": "遇熱凝固",
+    "notes": "",
+    "isFluid": false
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -906,8 +910,9 @@
     "isPerishable": true,
     "spoilTime": 30,
     "spoilProduct": "硬質奶酪",
-    "attributes": "",
-    "notes": ""
+    "attributes": "遇熱凝固",
+    "notes": "",
+    "isFluid": false
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -916,8 +921,9 @@
     "isPerishable": true,
     "spoilTime": 60,
     "spoilProduct": "藍紋奶酪",
-    "attributes": "",
-    "notes": ""
+    "attributes": "遇熱凝固",
+    "notes": "",
+    "isFluid": false
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -926,8 +932,9 @@
     "isPerishable": false,
     "spoilTime": null,
     "spoilProduct": "",
-    "attributes": "",
-    "notes": ""
+    "attributes": "遇熱凝固",
+    "notes": "",
+    "isFluid": false
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -1410,8 +1417,9 @@
     "isPerishable": false,
     "spoilTime": null,
     "spoilProduct": "-",
-    "attributes": "",
-    "notes": "中等熟成奶酪研磨而成，每次產出2個"
+    "attributes": "遇熱凝固",
+    "notes": "中等熟成奶酪研磨而成，每次產出2個",
+    "isFluid": false
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -1653,8 +1661,9 @@
     "isPerishable": true,
     "spoilTime": 30,
     "spoilProduct": "酸奶油",
-    "attributes": "無",
-    "notes": ""
+    "attributes": "遇熱凝固",
+    "notes": "",
+    "isFluid": false
   },
   {
     "island": "斯科瓦拉",
@@ -1775,5 +1784,16 @@
     "spoilProduct": "-",
     "attributes": "氣味刺鼻",
     "notes": "斯科瓦拉終端配菜：由醋、姜姜與E127於自動廚師機組裝而成；E127具氣味刺鼻屬性。"
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "反胃辣芝士",
+    "source": "自動廚師機",
+    "isFluid": false,
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "熾熱",
+    "notes": ""
   }
 ]
