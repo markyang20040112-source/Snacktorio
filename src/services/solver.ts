@@ -648,6 +648,28 @@ export function calculateSingleDish(
     }
   });
 
+export function getProcessItemOutputRate(
+  processName: string,
+  machine: string,
+  intermediateRecipes: IntermediateRecipe[]
+): number {
+  const stripped = processName.replace(ACTION_VERBS, '').trim();
+  const inter = intermediateRecipes.find(r => (r.name === stripped || r.name === processName) && r.machine === machine);
+  if (inter) {
+    const outCnt = inter.outputCount || 1;
+    const cycle = inter.cycleTime || 5;
+    return outCnt / cycle;
+  }
+  // Default extraction rates for 5s cycle machines
+  if (machine === '物質操縱機') {
+    if (['蟑螂', '史萊姆', '骸骨'].some(k => processName.includes(k))) {
+      return 2 / 5; // 0.4 items/s
+    }
+    return 1 / 5; // 0.2 items/s
+  }
+  return 1 / 5; // 0.2 items/s for 採掘機, 收割機, etc.
+}
+
   // 3. 泛用底料收割機 (Base Feeder Harvesters - 物質操縱機或任何需「任意物品/底料」之設備)
   let offsetCount = 0;
   let offsetSource = '';
@@ -664,11 +686,11 @@ export function calculateSingleDish(
     const sources: string[] = [];
 
     candidateNodes.forEach(p => {
-      const baseRateNum = parseFractionOrNumber(p.baseRate);
-      const surplusRate = (p.countRounded - p.demandRate) * (baseRateNum > 0 ? baseRateNum : 0.2);
-      // 每 0.2/s 過剩流率等同於 1 台收割機之產能
-      if (surplusRate >= 0.15) {
-        const potential = Math.floor((surplusRate + 0.05) / 0.2);
+      const itemRate = getProcessItemOutputRate(p.processName, p.machine, intermediateRecipes);
+      const surplusRate = (p.countRounded - p.demandRate) * itemRate; // 量化淨物料產出流率 (items/second)
+      // 每 0.20 items/s 過剩流率等同於 1 台底料收割機之供給能力 (每 5 秒消耗 1 份底料)
+      if (surplusRate >= 0.199) {
+        const potential = Math.floor((surplusRate + 0.001) / 0.2);
         if (potential > 0) {
           totalOffsetAvailable += potential;
           sources.push(`【${p.processName}】過剩 ${surplusRate.toFixed(2)}/s`);
@@ -699,9 +721,9 @@ export function calculateSingleDish(
       if (offsetCount > 0) {
         // 標記提供過剩產能的供給設備 (Donor) 與接收底料的操縱機 (Recipient)
         const donorNodes = candidateNodes.filter(p => {
-          const baseRateNum = parseFractionOrNumber(p.baseRate);
-          const surplusRate = (p.countRounded - p.demandRate) * (baseRateNum > 0 ? baseRateNum : 0.2);
-          return surplusRate >= 0.15;
+          const itemRate = getProcessItemOutputRate(p.processName, p.machine, intermediateRecipes);
+          const surplusRate = (p.countRounded - p.demandRate) * itemRate;
+          return surplusRate >= 0.199;
         });
 
         // 接收端優先分配給非起始操縱機 (若無起始依賴，則可分配給任意操縱機)
@@ -711,11 +733,12 @@ export function calculateSingleDish(
 
         // 依據各供給設備 (Donor) 之可用過剩容量，輪流 (Round-robin) 1:1 分配接收端操縱機 (Recipient)
         const donorSlots = donorNodes.map(d => {
-          const baseRateNum = parseFractionOrNumber(d.baseRate);
-          const surplusRate = (d.countRounded - d.demandRate) * (baseRateNum > 0 ? baseRateNum : 0.2);
+          const itemRate = getProcessItemOutputRate(d.processName, d.machine, intermediateRecipes);
+          const surplusRate = (d.countRounded - d.demandRate) * itemRate;
           return {
             donor: d,
-            available: Math.floor((surplusRate + 0.05) / 0.2),
+            available: Math.floor((surplusRate + 0.001) / 0.2),
+            surplusRate,
             recipients: [] as ProcessNode[]
           };
         });
@@ -741,7 +764,7 @@ export function calculateSingleDish(
           if (ds.recipients.length > 0) {
             d.feederRole = 'donor';
             const recNames = ds.recipients.map(r => `【${r.processName}】`).join('、');
-            d.feederNote = `產能過剩，分流直供${recNames}作為底料`;
+            d.feederNote = `產能過剩，分流直供${recNames}作為底料 (${ds.surplusRate.toFixed(2)}/s)`;
             actualSources.push(`【${d.processName}】過剩直供${recNames}`);
 
             if (!d.downstreamTargets) d.downstreamTargets = [];

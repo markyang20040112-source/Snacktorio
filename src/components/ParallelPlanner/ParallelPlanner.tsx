@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Recipe, ProcessNode, FeederStrategy, DownstreamTarget } from '../../types';
-import { calculateSingleDish, sizeAutonomousPump, isScorchingDish } from '../../services/solver';
+import { calculateSingleDish, sizeAutonomousPump, isScorchingDish, getProcessItemOutputRate } from '../../services/solver';
 import { dataService } from '../../services/dataService';
 import { getMachineBadgeClass, chunkTargets } from '../../utils/machineBadge';
 import { RecipeSearchSelect } from '../Common/RecipeSearchSelect';
@@ -27,6 +27,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
   ]);
 
   const items = useMemo(() => dataService.getItems(), []);
+  const intermediateRecipes = useMemo(() => dataService.getIntermediateRecipes(), []);
 
   const addDish = () => {
     const remaining = recipes.find(r => !plannedList.some(p => p.dishName === r.name));
@@ -201,7 +202,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
       });
     });
 
-    // 2. Base Feeder Harvester for matter manipulators
+    // 2. Base Feeder Harvester for matter manipulators & base consumers
     const dishesWithManipulators = individualResults.filter(
       item => item.calc && (item.calc.baseFeeders.grossRequired > 0 || item.calc.baseFeeders.count > 0)
     );
@@ -212,7 +213,23 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
       ));
       const primaryConsumer = allConsumers.length === 1 ? allConsumers[0] : (allConsumers.length > 1 ? allConsumers.join('、') : '物質操縱機');
 
-      const feederKey = '重構底料作物採集 (收割機 底料專供)';
+      const feederKey = '底料作物採集 (收割機 底料專供)';
+
+      // Identify merged base consumer processes in the factory
+      const baseConsumerProcesses = Array.from(processMap.values()).filter(p => {
+        if (p.machine === '物質操縱機') return true;
+        const matchingInter = intermediateRecipes.find(r => r.name === p.processName || p.processName.includes(r.name));
+        if (matchingInter && matchingInter.inputs?.some(inp => ['任意物品', '重構底料', '底料'].includes(inp.name))) return true;
+        return false;
+      });
+
+      // True merged gross requirement across the whole factory
+      const mergedGrossBaseFeeders = baseConsumerProcesses.length > 0
+        ? baseConsumerProcesses.reduce((sum, p) => sum + Math.ceil(p.totalDemandRate), 0)
+        : dishesWithManipulators.reduce((sum, d) => sum + d.calc!.baseFeeders.grossRequired, 0);
+
+      const independentGrossSum = dishesWithManipulators.reduce((sum, d) => sum + d.calc!.baseFeeders.grossRequired, 0);
+
       const feederRecord: ConsolidatedProcessRecord = {
         processName: feederKey,
         machine: '收割機 (底料專供)',
@@ -220,10 +237,10 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
         baseRateDisplay: '0.20/s',
         integerRatio: 1,
         dishDemands: [],
-        totalDemandRate: 0,
-        independentSum: 0,
-        parallelRounded: 0,
-        savedCount: 0,
+        totalDemandRate: mergedGrossBaseFeeders,
+        independentSum: independentGrossSum,
+        parallelRounded: mergedGrossBaseFeeders,
+        savedCount: Math.max(0, independentGrossSum - mergedGrossBaseFeeders),
         powerPerUnit: 1.0,
         goblinsPerUnit: 1.0,
         topologies: [{ dishName: '全廠', text: `1:1 防堵專線直供${primaryConsumer}` }],
@@ -231,9 +248,9 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
         feederRoles: [],
         isBaseFeeder: true,
         baseFeederSummary: {
-          grossRequired: 0,
+          grossRequired: mergedGrossBaseFeeders,
           offsetCount: 0,
-          finalCount: 0,
+          finalCount: mergedGrossBaseFeeders,
           offsetDetails: [],
           consumerMachine: primaryConsumer
         }
@@ -249,17 +266,6 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
           offsetCount: bf.offsetCount,
           offsetSource: bf.offsetSource
         });
-        feederRecord.totalDemandRate += bf.count;
-        feederRecord.independentSum += bf.count;
-
-        feederRecord.baseFeederSummary!.grossRequired += bf.grossRequired;
-        feederRecord.baseFeederSummary!.offsetCount += bf.offsetCount;
-        feederRecord.baseFeederSummary!.finalCount += bf.count;
-        if (bf.offsetSource) {
-          feederRecord.baseFeederSummary!.offsetDetails.push(
-            `【${item.dishName}】：${bf.offsetSource}`
-          );
-        }
       });
 
       processMap.set(feederKey, feederRecord);
@@ -275,72 +281,118 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
       };
     });
 
-    // 3. Cross-Dish Surplus Offsetting in Parallel (when feederStrategy === 'recycle')
+    // 3. Physical Surplus Flow Offsetting in Parallel (when feederStrategy === 'recycle')
     if (feederStrategy === 'recycle') {
       const feederRow = list.find(r => r.isBaseFeeder);
       if (feederRow && feederRow.baseFeederSummary && feederRow.parallelRounded > 0) {
         const bfSummary = feederRow.baseFeederSummary;
-        const needyDishes = feederRow.dishDemands.filter(d => d.demand > 0);
+        const consumerName = bfSummary.consumerMachine || '物質操縱機';
+        const nonDonorMachines = ['自動廚師機', consumerName, '物質操縱機', '攪拌機', '注入機', '虛空熔爐', '虛空泵機'];
 
-        if (needyDishes.length > 0) {
+        // If single dish mode, inherit the detailed offset from single dish solver directly
+        if (effectivePlannedList.length === 1 && individualResults[0]?.calc?.baseFeeders) {
+          const singleBf = individualResults[0].calc.baseFeeders;
+          bfSummary.offsetCount = singleBf.offsetCount;
+          feederRow.parallelRounded = singleBf.count;
+          feederRow.totalDemandRate = singleBf.count;
+          bfSummary.finalCount = singleBf.count;
+          if (singleBf.offsetSource) {
+            bfSummary.offsetDetails = [singleBf.offsetSource];
+          }
+        } else {
+          // Multi-dish parallel: clean previous feeder roles and recalculate strictly on merged physical flow
           list.forEach(proc => {
-            if (proc.isBaseFeeder) return;
-            const consumerName = bfSummary.consumerMachine || '物質操縱機';
-            const nonDonorMachines = ['自動廚師機', consumerName, '物質操縱機', '攪拌機', '注入機', '虛空熔爐', '虛空泵機'];
-            if (nonDonorMachines.includes(proc.machine)) return;
+            proc.feederRoles = [];
+          });
 
-            const baseRateNum = proc.baseRate || 0.2;
-            const grossCapacity = proc.parallelRounded * baseRateNum;
-            const grossDemand = proc.totalDemandRate * baseRateNum;
-            const totalSurplus = grossCapacity - grossDemand;
+          // Deadlock / Progenitor protection
+          const baseConsumerProcs = list.filter(p => {
+            if (p.machine === '物質操縱機') return true;
+            const matchingInter = intermediateRecipes.find(r => r.name === p.processName || p.processName.includes(r.name));
+            if (matchingInter && matchingInter.inputs?.some(inp => ['任意物品', '重構底料', '底料'].includes(inp.name))) return true;
+            return false;
+          });
 
-            // Subtract intra-dish offsets already given
-            const intraOffsetsGiven = proc.feederRoles.filter(fr => fr.role === 'donor').length;
-            const netSurplus = totalSurplus - intraOffsetsGiven * 0.2;
+          const progenitorProcs = baseConsumerProcs.filter(m => {
+            const mProduct = m.processName.replace('重構', '').replace('物質操縱', '').trim();
+            return list.some(c => {
+              if (nonDonorMachines.includes(c.machine)) return false;
+              const rec = intermediateRecipes.find(r => r.name === c.processName || c.processName.includes(r.name) || r.name.includes(c.processName));
+              return rec ? rec.inputs.some(inp => inp.name.includes(mProduct) || mProduct.includes(inp.name)) : false;
+            });
+          });
 
-            if (netSurplus >= 0.15) {
-              let availableSlots = Math.floor((netSurplus + 0.05) / 0.2);
+          const rootConsumer = progenitorProcs[0] || baseConsumerProcs[0];
+          const maxOffsetAllowed = progenitorProcs.length > 0 ? Math.max(0, feederRow.parallelRounded - 1) : feederRow.parallelRounded;
 
-              for (const needy of needyDishes) {
-                if (availableSlots <= 0 || feederRow.parallelRounded <= 0 || needy.demand <= 0) break;
+          let totalOffsetsAllocated = 0;
+          const eligibleRecipients = progenitorProcs.length > 0
+            ? baseConsumerProcs.filter(m => m !== rootConsumer)
+            : baseConsumerProcs;
 
-                const donorDishName = proc.dishDemands[0]?.dishName || '其他料理';
-                // 同一道料理內部的折抵已在單料理計算時由 solver 完備處理，並聯階段專注跨料理分配
-                if (needy.dishName === donorDishName) continue;
+          // Iterate over candidate donor processes
+          list.forEach(proc => {
+            if (proc.isBaseFeeder || nonDonorMachines.includes(proc.machine)) return;
+            if (totalOffsetsAllocated >= maxOffsetAllowed) return;
 
-                // Allocate 1 cross-dish offset
-                availableSlots -= 1;
-                needy.demand -= 1;
-                needy.offsetCount = (needy.offsetCount || 0) + 1;
-                feederRow.totalDemandRate = Math.max(0, feederRow.totalDemandRate - 1);
-                feederRow.parallelRounded = Math.ceil(feederRow.totalDemandRate);
-                bfSummary.offsetCount += 1;
-                bfSummary.finalCount = feederRow.parallelRounded;
+            const rOut = getProcessItemOutputRate(proc.processName, proc.machine, intermediateRecipes);
+            const surplusFlow = (proc.parallelRounded - proc.totalDemandRate) * rOut; // 量化物理淨產出流率 (items/second)
 
-                const crossDetail = `由【${donorDishName}】之【${proc.processName}】跨料理過剩直供【${needy.dishName}】之${consumerName} (折抵 1 台)`;
-                bfSummary.offsetDetails.push(crossDetail);
+            if (surplusFlow >= 0.199) {
+              let availableSlots = Math.floor((surplusFlow + 0.001) / 0.20);
+              const assignedRecipients: ProcessNode[] = [];
 
+              while (availableSlots > 0 && totalOffsetsAllocated < maxOffsetAllowed && eligibleRecipients.length > 0) {
+                const unassignedRecipient = eligibleRecipients.find(rec => !rec.feederRoles.some(fr => fr.role === 'recipient'));
+                if (!unassignedRecipient) break;
+
+                availableSlots--;
+                totalOffsetsAllocated++;
+                assignedRecipients.push(unassignedRecipient as any);
+
+                unassignedRecipient.feederRoles.push({
+                  dishName: '全廠',
+                  role: 'recipient',
+                  note: `底料由【${proc.processName}】過剩產能直供 (省 1 底料機)`
+                });
+              }
+
+              if (assignedRecipients.length > 0) {
+                const recNames = assignedRecipients.map(r => `【${r.processName}】`).join('、');
                 proc.feederRoles.push({
-                  dishName: donorDishName,
+                  dishName: '全廠',
                   role: 'donor',
-                  note: `跨料理過剩分流直供【${needy.dishName}】${consumerName}作為底料 (0.20/s)`
+                  note: `產能過剩，分流直供${recNames}作為底料 (${surplusFlow.toFixed(2)}/s)`
                 });
 
-                const recipientManipulator = list.find(r =>
-                  (r.machine === consumerName || r.machine === '物質操縱機') &&
-                  r.dishDemands.some(dd => dd.dishName === needy.dishName) &&
-                  !r.feederRoles.some(fr => fr.role === 'recipient')
-                );
-                if (recipientManipulator) {
-                  recipientManipulator.feederRoles.push({
-                    dishName: needy.dishName,
-                    role: 'recipient',
-                    note: `底料由【${donorDishName}】之【${proc.processName}】跨料理過剩產能直供 (省 1 底料機)`
-                  });
+                // Add byproduct target to downstreamTargets if not already present
+                if (!proc.downstreamTargets) proc.downstreamTargets = [];
+                let plantTargetEntry = proc.downstreamTargets.find(dt => dt.dishName === '全廠');
+                if (!plantTargetEntry) {
+                  plantTargetEntry = { dishName: '全廠', targets: [] };
+                  proc.downstreamTargets.push(plantTargetEntry);
                 }
+                assignedRecipients.forEach(r => {
+                  if (!plantTargetEntry!.targets.some(t => t.processName === r.processName && t.isByproduct)) {
+                    plantTargetEntry!.targets.push({
+                      processName: r.processName,
+                      machine: r.machine,
+                      ratio: 1,
+                      isByproduct: true,
+                      note: '副產物折抵'
+                    });
+                  }
+                });
+
+                bfSummary.offsetDetails.push(`由【${proc.processName}】過剩直供${recNames} (折抵 ${assignedRecipients.length} 台)`);
               }
             }
           });
+
+          bfSummary.offsetCount = totalOffsetsAllocated;
+          feederRow.parallelRounded = Math.max(0, feederRow.parallelRounded - totalOffsetsAllocated);
+          feederRow.totalDemandRate = feederRow.parallelRounded;
+          bfSummary.finalCount = feederRow.parallelRounded;
         }
       }
     }
@@ -593,7 +645,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
           {/* Base Feeder Strategy Toggle */}
           <div>
             <label className="block text-xs font-semibold text-slate-300 mb-2 flex items-center justify-between whitespace-nowrap">
-              <span>🌱 重構底料供給策略</span>
+              <span>🌱 底料供給策略</span>
             </label>
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -603,7 +655,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                     ? 'bg-purple-500/20 border-purple-500 text-purple-300 shadow-sm'
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-850 hover:text-slate-200'
                 }`}
-                title="每台物質操縱機配屬 1 台專用收割機直供底料 (最安全防呆、零死鎖)"
+                title="每台底料需求設備配屬 1 台專用收割機直供底料 (最安全防呆、零死鎖)"
               >
                 <span className="whitespace-nowrap">獨立專供</span>
                 <span className="font-normal text-[10px] text-slate-400 font-sans whitespace-nowrap">(安全防呆)</span>
@@ -616,7 +668,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                     ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 shadow-sm'
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-850 hover:text-slate-200'
                 }`}
-                title="自動利用研磨骨粉、發酵物等產線過剩副產物作為底料，節省收割機台數"
+                title="以嚴格物料流率量化利用產線過剩副產物作為底料，智慧折抵收割機台數"
               >
                 <span className="flex items-center space-x-1 whitespace-nowrap">
                   <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0 inline" />
@@ -984,7 +1036,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                 <span className="font-mono text-slate-200 font-bold whitespace-nowrap">{consolidated.totalPlantPumpPower.toFixed(1)} FV/s</span>
               </div>
               <div className="flex justify-between items-center text-slate-400">
-                <span className="whitespace-nowrap">3. 重構底料作物收割機：</span>
+                <span className="whitespace-nowrap">3. 底料作物收割機：</span>
                 <div className="flex items-center space-x-1.5 whitespace-nowrap">
                   {consolidated.baseFeederSummary && consolidated.baseFeederSummary.offsetCount > 0 && (
                     <span className="text-[10px] px-1 py-0.5 rounded bg-emerald-900/60 text-emerald-300 font-bold">
@@ -1081,7 +1133,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
             </thead>
             <tbody className="divide-y divide-slate-800">
               {consolidated.processes.map((r, idx) => {
-                const isBaseFeeder = r.isBaseFeeder || r.processName.includes('重構底料');
+                const isBaseFeeder = r.isBaseFeeder || r.processName.includes('底料作物採集');
                 const isFullyOffsetFeeder = isBaseFeeder && r.parallelRounded === 0;
 
                 return (
@@ -1139,7 +1191,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                             </span>
                           ) : (
                             <span className="text-purple-300/80 whitespace-nowrap">
-                              每台物質操縱機 1:1 獨立配屬作物收割機
+                              每台底料需求設備 1:1 獨立配屬作物收割機
                             </span>
                           )}
                         </div>
@@ -1283,7 +1335,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                             );
                           }
                           return (
-                            <div className="flex items-center space-x-1.5 whitespace-nowrap" title={`專線直供${consumerLabel}，每秒消耗 1 份作物底料完成原料供給 (1:1 防堵專線)`}>
+                            <div className="flex items-center space-x-1.5 whitespace-nowrap" title={`專線直供${consumerLabel}，每 5 秒消耗 1 份作物底料 (0.20/s 直供防堵專線)`}>
                               <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass(consumerLabel)}`}>
                                 {consumerLabel}
                               </span>
