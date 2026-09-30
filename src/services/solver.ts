@@ -667,6 +667,10 @@ export function calculateSingleDish(
 
   // Autonomous Overclocking Threshold Rule:
   // 全廠有任何虛空設施（重構機、食譜耗虛空、超頻發電、或任一流體泵超頻需量 > 6）時，門檻即為 > 2 fl/s，否則為 > 6 fl/s。
+  const matterManipulatorsCount = processNodes
+    .filter(p => p.machine === '物質操縱機')
+    .reduce((sum, p) => sum + p.countRounded, 0);
+
   const hasVoidFacility = baseVoid > 0 ||
                           matterManipulatorsCount > 0 ||
                           powerMode === 'overclock' ||
