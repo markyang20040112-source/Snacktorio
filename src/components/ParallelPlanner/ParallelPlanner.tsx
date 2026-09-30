@@ -1306,52 +1306,13 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
 
                           if (allSame) {
                             return (
-                              <div className="flex flex-col gap-y-1.5 w-fit">
-                                {chunkTargets(firstTargets).map((pair, rowIdx) => (
-                                  <div key={rowIdx} className="flex items-center space-x-3.5 whitespace-nowrap">
-                                    {pair.map((t, tIdx) => (
-                                      <div
-                                        key={tIdx}
-                                        className="flex items-center space-x-1.5 whitespace-nowrap shrink-0"
-                                        title={`連至工序：【${t.processName}】`}
-                                      >
-                                        <span className={`inline-flex items-center space-x-1 whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass(t.machine, t.isByproduct)}`}>
-                                          <ItemIcon name={t.machine} size="xs" showBorder={false} />
-                                          <span>{t.machine}</span>
-                                        </span>
-                                        {t.isFluid ? (
-                                          <span className="font-mono font-bold text-xs text-cyan-300">
-                                            {t.note || `${t.ratio}.0 fl/s`}
-                                          </span>
-                                        ) : (
-                                          <span className={`font-mono font-bold text-xs ${t.isByproduct ? 'text-emerald-400' : 'text-slate-200'}`}>
-                                            {t.ratio}
-                                          </span>
-                                        )}
-                                        {t.isByproduct && (
-                                          <span className="text-[10px] text-emerald-400 font-normal font-sans">(副產物折抵)</span>
-                                        )}
-                                      </div>
-                                    ))}
-                                  </div>
-                                ))}
-                              </div>
-                            );
-                          }
-
-                          return (
-                            <div className="space-y-1.5">
-                              {r.downstreamTargets.map((dt, dtIdx) => (
-                                <div key={dtIdx} className="flex items-center space-x-2">
-                                  {effectivePlannedList.length > 1 && (
-                                    <span className="text-slate-400 font-medium text-xs whitespace-nowrap">【{dt.dishName}】</span>
-                                  )}
-                                  <div className="flex flex-col gap-y-1.5 w-fit">
-                                    {chunkTargets(dt.targets).map((pair, rowIdx) => (
-                                      <div key={rowIdx} className="flex items-center space-x-3.5 whitespace-nowrap">
-                                        {pair.map((t, tIdx) => (
+                              <table className="border-separate border-spacing-y-1.5 border-spacing-x-0 text-xs w-auto">
+                                <tbody>
+                                  {chunkTargets(firstTargets).map((pair, rowIdx) => (
+                                    <tr key={rowIdx} className="align-middle">
+                                      {pair.map((t, tIdx) => (
+                                        <td key={tIdx} className="pr-3.5 align-middle whitespace-nowrap">
                                           <div
-                                            key={tIdx}
                                             className="flex items-center space-x-1.5 whitespace-nowrap shrink-0"
                                             title={`連至工序：【${t.processName}】`}
                                           >
@@ -1372,13 +1333,58 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                                               <span className="text-[10px] text-emerald-400 font-normal font-sans">(副產物折抵)</span>
                                             )}
                                           </div>
+                                        </td>
+                                      ))}
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            );
+                          }
+
+                          return (
+                            <table className="border-separate border-spacing-y-1.5 border-spacing-x-0 text-xs w-auto">
+                              <tbody>
+                                {r.downstreamTargets.map((dt, dtIdx) => (
+                                  <React.Fragment key={dtIdx}>
+                                    {chunkTargets(dt.targets).map((pair, rowIdx) => (
+                                      <tr key={rowIdx} className="align-middle">
+                                        {effectivePlannedList.length > 1 && (
+                                          <td className="pr-3 text-slate-400 font-medium whitespace-nowrap align-middle">
+                                            {rowIdx === 0 ? `【${dt.dishName}】` : ''}
+                                          </td>
+                                        )}
+                                        {pair.map((t, tIdx) => (
+                                          <td key={tIdx} className="pr-3.5 align-middle whitespace-nowrap">
+                                            <div
+                                              className="flex items-center space-x-1.5 whitespace-nowrap shrink-0"
+                                              title={`連至工序：【${t.processName}】`}
+                                            >
+                                              <span className={`inline-flex items-center space-x-1 whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass(t.machine, t.isByproduct)}`}>
+                                                <ItemIcon name={t.machine} size="xs" showBorder={false} />
+                                                <span>{t.machine}</span>
+                                              </span>
+                                              {t.isFluid ? (
+                                                <span className="font-mono font-bold text-xs text-cyan-300">
+                                                  {t.note || `${t.ratio}.0 fl/s`}
+                                                </span>
+                                              ) : (
+                                                <span className={`font-mono font-bold text-xs ${t.isByproduct ? 'text-emerald-400' : 'text-slate-200'}`}>
+                                                  {t.ratio}
+                                                </span>
+                                              )}
+                                              {t.isByproduct && (
+                                                <span className="text-[10px] text-emerald-400 font-normal font-sans">(副產物折抵)</span>
+                                              )}
+                                            </div>
+                                          </td>
                                         ))}
-                                      </div>
+                                      </tr>
                                     ))}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
+                                  </React.Fragment>
+                                ))}
+                              </tbody>
+                            </table>
                           );
                         })()
                       ) : (
@@ -1387,17 +1393,23 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                             r.topologies.length === 1 || r.topologies.every(t => t.text === r.topologies[0].text) ? (
                               <span>{r.topologies[0].text}</span>
                             ) : (
-                              <div className="space-y-0.5">
-                                {r.topologies.map((t, tIdx) => (
-                                  <div key={tIdx} className="text-slate-400">
-                                    <span className="text-slate-300 font-medium">【{t.dishName}】</span>
-                                    <span>{t.text}</span>
-                                  </div>
-                                ))}
-                              </div>
+                              <table className="border-separate border-spacing-y-0.5 border-spacing-x-0 text-xs w-auto">
+                                <tbody>
+                                  {r.topologies.map((t, tIdx) => (
+                                    <tr key={tIdx} className="text-slate-400">
+                                      <td className="pr-2 text-slate-300 font-medium whitespace-nowrap align-top">
+                                        【{t.dishName}】
+                                      </td>
+                                      <td className="align-top">
+                                        {t.text}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
                             )
                           ) : (
-                            <span className="text-slate-500">標準傳送帶供給</span>
+                            <span className="text-slate-500">-</span>
                           )}
                         </div>
                       )}

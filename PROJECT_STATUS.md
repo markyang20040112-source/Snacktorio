@@ -48,6 +48,12 @@
 ---
 
 ## 4. 近期重要決策日誌 (Decision Log)
+* **2026-09-30**：下游物料分流拓撲徽章與多料理標籤全格位對齊優化（Tabular Alignment for Downstream Target Badges & Dish Labels）：
+  1. 徹底解決多料理並聯時，因各料理名稱長度不一（如【反胃辣芝士】5字 vs 【胃復慘】3字）導致其下游設備徽章（如【攪拌機】）起點水平不一、縱向鋸齒錯位之問題。
+  2. 重構 `ParallelPlanner.tsx` 之物料關聯與拓撲欄位渲染邏輯，引進輕量自適應表格結構（`<table className="border-separate border-spacing-y-1.5 w-auto">`）：
+     - 第 0 欄（料理標籤欄）：自動依該工序內最長料理名稱自適應伸縮，確保每行料理之設備徽章起點 100% 絕對垂直對齊。
+     - 第 1 欄至第 N 欄（分流設備徽章欄）：各設備（如【攪拌機 1】、【自動廚師機 1.0 fl/s】）獨立納入相應表格單元格（`<td>`），徹底比照底部自動廚師機與混合機的標準欄位對齊佈局。
+  3. 兼顧單一目標與成對（`chunkTargets`）分流，即使多道料理同時並聯且 downstream 目標互異，亦能達成像素級垂直對齊。
 * **2026-09-30**：雙計算機介面整併為全能自適應產線平衡計算機（Unified Adaptive Production Planner Architecture）：
   1. 依使用者決策執行「方案A」，將原本分立的「產線計算機 (`SingleCalculator`)」與「多料理並聯規劃 (`ParallelPlanner`)」合而為一，刪除 redundant 的 `SingleCalculator` 元件。
   2. 導覽列極致精簡為三大核心分頁：【產線計算機】(`calculator`)、【資料工作台】(`data`)、【GitHub 同步】(`sync`)。
