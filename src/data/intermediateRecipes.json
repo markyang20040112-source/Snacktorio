@@ -1646,5 +1646,20 @@
     "cycleTime": 2,
     "outputCount": 2,
     "notes": "粉紅仙子於研磨機研磨成E127(雙倍產量)，具氣味刺鼻屬性"
+  },
+  {
+    "name": "魔鬼椒",
+    "machine": "油炸鍋",
+    "fluidType": "油",
+    "fluidRate": 1,
+    "inputs": [
+      {
+        "name": "辣椒",
+        "count": 1.1
+      }
+    ],
+    "cycleTime": 5.1,
+    "outputCount": 1,
+    "notes": ""
   }
 ]
