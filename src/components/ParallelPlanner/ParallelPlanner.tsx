@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Recipe, ProcessNode, FeederStrategy, DownstreamTarget } from '../../types';
-import { calculateSingleDish, sizeAutonomousPump, isScorchingDish, getProcessItemOutputRate, sortProcessesDownstreamToUpstream } from '../../services/solver';
+import { calculateSingleDish, sizeAutonomousPump, isScorchingDish, getProcessItemOutputRate, getProcessRealSurplusRate, sortProcessesDownstreamToUpstream } from '../../services/solver';
 import { dataService } from '../../services/dataService';
 import { getMachineBadgeClass, chunkTargets } from '../../utils/machineBadge';
 import { RecipeSearchSelect } from '../Common/RecipeSearchSelect';
@@ -349,8 +349,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
             if (proc.isBaseFeeder || nonDonorMachines.includes(proc.machine)) return;
             if (totalOffsetsAllocated >= maxOffsetAllowed) return;
 
-            const rOut = getProcessItemOutputRate(proc.processName, proc.machine, intermediateRecipes);
-            const surplusFlow = (proc.parallelRounded - proc.totalDemandRate) * rOut; // 量化物理淨產出流率 (items/second)
+            const surplusFlow = getProcessRealSurplusRate(proc, list, intermediateRecipes); // 考慮上游供料限流約束之真實物理淨產出流率 (items/second)
 
             if (surplusFlow >= 0.199) {
               let availableSlots = Math.floor((surplusFlow + 0.001) / 0.20);

@@ -48,6 +48,25 @@
 ---
 
 ## 4. 近期重要決策日誌 (Decision Log)
+* **2026-10-01**：上游供料限流約束與真實物理過剩流率演算法升級（Upstream Supply Throttling & Realistic Surplus Flow Calculation）：
+  - **問題根因**：
+    1. 先前計算機在計算工序的「產能過剩」與「副產物折抵」時，僅採用單台基準額定速率粗暴計算 `surplus = (countRounded - demandRate) * nominalItemRate`。
+    2. 以《反胃辣芝士 + 惡魔鷹身女妖 + 胃復慘》三料理並聯中的《研磨骨粉》為例：
+       - 1 台研磨機運轉週期 2 秒產 2 份骨粉，額定滿載速率高達 1.0 items/s。
+       - 料理需求僅 0.10 items/s，先前系統算出 `(1 - 0.10) * 1.0 = 0.90 items/s` 的虛擬過剩，並判定能供給 `floor(0.90 / 0.20) = 4` 台重構機，進而折抵了 2 台物質操縱機（鷹身女妖翅膀與綠色史萊姆）。
+       - 但在真實物理產線上，《研磨骨粉》的上游輸入是 1 台《物質操縱機》（重構巫妖骸骨），該操縱機週期 5 秒產 1 個巫妖骸骨，最大供料速度僅 0.20 bones/s。
+       - 依據最小養分定律（Liebig's Law of the Minimum），研磨機每生產 2 份骨粉需消耗 1 具骸骨，因此研磨機在 1 台操縱機供料下的**真實物理最大產出上限僅為 0.40 items/s**！
+       - 扣除終端料理需求 0.10/s 後，**實際可用過剩流率只有 0.30 items/s**。
+       - 若強行將其分流供給 2 台重構機（需 0.40/s），骨粉供料立刻斷供 25%，導致整條塔可產線嚴重停擺！
+  - **優化方案**：
+    1. 在 `solver.ts` 中建立遞迴供料限流演算法 `getProcessMaxOutputRate` 與 `getProcessRealSurplusRate`：
+       - 原料採掘機、收割機、虛空泵機：直接視為自然資源無限供給，依額定台數計算供料。
+       - 中間加工設備（研磨機、混合機、發酵缸等）：遞迴掃描其所有上游供料工序之真實最大產出速度，根據投入產出比（`inp.count` vs `outCnt`）計算受上游限流後的實體產出上限（Bottlenecked Capacity），取額定產能與上游限制之最小值。
+       - 真實物理過剩流率：`RealSurplus = max(0, effectiveMaxOutput - culinaryDemandRate)`。
+    2. 在單料理計算機（`calculateSingleDish`）與多料理並聯規劃（`ParallelPlanner`）中，全面採用 `getProcessRealSurplusRate` 替代過往的簡化額定算式。
+    3. 此優化精準修正了《研磨骨粉》：
+       - 真實過剩流率精確校正為 `0.40 - 0.10 = 0.30/s`。
+       - 可折抵重構機台數精確限制為 `floor(0.30 / 0.20) = 1` 台，徹底杜絕骨粉斷供與產線飢餓風險！
 * **2026-10-01**：多料理並聯副產物折抵去向殘留與狀態同步修復（Multi-Dish Parallel Byproduct Deduction Target Cleanup）：
   - **問題根因**：
     1. 當規劃單一料理具備「炙熱」特性時（如《反胃辣芝士》），計算機會自動連帶並聯《胃復慘》，使系統轉為「多料理並聯模式」。

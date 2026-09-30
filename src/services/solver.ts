@@ -471,6 +471,81 @@ export function getProcessItemOutputRate(
   return 1 / 5; // 0.2 items/s for 採掘機, 收割機, etc.
 }
 
+function getProcessMaxOutputRate(
+  proc: { processName: string; machine: string; countRounded?: number; parallelRounded?: number },
+  allProcesses: { processName: string; machine: string; countRounded?: number; parallelRounded?: number }[],
+  intermediateRecipes: IntermediateRecipe[],
+  visited: Set<any> = new Set()
+): number {
+  if (visited.has(proc)) return 0;
+  visited.add(proc);
+
+  const rounded = proc.parallelRounded !== undefined ? proc.parallelRounded : (proc.countRounded || 0);
+  const rOut = getProcessItemOutputRate(proc.processName, proc.machine, intermediateRecipes);
+  const nominalCapacity = rounded * rOut;
+
+  // Primary extractors mine from infinite natural resources (veins, ground, crops)
+  if (proc.machine === '採掘機' || proc.machine === '收割機' || proc.machine === '虛空泵機') {
+    return nominalCapacity;
+  }
+
+  // Intermediate machines: check upstream supplier constraints
+  const stripped = proc.processName.replace(ACTION_VERBS, '').trim();
+  const inter = intermediateRecipes.find(r => (r.name === stripped || r.name === proc.processName) && r.machine === proc.machine)
+    || intermediateRecipes.find(r => r.name === stripped || r.name === proc.processName);
+
+  if (!inter || !inter.inputs || inter.inputs.length === 0) {
+    return nominalCapacity;
+  }
+
+  const outCnt = inter.outputCount || 1;
+  let maxSupportedRate = nominalCapacity;
+
+  for (const inp of inter.inputs) {
+    if (!inp.name || ['無', '任意物品', '無(空載)', '重構底料', '底料'].includes(inp.name) || inp.count <= 0) {
+      continue;
+    }
+
+    // Find upstream process producing this input
+    const upProc = allProcesses.find(p => {
+      const upStripped = p.processName.replace(ACTION_VERBS, '').trim();
+      return p !== proc && (upStripped === inp.name || p.processName === inp.name || p.processName.includes(inp.name));
+    });
+
+    if (upProc) {
+      const upSupply = getProcessMaxOutputRate(upProc, allProcesses, intermediateRecipes, visited);
+      // Each cycle produces outCnt and requires inp.count of this input
+      const supportedRate = (upSupply / inp.count) * outCnt;
+      if (supportedRate < maxSupportedRate) {
+        maxSupportedRate = supportedRate;
+      }
+    }
+  }
+
+  return Math.min(nominalCapacity, maxSupportedRate);
+}
+
+/**
+ * Quantifies the realistic physical surplus production rate (items/second) of a process,
+ * taking into account both machine capacity and upstream material supply throttling.
+ */
+export function getProcessRealSurplusRate(
+  proc: { processName: string; machine: string; countRounded?: number; parallelRounded?: number; totalDemandRate?: number; demandRate?: number },
+  allProcesses: { processName: string; machine: string; countRounded?: number; parallelRounded?: number; totalDemandRate?: number; demandRate?: number }[],
+  intermediateRecipes: IntermediateRecipe[]
+): number {
+  const rounded = proc.parallelRounded !== undefined ? proc.parallelRounded : (proc.countRounded || 0);
+  const demand = proc.totalDemandRate !== undefined ? proc.totalDemandRate : (proc.demandRate || 0);
+
+  if (rounded <= demand) return 0;
+
+  const rOut = getProcessItemOutputRate(proc.processName, proc.machine, intermediateRecipes);
+  const culinaryDemandRate = demand * rOut;
+  const effectiveMaxOutput = getProcessMaxOutputRate(proc, allProcesses, intermediateRecipes);
+
+  return Math.max(0, effectiveMaxOutput - culinaryDemandRate);
+}
+
 export function sortProcessesDownstreamToUpstream<T extends {
   processName: string;
   machine: string;
@@ -813,8 +888,7 @@ export function calculateSingleDish(
     const sources: string[] = [];
 
     candidateNodes.forEach(p => {
-      const itemRate = getProcessItemOutputRate(p.processName, p.machine, intermediateRecipes);
-      const surplusRate = (p.countRounded - p.demandRate) * itemRate; // 量化淨物料產出流率 (items/second)
+      const surplusRate = getProcessRealSurplusRate(p, processNodes, intermediateRecipes); // 考慮上游供料限流之真實物理過剩流率 (items/second)
       // 每 0.20 items/s 過剩流率等同於 1 台底料收割機之供給能力 (每 5 秒消耗 1 份底料)
       if (surplusRate >= 0.199) {
         const potential = Math.floor((surplusRate + 0.001) / 0.2);
@@ -848,8 +922,7 @@ export function calculateSingleDish(
       if (offsetCount > 0) {
         // 標記提供過剩產能的供給設備 (Donor) 與接收底料的操縱機 (Recipient)
         const donorNodes = candidateNodes.filter(p => {
-          const itemRate = getProcessItemOutputRate(p.processName, p.machine, intermediateRecipes);
-          const surplusRate = (p.countRounded - p.demandRate) * itemRate;
+          const surplusRate = getProcessRealSurplusRate(p, processNodes, intermediateRecipes);
           return surplusRate >= 0.199;
         });
 
@@ -860,8 +933,7 @@ export function calculateSingleDish(
 
         // 依據各供給設備 (Donor) 之可用過剩容量，輪流 (Round-robin) 1:1 分配接收端操縱機 (Recipient)
         const donorSlots = donorNodes.map(d => {
-          const itemRate = getProcessItemOutputRate(d.processName, d.machine, intermediateRecipes);
-          const surplusRate = (d.countRounded - d.demandRate) * itemRate;
+          const surplusRate = getProcessRealSurplusRate(d, processNodes, intermediateRecipes);
           return {
             donor: d,
             available: Math.floor((surplusRate + 0.001) / 0.2),
