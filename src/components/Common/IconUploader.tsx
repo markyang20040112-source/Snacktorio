@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo } from 'react';
 import { Upload, X, Search, Image as ImageIcon, Trash2, RotateCcw, Ban, Sparkles, RefreshCw } from 'lucide-react';
-import { getItemIcon, getDefaultIcon, getAllAvailableIcons } from '../../utils/iconHelper';
+import { getItemIcon, getDefaultIcon, getAllAvailableIcons, AvailableIcon } from '../../utils/iconHelper';
 import { processAndBeautifyImage } from '../../utils/imageBeautifier';
 
 export interface IconUploaderProps {
@@ -17,18 +17,29 @@ export const IconUploader: React.FC<IconUploaderProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showLibraryModal, setShowLibraryModal] = useState(false);
   const [librarySearch, setLibrarySearch] = useState('');
+  const [libraryTab, setLibraryTab] = useState<'all' | 'custom' | 'native'>('all');
   const [rawCustomUrl, setRawCustomUrl] = useState<string | null>(null);
   const [beautifiedCustomUrl, setBeautifiedCustomUrl] = useState<string | null>(null);
   const [isBeautified, setIsBeautified] = useState<boolean>(true);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
-  const allIcons = useMemo(() => getAllAvailableIcons(), []);
+  const allIcons = useMemo(() => getAllAvailableIcons(), [showLibraryModal]);
+
+  const customIconsCount = useMemo(() => allIcons.filter(ic => ic.isCustom).length, [allIcons]);
+  const nativeIconsCount = useMemo(() => allIcons.filter(ic => !ic.isCustom).length, [allIcons]);
 
   const filteredIcons = useMemo(() => {
-    if (!librarySearch.trim()) return allIcons;
+    let list = allIcons;
+    if (libraryTab === 'custom') {
+      list = list.filter(ic => ic.isCustom);
+    } else if (libraryTab === 'native') {
+      list = list.filter(ic => !ic.isCustom);
+    }
+
+    if (!librarySearch.trim()) return list;
     const term = librarySearch.trim().toLowerCase();
-    return allIcons.filter(ic => ic.name.toLowerCase().includes(term));
-  }, [allIcons, librarySearch]);
+    return list.filter(ic => ic.name.toLowerCase().includes(term));
+  }, [allIcons, libraryTab, librarySearch]);
 
   const activeIconUrl = getItemIcon(itemName, value);
   const defaultIconUrl = getDefaultIcon(itemName);
@@ -67,9 +78,8 @@ export const IconUploader: React.FC<IconUploaderProps> = ({
     e.target.value = '';
   };
 
-  const handleSelectLibraryIcon = (iconName: string) => {
-    // Save relative icon path
-    onChange(`${import.meta.env.BASE_URL}icons/${encodeURIComponent(iconName)}.png`);
+  const handleSelectLibraryIcon = (ic: AvailableIcon) => {
+    onChange(ic.url);
     setShowLibraryModal(false);
   };
 
@@ -270,11 +280,57 @@ export const IconUploader: React.FC<IconUploaderProps> = ({
               <X className="w-5 h-5" />
             </button>
 
-            <div className="flex items-center space-x-2 mb-3">
-              <ImageIcon className="w-5 h-5 text-amber-400" />
-              <h4 className="text-base font-bold text-slate-100">
-                選擇遊戲原生圖示 (共 {allIcons.length} 個)
-              </h4>
+            <div className="flex items-center justify-between mb-2 pr-6">
+              <div className="flex items-center space-x-2">
+                <ImageIcon className="w-5 h-5 text-amber-400" />
+                <h4 className="text-base font-bold text-slate-100">
+                  選擇圖示庫 (共 {allIcons.length} 個)
+                </h4>
+              </div>
+              {customIconsCount > 0 && (
+                <span className="text-[11px] text-amber-400 font-mono bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                  ✨ 含 {customIconsCount} 個自訂圖片
+                </span>
+              )}
+            </div>
+
+            {/* Filter Tabs */}
+            <div className="flex items-center space-x-1.5 mb-2.5">
+              <button
+                type="button"
+                onClick={() => setLibraryTab('all')}
+                className={`px-2.5 py-1 rounded-lg text-xs transition-colors ${
+                  libraryTab === 'all'
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 font-bold'
+                    : 'bg-[#081014] text-slate-400 border border-[#1f3542] hover:bg-slate-800'
+                }`}
+              >
+                全部 ({allIcons.length})
+              </button>
+              {customIconsCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setLibraryTab('custom')}
+                  className={`px-2.5 py-1 rounded-lg text-xs transition-colors ${
+                    libraryTab === 'custom'
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 font-bold'
+                      : 'bg-[#081014] text-slate-400 border border-[#1f3542] hover:bg-slate-800'
+                  }`}
+                >
+                  ✨ 自訂上傳 ({customIconsCount})
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setLibraryTab('native')}
+                className={`px-2.5 py-1 rounded-lg text-xs transition-colors ${
+                  libraryTab === 'native'
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 font-bold'
+                    : 'bg-[#081014] text-slate-400 border border-[#1f3542] hover:bg-slate-800'
+                }`}
+              >
+                🎮 遊戲原生 ({nativeIconsCount})
+              </button>
             </div>
 
             {/* Search Bar */}
@@ -318,9 +374,14 @@ export const IconUploader: React.FC<IconUploaderProps> = ({
                 <button
                   type="button"
                   key={ic.name}
-                  onClick={() => handleSelectLibraryIcon(ic.name)}
-                  className="flex flex-col items-center justify-center p-2 rounded-xl bg-[#0f1b22] hover:bg-[#162731] border border-[#203643] hover:border-amber-500/60 transition-all group text-center"
+                  onClick={() => handleSelectLibraryIcon(ic)}
+                  className="flex flex-col items-center justify-center p-2 rounded-xl bg-[#0f1b22] hover:bg-[#162731] border border-[#203643] hover:border-amber-500/60 transition-all group text-center relative"
                 >
+                  {ic.isCustom && (
+                    <span className="absolute top-1 right-1 px-1 py-0.2 rounded bg-amber-500/25 text-amber-300 border border-amber-500/40 text-[9px] font-bold">
+                      自訂
+                    </span>
+                  )}
                   <div className="w-10 h-10 flex items-center justify-center p-1 rounded-lg bg-[#0b1419] border border-[#263e4c] group-hover:border-amber-400/80 mb-1.5">
                     <img
                       src={ic.url}

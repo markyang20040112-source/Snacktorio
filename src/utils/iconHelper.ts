@@ -1,4 +1,5 @@
 import itemIconsData from '../data/itemIcons.json';
+import { dataService } from '../services/dataService';
 
 const itemIcons: Record<string, string> = itemIconsData as Record<string, string>;
 
@@ -33,6 +34,12 @@ export function getItemIcon(name: string, customIcon?: string): string | undefin
 
   const cleanName = name ? name.trim() : '';
   if (!cleanName) return undefined;
+
+  // 0. Check dynamic custom icon from dataService (user uploaded photos)
+  const customMap = dataService.getCustomIconMap();
+  if (customMap[cleanName]) {
+    return customMap[cleanName];
+  }
 
   const formatUrl = (filename: string) =>
     `${import.meta.env.BASE_URL}icons/${encodeURIComponent(filename)}`;
@@ -124,12 +131,45 @@ export function getDefaultIcon(name: string): string | undefined {
   return getItemIcon(name, undefined);
 }
 
+export interface AvailableIcon {
+  name: string;
+  url: string;
+  isCustom?: boolean;
+  category?: string;
+}
+
 /**
- * Get all available system icon entries: { name, url }
+ * Get all available icon entries (combining user-uploaded custom photos and system library icons)
  */
-export function getAllAvailableIcons(): { name: string; url: string }[] {
-  return Object.entries(itemIcons).map(([name, filename]) => ({
-    name,
-    url: `${import.meta.env.BASE_URL}icons/${encodeURIComponent(filename)}`
-  }));
+export function getAllAvailableIcons(): AvailableIcon[] {
+  const result: AvailableIcon[] = [];
+  const customMap = dataService.getCustomIconMap();
+  const seen = new Set<string>();
+
+  // 1. Add all custom uploaded icons first
+  for (const [name, url] of Object.entries(customMap)) {
+    result.push({
+      name,
+      url,
+      isCustom: true,
+      category: '自訂上傳'
+    });
+    seen.add(name);
+  }
+
+  // 2. Add all native game icons
+  for (const [name, filename] of Object.entries(itemIcons)) {
+    const url = `${import.meta.env.BASE_URL}icons/${encodeURIComponent(filename)}`;
+    if (!seen.has(name)) {
+      result.push({
+        name,
+        url,
+        isCustom: false,
+        category: '遊戲原生'
+      });
+      seen.add(name);
+    }
+  }
+
+  return result;
 }

@@ -114,6 +114,26 @@ class DataService {
     };
   }
 
+  public getCustomIconMap(): Record<string, string> {
+    const map: Record<string, string> = {};
+    for (const item of this.items) {
+      if (item.name && item.icon && item.icon !== 'none') {
+        map[item.name] = item.icon;
+      }
+    }
+    for (const ir of this.intermediate) {
+      if (ir.name && ir.icon && ir.icon !== 'none') {
+        map[ir.name] = ir.icon;
+      }
+    }
+    for (const m of this.machines) {
+      if (m.name && m.icon && m.icon !== 'none') {
+        map[m.name] = m.icon;
+      }
+    }
+    return map;
+  }
+
   // Save methods
   public async saveMachines(machines: Machine[]) {
     this.machines = machines;

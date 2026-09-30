@@ -48,6 +48,16 @@
 ---
 
 ## 4. 近期重要決策日誌 (Decision Log)
+* **2026-09-30**：自訂上傳圖片全局圖庫聯動與圖示自動解析修復（Custom Uploaded Icons Global Library Integration & Dynamic Lookup）：
+  1. **問題根因修復（自圖庫挑選與搜尋不到新上傳圖片）**：
+     - 原先「選擇圖示庫」彈窗僅靜態讀取原生 173 個 PNG 檔案清單（`itemIcons.json`），完全未納入玩家在各管理彈窗上傳的自訂圖片（Base64 / Data URL），導致上傳並同步 GitHub 後依然搜尋不到自訂圖片（如「炸鷹身女妖肉」）。
+     - 此外，`getItemIcon` 之前未檢查 `items` 等自訂資料，若組件未顯式傳入 `icon` 屬性，會誤將「炸鷹身女妖肉」透過正則去除動詞前綴後匹配為生肉圖示（`生鷹身女妖肉.png`）。
+  2. **圖庫彈窗升級（動態彙整自訂圖片 + 分類分頁標籤）**：
+     - `getAllAvailableIcons` 全面改造：動態合併 `dataService` 中所有已登錄之自訂圖片（物品、中間配方、設備），並標記 `isCustom: true`。
+     - 彈窗支援分頁過濾按鈕：`[全部 (X)]`、`[✨ 自訂上傳 (Y)]`、`[🎮 遊戲原生 (Z)]`，自訂圖片卡片右上角標記琥珀色「自訂」徽章。
+     - 搜尋列即時支援搜尋所有自訂圖片名稱與原生圖示名稱。
+  3. **靜態檔案原生化持久存檔**：
+     - 將玩家上傳的「炸鷹身女妖肉」Base64 圖片無失真解碼為獨立實體檔案 `public/icons/炸鷹身女妖肉.png`，並正式收錄進系統靜態圖標映射表 `itemIcons.json`。
 * **2026-09-30**：中間配方彈性液體種類選單與油炸鍋特種油品支援（Customizable Fluid Dropdown & Fryer Specialty Oil Support）：
   1. **輸入框升級為分類分組式搜尋下拉選單（SearchableSelect with Categories）**：
      - 將中間配方編輯彈窗中的「所需液體種類」由原始純文字輸入框升級為具備即時搜尋、鍵盤導航與分組過濾的 `SearchableSelect` 組件。
