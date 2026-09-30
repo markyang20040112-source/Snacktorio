@@ -1557,5 +1557,35 @@
     "cycleTime": 5,
     "outputCount": 1,
     "notes": ""
+  },
+  {
+    "name": "灰燼",
+    "machine": "烤箱",
+    "fluidType": "無",
+    "fluidRate": 0,
+    "inputs": [
+      {
+        "name": "任意物品",
+        "count": 1
+      }
+    ],
+    "cycleTime": 5,
+    "outputCount": 1,
+    "notes": ""
+  },
+  {
+    "name": "油荳蔻",
+    "machine": "收割機",
+    "fluidType": "無",
+    "fluidRate": 0,
+    "inputs": [
+      {
+        "name": "油荳蔻植株",
+        "count": 1
+      }
+    ],
+    "cycleTime": 5,
+    "outputCount": 1,
+    "notes": ""
   }
 ]
