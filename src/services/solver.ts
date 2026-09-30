@@ -856,27 +856,48 @@ export function calculateSingleDish(
         || (c.target.machine === '混合機' ? 4 : 5);
       const perMachineRate = (c.reqCount || 1) / targetCycle;
       const flowRate = (c.target.demandRate || c.target.countRounded) * perMachineRate;
+      const mCount = c.target.countRounded || 1;
 
       if (c.isFluid) {
         const rateVal = c.reqCount || (c.target.machine === '混合機' ? 0.5 : 1.0);
         const rateStr = `${rateVal} fl/s`;
         curr.node.topology = `專線直供【${c.target.processName}】(${c.target.machine}) (${rateStr})`;
-        curr.node.downstreamTargets = [{
-          processName: c.target.processName,
-          machine: c.target.machine,
-          ratio: 1,
-          flowRate,
-          isFluid: true,
-          note: rateStr
-        }];
+        if (mCount > 1) {
+          curr.node.downstreamTargets = Array.from({ length: mCount }, () => ({
+            processName: c.target.processName,
+            machine: c.target.machine,
+            ratio: 1,
+            flowRate: flowRate / mCount,
+            isFluid: true,
+            note: rateStr
+          }));
+        } else {
+          curr.node.downstreamTargets = [{
+            processName: c.target.processName,
+            machine: c.target.machine,
+            ratio: 1,
+            flowRate,
+            isFluid: true,
+            note: rateStr
+          }];
+        }
       } else {
         curr.node.topology = `連至【${c.target.processName}】(${c.target.machine})`;
-        curr.node.downstreamTargets = [{
-          processName: c.target.processName,
-          machine: c.target.machine,
-          ratio: 1,
-          flowRate
-        }];
+        if (mCount > 1) {
+          curr.node.downstreamTargets = Array.from({ length: mCount }, () => ({
+            processName: c.target.processName,
+            machine: c.target.machine,
+            ratio: 1,
+            flowRate: flowRate / mCount
+          }));
+        } else {
+          curr.node.downstreamTargets = [{
+            processName: c.target.processName,
+            machine: c.target.machine,
+            ratio: 1,
+            flowRate
+          }];
+        }
       }
     } else {
       const flowRates = consumers.map(c => {
@@ -896,15 +917,16 @@ export function calculateSingleDish(
       const expandedTargets: DownstreamTarget[] = [];
       consumers.forEach((c, idx) => {
         const r = intRatios[idx];
-        const mCount = c.target.countRounded;
-        // 若下游工序包含多台實體設備，且配比與台數相同 (如 2 台攪拌機各拿 1 份流量，配比為 2)：
-        // 拆分為獨立實體設備徽章 (顯示 [攪拌機] 1 與 [攪拌機] 1)，使玩家能直觀看清獨立台數
-        if (mCount > 1 && r === mCount) {
+        const mCount = c.target.countRounded || 1;
+        // 若下游工序包含多台實體設備，且配比可被台數整除 (如 2 台攪拌機各拿 1 份流量，配比為 2；或各拿 2 份，配比為 4)：
+        // 拆分為獨立實體設備徽章，使玩家能直觀看清獨立台數與各自的入料份數
+        if (mCount > 1 && r >= mCount && r % mCount === 0) {
+          const perMachineRatio = r / mCount;
           for (let m = 0; m < mCount; m++) {
             expandedTargets.push({
               processName: c.target.processName,
               machine: c.target.machine,
-              ratio: 1,
+              ratio: perMachineRatio,
               flowRate: flowRates[idx] / mCount,
               isFluid: c.isFluid
             });
