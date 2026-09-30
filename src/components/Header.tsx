@@ -2,8 +2,8 @@ import React from 'react';
 import { Calculator, Layers, Database, RefreshCw, ExternalLink } from 'lucide-react';
 
 interface HeaderProps {
-  activeTab: 'single' | 'parallel' | 'data' | 'sync';
-  setActiveTab: (tab: 'single' | 'parallel' | 'data' | 'sync') => void;
+  activeTab: 'calculator' | 'data' | 'sync';
+  setActiveTab: (tab: 'calculator' | 'data' | 'sync') => void;
   dishesCount: number;
   machinesCount: number;
 }
@@ -27,8 +27,8 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Authentic Logo & Game Branding */}
             <div 
               className="flex items-center space-x-3 cursor-pointer group select-none shrink-0" 
-              onClick={() => setActiveTab('single')}
-              title="回到首頁：單料理產線計算機"
+              onClick={() => setActiveTab('calculator')}
+              title="回到首頁：產線平衡計算機"
             >
               <div className="relative flex items-center">
                 <img
@@ -56,27 +56,15 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Navigation Tabs */}
             <nav className="flex items-center space-x-1 sm:space-x-2 overflow-x-auto py-1">
               <button
-                onClick={() => setActiveTab('single')}
+                onClick={() => setActiveTab('calculator')}
                 className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
-                  activeTab === 'single'
+                  activeTab === 'calculator'
                     ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-md shadow-amber-500/10'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-[#15232b]'
                 }`}
               >
                 <Calculator className="w-4 h-4 text-amber-400" />
                 <span>產線計算機</span>
-              </button>
-
-              <button
-                onClick={() => setActiveTab('parallel')}
-                className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
-                  activeTab === 'parallel'
-                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-md shadow-amber-500/10'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#15232b]'
-                }`}
-              >
-                <Layers className="w-4 h-4 text-amber-400" />
-                <span>並聯規劃</span>
               </button>
 
               <button

@@ -5,7 +5,8 @@ import { dataService } from '../../services/dataService';
 import { getMachineBadgeClass, chunkTargets } from '../../utils/machineBadge';
 import { RecipeSearchSelect } from '../Common/RecipeSearchSelect';
 import { ItemIcon } from '../Common/ItemIcon';
-import { Layers, Plus, Trash2, ShieldCheck, ShieldAlert, Zap, Droplets, Users, Flame, Sparkles, Sprout } from 'lucide-react';
+import { Layers, Plus, Trash2, ShieldCheck, ShieldAlert, Zap, Droplets, Users, Flame, Sparkles, Sprout, Calculator } from 'lucide-react';
+import { formatFractionOrDecimal, gcdArray } from '../../utils/math';
 
 interface ParallelPlannerProps {
   recipes: Recipe[];
@@ -22,8 +23,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
   const [powerMode, setPowerMode] = useState<'regular' | 'overclock'>('overclock');
   const [feederStrategy, setFeederStrategy] = useState<FeederStrategy>('dedicated');
   const [plannedList, setPlannedList] = useState<PlannedDish[]>([
-    { id: '1', dishName: '哀嚎肉丸', rateMin: 12 },
-    { id: '2', dishName: '鮮紅濃湯', rateMin: 12 },
+    { id: '1', dishName: '鮮紅濃湯', rateMin: 12 },
   ]);
 
   const items = useMemo(() => dataService.getItems(), []);
@@ -123,6 +123,8 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
       processName: string;
       machine: string;
       baseRate: number;
+      baseRateDisplay?: string;
+      integerRatio?: number;
       dishDemands: ProcessDemandItem[];
       totalDemandRate: number;
       independentSum: number;
@@ -155,6 +157,8 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
             processName: p.processName,
             machine: p.machine,
             baseRate: p.baseRate || 0.2,
+            baseRateDisplay: p.baseRateDisplay || (p.baseRate ? formatFractionOrDecimal(p.baseRate) : '0.20/s'),
+            integerRatio: p.integerRatio || 1,
             dishDemands: [],
             totalDemandRate: 0,
             independentSum: 0,
@@ -213,6 +217,8 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
         processName: feederKey,
         machine: '收割機 (底料專供)',
         baseRate: 0.2,
+        baseRateDisplay: '0.20/s',
+        integerRatio: 1,
         dishDemands: [],
         totalDemandRate: 0,
         independentSum: 0,
@@ -344,6 +350,15 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
     const totalSavedMachines = totalIndependent - totalParallel;
     const totalMainPower = list.reduce((acc, r) => acc + r.parallelRounded * r.powerPerUnit, 0);
     const totalMainGoblins = list.reduce((acc, r) => acc + r.parallelRounded * r.goblinsPerUnit, 0);
+
+    const isSingleDish = effectivePlannedList.length === 1;
+    if (isSingleDish) {
+      const counts = list.map(r => r.parallelRounded);
+      const g = gcdArray(counts);
+      list.forEach(r => {
+        r.integerRatio = g > 0 ? r.parallelRounded / g : r.parallelRounded;
+      });
+    }
 
     // Consolidated Plant-Wide Fluids System
     let totalWaterDemand = 0;
@@ -485,6 +500,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
 
     return {
       processes: list,
+      isSingleDish,
       totalIndependent,
       totalParallel,
       totalSavedMachines,
@@ -523,11 +539,11 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-3">
           <div>
             <h2 className="text-base font-bold text-slate-100 flex items-center space-x-2">
-              <Layers className="w-5 h-5 text-amber-400" />
-              <span>多料理並聯排程控制台（支援多道菜單自由並聯）</span>
+              <Calculator className="w-5 h-5 text-amber-400" />
+              <span>產線平衡計算機（支援單道料理速查 / 多料理自由並聯）</span>
             </h2>
             <p className="text-xs text-slate-400 mt-0.5">
-              自動去重合併共通收割機、研磨機、攪拌機與公用流體泵站，消除產能浪費，追求極致空間與設備利用率。
+              全製程自動化產線推導、連續流體與即時電網平衡；支援單道菜餚最小整數模組推導，亦可隨時新增多道料理自由並聯去重。
             </p>
           </div>
 
@@ -536,7 +552,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
             className="flex items-center space-x-1.5 px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-bold transition-all shadow-sm shrink-0 whitespace-nowrap self-start sm:self-center"
           >
             <Plus className="w-4 h-4" />
-            <span>新增並聯菜單 ({plannedList.length})</span>
+            <span>新增並聯料理 ({plannedList.length})</span>
           </button>
         </div>
 
@@ -1028,25 +1044,38 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
               <tr className="bg-slate-950/70 text-slate-400 border-b border-slate-800 text-xs">
                 <th className="py-3 px-4 whitespace-nowrap">工序項目</th>
                 <th className="py-3 px-4 whitespace-nowrap">設備</th>
-                {effectivePlannedList.map(p => (
-                  <th key={p.id} className="py-3 px-4 text-right whitespace-nowrap">
-                    <div className="flex flex-col items-end">
-                      <div className="flex items-center space-x-1">
-                        {p.isAutoAdded && (
-                          <span className="text-[10px] text-amber-400 font-bold bg-amber-500/20 px-1 py-0.2 rounded border border-amber-500/30 whitespace-nowrap">
-                            配餐
-                          </span>
-                        )}
-                        <span>{p.dishName}</span>
-                      </div>
-                      <span className="text-slate-400 font-mono text-[11px]">({p.rateMin} 份/分)</span>
-                    </div>
-                  </th>
-                ))}
-                <th className="py-3 px-4 text-right whitespace-nowrap">並聯總需求</th>
-                <th className="py-3 px-4 text-right text-slate-400 whitespace-nowrap">獨立合計</th>
-                <th className="py-3 px-4 text-right font-bold text-cyan-300 whitespace-nowrap">並聯實需</th>
-                <th className="py-3 px-4 text-center text-emerald-400 font-bold whitespace-nowrap">節省設備</th>
+                {consolidated.isSingleDish ? (
+                  <>
+                    <th className="py-3 px-4 text-right whitespace-nowrap" title="單台設備標準產出或消耗速率">單台產率</th>
+                    <th className="py-3 px-4 text-right whitespace-nowrap" title="理論精確需求台數">理論需量</th>
+                    <th className="py-3 px-4 text-right whitespace-nowrap text-cyan-300 font-bold" title="向上取整後的實際配置台數">實際台數</th>
+                    <th className="py-3 px-4 text-center whitespace-nowrap text-amber-300 font-bold" title="全線最簡整數比 (GCD)，便於模組化堆疊建造">整數比</th>
+                  </>
+                ) : (
+                  <>
+                    {effectivePlannedList.map(p => (
+                      <th key={p.id} className="py-3 px-4 text-right whitespace-nowrap">
+                        <div className="flex flex-col items-end">
+                          <div className="flex items-center space-x-1">
+                            {p.isAutoAdded && (
+                              <span className="text-[10px] text-amber-400 font-bold bg-amber-500/20 px-1 py-0.2 rounded border border-amber-500/30 whitespace-nowrap">
+                                配餐
+                              </span>
+                            )}
+                            <span>{p.dishName}</span>
+                          </div>
+                          <span className="text-slate-400 font-mono text-[11px]">({p.rateMin} 份/分)</span>
+                        </div>
+                      </th>
+                    ))}
+                    <th className="py-3 px-4 text-right whitespace-nowrap">並聯總需求</th>
+                    <th className="py-3 px-4 text-right text-slate-400 whitespace-nowrap">獨立合計</th>
+                    <th className="py-3 px-4 text-right font-bold text-cyan-300 whitespace-nowrap">並聯實需</th>
+                    <th className="py-3 px-4 text-center text-emerald-400 font-bold whitespace-nowrap">節省設備</th>
+                  </>
+                )}
+                <th className="py-3 px-4 text-right whitespace-nowrap">電力</th>
+                <th className="py-3 px-4 text-right whitespace-nowrap">哥布林</th>
                 <th className="py-3 px-4 min-w-[320px]">物料關聯與拓撲說明</th>
               </tr>
             </thead>
@@ -1062,7 +1091,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                       isFullyOffsetFeeder
                         ? 'bg-emerald-950/20 text-emerald-200 border-t border-b border-emerald-500/30 hover:bg-emerald-950/30'
                         : isBaseFeeder
-                        ? 'bg-purple-950/20 text-purple-200 border-t border-b border-purple-500/30 hover:bg-purple-950/30'
+                        ? 'bg-purple-950/20 text-purple-200 border-t border-purple-500/30 hover:bg-purple-950/30'
                         : 'hover:bg-slate-800/40'
                     }`}
                   >
@@ -1131,65 +1160,103 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                       </span>
                     </td>
 
-                    {/* 3. 各料理需求 */}
-                    {effectivePlannedList.map(p => {
-                      const found = r.dishDemands.find(d => d.dishName === p.dishName);
-                      return (
-                        <td key={p.id} className="py-3 px-4 text-right font-mono text-xs text-slate-300 whitespace-nowrap">
-                          {found ? (
-                            <div>
-                              <div className="whitespace-nowrap">{found.demand.toFixed(2)} 台</div>
-                              {found.feederRole === 'donor' && (
-                                <span className="text-[10px] text-emerald-400 block font-normal font-sans whitespace-nowrap">⚡ 過剩供給</span>
-                              )}
-                              {found.feederRole === 'recipient' && (
-                                <span className="text-[10px] text-purple-300 block font-normal font-sans whitespace-nowrap">🌱 接收底料</span>
-                              )}
-                              {isBaseFeeder && found.offsetCount && found.offsetCount > 0 ? (
-                                <span className="text-[10px] text-emerald-400 block font-normal font-sans whitespace-nowrap">
-                                  (已折抵 {found.offsetCount} 台)
-                                </span>
-                              ) : null}
-                            </div>
+                    {/* 3+. Dynamic Columns: Single Dish vs Multi Dish */}
+                    {consolidated.isSingleDish ? (
+                      <>
+                        {/* 單台產率 */}
+                        <td className="py-3 px-4 text-right font-mono text-xs text-slate-300 whitespace-nowrap">
+                          {r.baseRateDisplay || (r.baseRate ? `${r.baseRate.toFixed(2)}/s` : '0.20/s')}
+                        </td>
+                        {/* 理論需量 */}
+                        <td className="py-3 px-4 text-right font-mono text-xs text-slate-300 whitespace-nowrap">
+                          {r.totalDemandRate.toFixed(2)} 台
+                        </td>
+                        {/* 實際台數 */}
+                        <td className="py-3 px-4 text-right font-mono font-bold text-base whitespace-nowrap">
+                          {isFullyOffsetFeeder ? (
+                            <span className="text-emerald-400">0 台</span>
                           ) : (
-                            <span className="text-slate-500">-</span>
+                            <span className="text-cyan-300">{r.parallelRounded} 台</span>
                           )}
                         </td>
-                      );
-                    })}
+                        {/* 整數比 */}
+                        <td className="py-3 px-4 text-center font-mono font-bold text-sm text-amber-300 whitespace-nowrap">
+                          {isFullyOffsetFeeder ? '-' : (r.integerRatio || r.parallelRounded)}
+                        </td>
+                      </>
+                    ) : (
+                      <>
+                        {/* 各料理需求 */}
+                        {effectivePlannedList.map(p => {
+                          const found = r.dishDemands.find(d => d.dishName === p.dishName);
+                          return (
+                            <td key={p.id} className="py-3 px-4 text-right font-mono text-xs text-slate-300 whitespace-nowrap">
+                              {found ? (
+                                <div>
+                                  <div className="whitespace-nowrap">{found.demand.toFixed(2)} 台</div>
+                                  {found.feederRole === 'donor' && (
+                                    <span className="text-[10px] text-emerald-400 block font-normal font-sans whitespace-nowrap">⚡ 過剩供給</span>
+                                  )}
+                                  {found.feederRole === 'recipient' && (
+                                    <span className="text-[10px] text-purple-300 block font-normal font-sans whitespace-nowrap">🌱 接收底料</span>
+                                  )}
+                                  {isBaseFeeder && found.offsetCount && found.offsetCount > 0 ? (
+                                    <span className="text-[10px] text-emerald-400 block font-normal font-sans whitespace-nowrap">
+                                      (已折抵 {found.offsetCount} 台)
+                                    </span>
+                                  ) : null}
+                                </div>
+                              ) : (
+                                <span className="text-slate-500">-</span>
+                              )}
+                            </td>
+                          );
+                        })}
 
-                    {/* 4. 並聯總需求 */}
+                        {/* 並聯總需求 */}
+                        <td className="py-3 px-4 text-right font-mono text-slate-300 whitespace-nowrap">
+                          {r.totalDemandRate.toFixed(2)} 台
+                        </td>
+
+                        {/* 獨立合計 */}
+                        <td className="py-3 px-4 text-right font-mono text-slate-400 whitespace-nowrap">
+                          {r.independentSum} 台
+                        </td>
+
+                        {/* 並聯實需 */}
+                        <td className="py-3 px-4 text-right font-mono font-bold text-base whitespace-nowrap">
+                          {isFullyOffsetFeeder ? (
+                            <span className="text-emerald-400">0 台</span>
+                          ) : (
+                            <span className="text-cyan-300">{r.parallelRounded} 台</span>
+                          )}
+                        </td>
+
+                        {/* 節省設備 */}
+                        <td className="py-3 px-4 text-center font-mono font-bold whitespace-nowrap">
+                          {isBaseFeeder && r.baseFeederSummary && r.baseFeederSummary.offsetCount > 0 ? (
+                            <span className="inline-block px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold whitespace-nowrap">
+                              折抵 {r.baseFeederSummary.offsetCount} 台
+                            </span>
+                          ) : r.savedCount > 0 ? (
+                            <span className="inline-block px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs whitespace-nowrap">
+                              節省 {r.savedCount} 台
+                            </span>
+                          ) : (
+                            <span className="text-slate-500 text-xs">-</span>
+                          )}
+                        </td>
+                      </>
+                    )}
+
+                    {/* 電力 */}
                     <td className="py-3 px-4 text-right font-mono text-slate-300 whitespace-nowrap">
-                      {r.totalDemandRate.toFixed(2)} 台
+                      {(r.parallelRounded * r.powerPerUnit).toFixed(1)} FV/s
                     </td>
 
-                    {/* 5. 獨立合計 */}
-                    <td className="py-3 px-4 text-right font-mono text-slate-400 whitespace-nowrap">
-                      {r.independentSum} 台
-                    </td>
-
-                    {/* 6. 並聯實需 */}
-                    <td className="py-3 px-4 text-right font-mono font-bold text-base whitespace-nowrap">
-                      {isFullyOffsetFeeder ? (
-                        <span className="text-emerald-400">0 台</span>
-                      ) : (
-                        <span className="text-cyan-300">{r.parallelRounded} 台</span>
-                      )}
-                    </td>
-
-                    {/* 7. 節省設備 */}
-                    <td className="py-3 px-4 text-center font-mono font-bold whitespace-nowrap">
-                      {isBaseFeeder && r.baseFeederSummary && r.baseFeederSummary.offsetCount > 0 ? (
-                        <span className="inline-block px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold whitespace-nowrap">
-                          折抵 {r.baseFeederSummary.offsetCount} 台
-                        </span>
-                      ) : r.savedCount > 0 ? (
-                        <span className="inline-block px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs whitespace-nowrap">
-                          節省 {r.savedCount} 台
-                        </span>
-                      ) : (
-                        <span className="text-slate-500 text-xs">-</span>
-                      )}
+                    {/* 哥布林 */}
+                    <td className="py-3 px-4 text-right font-mono text-slate-300 whitespace-nowrap">
+                      {(r.parallelRounded * r.goblinsPerUnit).toFixed(0)} 隻
                     </td>
 
                     {/* 8. 物料關聯與拓撲說明 */}
@@ -1343,41 +1410,83 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
         </div>
       </div>
 
-      {/* KPI Savings Dashboard (移至表格下方，作為並聯整合效益總結) */}
+      {/* KPI Dashboard (表格下方效益總結) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
-          <div className="text-xs text-slate-400 mb-1">獨立規劃生產台數</div>
-          <div className="text-2xl font-bold text-slate-300 font-mono">
-            {consolidated.totalIndependent} <span className="text-sm font-normal text-slate-400">台</span>
-          </div>
-          <div className="text-xs text-slate-500 mt-1">若各自獨立佈設</div>
-        </div>
+        {consolidated.isSingleDish ? (
+          <>
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+              <div className="text-xs text-slate-400 mb-1">生產設備實需</div>
+              <div className="text-2xl font-bold text-cyan-300 font-mono">
+                {consolidated.totalParallel} <span className="text-sm font-normal text-slate-400">台</span>
+              </div>
+              <div className="text-xs text-slate-500 mt-1">全製程主加工與採集設備</div>
+            </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
-          <div className="text-xs text-slate-400 mb-1">並聯整併生產台數</div>
-          <div className="text-2xl font-bold text-cyan-300 font-mono">
-            {consolidated.totalParallel} <span className="text-sm font-normal text-slate-400">台</span>
-          </div>
-          <div className="text-xs text-slate-500 mt-1">合併共通收割/研磨設備</div>
-        </div>
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+              <div className="text-xs text-slate-400 mb-1">全廠總電力負載</div>
+              <div className="text-2xl font-bold text-amber-300 font-mono">
+                {consolidated.totalPlantPowerLoad.toFixed(1)} <span className="text-sm font-normal text-slate-400">FV/s</span>
+              </div>
+              <div className="text-xs text-slate-400 mt-1">
+                發電熔爐需 {consolidated.furnaces} 台 (採煤 {consolidated.coalMiners} 台)
+              </div>
+            </div>
 
-        <div className="bg-[#102922] border border-emerald-500/40 rounded-2xl p-4 shadow-lg shadow-emerald-950/20">
-          <div className="text-xs text-emerald-400 mb-1 font-bold">🎉 為全廠節省設備</div>
-          <div className="text-2xl font-bold text-emerald-300 font-mono">
-            +{consolidated.totalSavedMachines} <span className="text-sm font-normal text-emerald-400">台</span>
-          </div>
-          <div className="text-xs text-emerald-400/80 mt-1">大幅壓縮佔地與管線複雜度</div>
-        </div>
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+              <div className="text-xs text-slate-400 mb-1">總勞動哥布林配置</div>
+              <div className="text-2xl font-bold text-emerald-300 font-mono">
+                {consolidated.totalPlantGoblins} <span className="text-sm font-normal text-slate-400">隻</span>
+              </div>
+              <div className="text-xs text-slate-500 mt-1">含主機、泵站與熔爐人力</div>
+            </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
-          <div className="text-xs text-slate-400 mb-1">全廠總電力負載</div>
-          <div className="text-2xl font-bold text-amber-300 font-mono">
-            {consolidated.totalPlantPowerLoad.toFixed(1)} <span className="text-sm font-normal text-slate-400">FV/s</span>
-          </div>
-          <div className="text-xs text-slate-400 mt-1">
-            發電熔爐需 {consolidated.furnaces} 台 (採煤 {consolidated.coalMiners} 台)
-          </div>
-        </div>
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+              <div className="text-xs text-slate-400 mb-1">公用泵站抽水抽油</div>
+              <div className="text-2xl font-bold text-cyan-300 font-mono">
+                {consolidated.totalPlantRegularPumps + consolidated.totalPlantOverclockPumps} <span className="text-sm font-normal text-slate-400">台泵</span>
+              </div>
+              <div className="text-xs text-slate-500 mt-1">
+                外採水/油/轉化流體專線
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+              <div className="text-xs text-slate-400 mb-1">獨立規劃生產台數</div>
+              <div className="text-2xl font-bold text-slate-300 font-mono">
+                {consolidated.totalIndependent} <span className="text-sm font-normal text-slate-400">台</span>
+              </div>
+              <div className="text-xs text-slate-500 mt-1">若各自獨立佈設</div>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+              <div className="text-xs text-slate-400 mb-1">並聯整併生產台數</div>
+              <div className="text-2xl font-bold text-cyan-300 font-mono">
+                {consolidated.totalParallel} <span className="text-sm font-normal text-slate-400">台</span>
+              </div>
+              <div className="text-xs text-slate-500 mt-1">合併共通收割/研磨設備</div>
+            </div>
+
+            <div className="bg-[#102922] border border-emerald-500/40 rounded-2xl p-4 shadow-lg shadow-emerald-950/20">
+              <div className="text-xs text-emerald-400 mb-1 font-bold">🎉 為全廠節省設備</div>
+              <div className="text-2xl font-bold text-emerald-300 font-mono">
+                +{consolidated.totalSavedMachines} <span className="text-sm font-normal text-emerald-400">台</span>
+              </div>
+              <div className="text-xs text-emerald-400/80 mt-1">大幅壓縮佔地與管線複雜度</div>
+            </div>
+
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+              <div className="text-xs text-slate-400 mb-1">全廠總電力負載</div>
+              <div className="text-2xl font-bold text-amber-300 font-mono">
+                {consolidated.totalPlantPowerLoad.toFixed(1)} <span className="text-sm font-normal text-slate-400">FV/s</span>
+              </div>
+              <div className="text-xs text-slate-400 mt-1">
+                發電熔爐需 {consolidated.furnaces} 台 (採煤 {consolidated.coalMiners} 台)
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

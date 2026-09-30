@@ -48,6 +48,17 @@
 ---
 
 ## 4. 近期重要決策日誌 (Decision Log)
+* **2026-09-30**：雙計算機介面整併為全能自適應產線平衡計算機（Unified Adaptive Production Planner Architecture）：
+  1. 依使用者決策執行「方案A」，將原本分立的「產線計算機 (`SingleCalculator`)」與「多料理並聯規劃 (`ParallelPlanner`)」合而為一，刪除 redundant 的 `SingleCalculator` 元件。
+  2. 導覽列極致精簡為三大核心分頁：【產線計算機】(`calculator`)、【資料工作台】(`data`)、【GitHub 同步】(`sync`)。
+  3. 單料理自適應極致簡約（Single-Dish Adaptive Mode）：
+     - 當僅規劃 1 道料理時，表格動態切換為單料理專屬極簡檢視，自動隱藏多料理比較與節省列。
+     - 完整保留並顯化單台產率基準（`baseRate`，支援小數與分數）、理論需量、實際台數、最簡整數比（GCD Integer Ratio）。
+     - 底部核心指標卡自適應切換為：生產設備實需、全廠總電力負載、總勞動哥布林配置、公用泵站抽水抽油。
+  4. 多料理自由並聯擴展（Multi-Dish Parallel Mode）：
+     - 點擊「新增並聯料理」即可無縫展開跨料理並聯矩陣，動態顯示各料理需求、並聯實需、去重節省設備比較與跨料理物料流向。
+     - 底部指標卡自動切換為：獨立規劃生產台數、並聯整併生產台數、為全廠節省設備、全廠總電力負載。
+  5. 兼顧最簡直覺操作與高階跨料理併網規劃，徹底消除雙分頁維護重複程式碼之負擔。
 * **2026-09-30**：全自適應動態配方樹解算引擎（Dynamic Recipe-Tree Solver for Custom Dishes）：
   1. 解決使用者手動新增之食譜（如「反胃辣芝士」等未預先寫入 `calculatorDb.json` 的新菜餚）在產線計算機中步驟為 0、僅顯示自動配餐副產物之問題。
   2. 實現 `generateProcessesFromRecipe`：當 `calculatorDb.processes` 未收錄該菜餚時，系統自動自 `recipes.json` 出發，廣度遍歷（BFS）遞迴追溯其輸入食材與持續流體，動態匹配 `intermediateRecipes.json`（中間工序）與 `items.json`（基礎開採/採收/重構原料），並依據各設備之 `outputCount / cycleTime` 精準換算單份產率基準 `baseRate`，全自動生成完整的上游工序節點與底料收割機需量。

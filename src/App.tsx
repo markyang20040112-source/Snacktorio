@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
-import { SingleCalculator } from './components/Calculator/SingleCalculator';
 import { ParallelPlanner } from './components/ParallelPlanner/ParallelPlanner';
 import { DataManager } from './components/DataManager/DataManager';
 import { SyncSettings } from './components/DataManager/SyncSettings';
@@ -10,7 +9,7 @@ import { ExternalLink } from 'lucide-react';
 import { DynamicBackground } from './components/Common/DynamicBackground';
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'single' | 'parallel' | 'data' | 'sync'>('single');
+  const [activeTab, setActiveTab] = useState<'calculator' | 'data' | 'sync'>('calculator');
   const [machines, setMachines] = useState<Machine[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [intermediate, setIntermediate] = useState<IntermediateRecipe[]>([]);
@@ -42,11 +41,7 @@ export const App: React.FC = () => {
         />
 
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {activeTab === 'single' && (
-            <SingleCalculator recipes={recipes} />
-          )}
-
-          {activeTab === 'parallel' && (
+          {activeTab === 'calculator' && (
             <ParallelPlanner recipes={recipes} />
           )}
 
