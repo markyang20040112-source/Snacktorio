@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Recipe, ProcessNode, FeederStrategy, DownstreamTarget } from '../../types';
-import { calculateSingleDish, sizeAutonomousPump, isScorchingDish, getProcessRealSurplusRate, sortProcessesDownstreamToUpstream } from '../../services/solver';
+import { calculateSingleDish, sizeAutonomousPump, isScorchingDish, getProcessRealSurplusRate, sortProcessesDownstreamToUpstream, computeIntegerRatio } from '../../services/solver';
 import { dataService } from '../../services/dataService';
 import { getMachineBadgeClass, chunkTargets } from '../../utils/machineBadge';
 import { RecipeSearchSelect } from '../Common/RecipeSearchSelect';
@@ -281,6 +281,31 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
         savedCount
       };
     });
+
+    // Re-normalize cross-dish downstream distribution ratios for multi-dish shared processes
+    if (effectivePlannedList.length > 1) {
+      list.forEach(record => {
+        if (record.isBaseFeeder || record.machine === '自動廚師機' || !record.downstreamTargets || record.downstreamTargets.length <= 1) return;
+
+        // Flatten all regular (non-byproduct) targets across all dishes
+        const regularTargets: DownstreamTarget[] = [];
+        record.downstreamTargets.forEach(dt => {
+          dt.targets.forEach(t => {
+            if (!t.isByproduct) regularTargets.push(t);
+          });
+        });
+
+        if (regularTargets.length > 1) {
+          const flowRates = regularTargets.map(t => t.flowRate !== undefined ? t.flowRate : t.ratio);
+          if (regularTargets.some(t => t.flowRate !== undefined)) {
+            const intRatios = computeIntegerRatio(flowRates);
+            regularTargets.forEach((t, idx) => {
+              t.ratio = intRatios[idx];
+            });
+          }
+        }
+      });
+    }
 
     // 3. Physical Surplus Flow Offsetting in Parallel (when feederStrategy === 'recycle')
     if (feederStrategy === 'recycle') {

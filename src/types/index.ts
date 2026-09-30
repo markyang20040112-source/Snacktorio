@@ -74,6 +74,7 @@ export interface DownstreamTarget {
   processName: string;
   machine: string;
   ratio: number;
+  flowRate?: number;
   isFluid?: boolean;
   isByproduct?: boolean;
   note?: string;
