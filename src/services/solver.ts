@@ -186,8 +186,22 @@ function getProcessOutputItem(
     if (p.processName.includes('薯條')) return { name: '薯條', isFluid: false };
   }
 
-  const inter = intermediateRecipes.find(r => (r.name === stripped || r.name === p.processName) && r.machine === p.machine);
+  let inter = intermediateRecipes.find(r => (r.name === stripped || r.name === p.processName) && r.machine === p.machine);
+  if (!inter) {
+    inter = intermediateRecipes.find(r => r.machine === p.machine && p.processName.endsWith(r.name));
+  }
+  if (!inter) {
+    inter = intermediateRecipes.find(r => r.name === stripped || r.name === p.processName);
+  }
+  if (!inter) {
+    inter = intermediateRecipes.find(r => p.processName.endsWith(r.name));
+  }
   if (inter) return { name: inter.name, isFluid: false };
+
+  // Fallback: check if processName ends with any known item name (e.g. 未知動詞+物品名)
+  const sortedItems = Array.from(allItems).sort((a, b) => b.length - a.length);
+  const matchedItem = sortedItems.find(iName => p.processName.endsWith(iName));
+  if (matchedItem) return { name: matchedItem, isFluid: false };
 
   return { name: stripped, isFluid: false };
 }
@@ -470,7 +484,13 @@ export function getProcessItemOutputRate(
   intermediateRecipes: IntermediateRecipe[]
 ): number {
   const stripped = processName.replace(ACTION_VERBS, '').trim();
-  const inter = intermediateRecipes.find(r => (r.name === stripped || r.name === processName) && r.machine === machine);
+  let inter = intermediateRecipes.find(r => (r.name === stripped || r.name === processName) && r.machine === machine);
+  if (!inter) {
+    inter = intermediateRecipes.find(r => r.machine === machine && processName.endsWith(r.name));
+  }
+  if (!inter) {
+    inter = intermediateRecipes.find(r => processName.endsWith(r.name));
+  }
   if (inter) {
     const outCnt = inter.outputCount || 1;
     const cycle = inter.cycleTime || 5;
@@ -506,8 +526,12 @@ function getProcessMaxOutputRate(
 
   // Intermediate machines: check upstream supplier constraints
   const stripped = proc.processName.replace(ACTION_VERBS, '').trim();
-  const inter = intermediateRecipes.find(r => (r.name === stripped || r.name === proc.processName) && r.machine === proc.machine)
+  let inter = intermediateRecipes.find(r => (r.name === stripped || r.name === proc.processName) && r.machine === proc.machine)
     || intermediateRecipes.find(r => r.name === stripped || r.name === proc.processName);
+  if (!inter) {
+    inter = intermediateRecipes.find(r => r.machine === proc.machine && proc.processName.endsWith(r.name))
+      || intermediateRecipes.find(r => proc.processName.endsWith(r.name));
+  }
 
   if (!inter || !inter.inputs || inter.inputs.length === 0) {
     return nominalCapacity;
