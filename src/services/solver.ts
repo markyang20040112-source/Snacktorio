@@ -1070,12 +1070,22 @@ export function calculateSingleDish(
                 processName: r.processName,
                 machine: r.machine,
                 ratio: 1,
+                flowRate: 0.20,
                 isByproduct: true,
                 note: '副產物折抵'
               });
               r.feederRole = 'recipient';
               r.feederNote = `底料由【${d.processName}】過剩產能直供 (省 1 底料機)`;
             });
+
+            // 依據供餐需量與底料消耗之真實物理流率，動態重算分流配比 (最簡整數比)
+            if (d.downstreamTargets.length > 1) {
+              const allRates = d.downstreamTargets.map(t => t.flowRate !== undefined ? t.flowRate : 0.20);
+              const intRatios = computeIntegerRatio(allRates);
+              d.downstreamTargets.forEach((t, idx) => {
+                t.ratio = intRatios[idx];
+              });
+            }
           }
         });
 

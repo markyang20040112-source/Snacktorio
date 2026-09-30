@@ -416,11 +416,25 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                       processName: r.processName,
                       machine: r.machine,
                       ratio: 1,
+                      flowRate: 0.20,
                       isByproduct: true,
                       note: '副產物折抵'
                     });
                   }
                 });
+
+                // 依據供餐需量與底料消耗之真實物理流率，動態重算分流配比 (最簡整數比)
+                const allProcTargets: DownstreamTarget[] = [];
+                proc.downstreamTargets.forEach(dt => {
+                  dt.targets.forEach(t => allProcTargets.push(t));
+                });
+                if (allProcTargets.length > 1) {
+                  const allRates = allProcTargets.map(t => t.flowRate !== undefined ? t.flowRate : 0.20);
+                  const intRatios = computeIntegerRatio(allRates);
+                  allProcTargets.forEach((t, idx) => {
+                    t.ratio = intRatios[idx];
+                  });
+                }
 
                 bfSummary.offsetDetails.push(`由【${proc.processName}】過剩直供${recNames} (折抵 ${assignedRecipients.length} 台)`);
               }
