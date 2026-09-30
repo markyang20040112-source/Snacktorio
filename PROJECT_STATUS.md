@@ -48,6 +48,11 @@
 ---
 
 ## 4. 近期重要決策日誌 (Decision Log)
+* **2026-09-30**：全自適應動態配方樹解算引擎（Dynamic Recipe-Tree Solver for Custom Dishes）：
+  1. 解決使用者手動新增之食譜（如「反胃辣芝士」等未預先寫入 `calculatorDb.json` 的新菜餚）在產線計算機中步驟為 0、僅顯示自動配餐副產物之問題。
+  2. 實現 `generateProcessesFromRecipe`：當 `calculatorDb.processes` 未收錄該菜餚時，系統自動自 `recipes.json` 出發，廣度遍歷（BFS）遞迴追溯其輸入食材與持續流體，動態匹配 `intermediateRecipes.json`（中間工序）與 `items.json`（基礎開採/採收/重構原料），並依據各設備之 `outputCount / cycleTime` 精準換算單份產率基準 `baseRate`，全自動生成完整的上游工序節點與底料收割機需量。
+  3. 四象限外採流體（Quadrant 4）自適應推導：當資料庫無靜態流體 BOM 時，動態追溯菜餚與中間工序之流體需求（水、油、虛空），結合雙階流體節點引擎（Dual-Tier Node Engine）自動選型一級/二級水泵、油泵、原位轉化抽取泵與虛空管網。
+  4. 完美相容炙熱副產物自動配餐（如胃復慘並聯）、生熟隔離檢核與全廠物料拓撲分流比（Downstream Routing & GCD Topology）。
 * **2026-09-30**：泛用底料（任意物品）全設備自適應與動態拓撲關聯升級（Dynamic Generic Base Feeder Architecture）：
   1. 泛化原料選單標籤：將 `IntermediateManager` 中之底料選項正名為「任意物品 (泛用底料 / 任意固體原料)」，消除「專供物質操縱機」之誤解。
   2. 核心計算引擎全設備自適應 (`solver.ts`)：解除底料收割機與「物質操縱機」之唯一綁定。若使用者設定任何設備（如【烤箱】、【研磨機】等）輸入「任意物品」或「重構底料」，解算器能動態辨識為泛用底料需求節點，自動將其需量納入底料收割機計算，並於製程警告中動態標記「泛用底料供給：每台需 1 台底料收割機直供任意原料」。

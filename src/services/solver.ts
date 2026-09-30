@@ -58,6 +58,11 @@ function isRawItem(name: string): boolean {
   return /^(生|生的|生鮮|生鮮的)/.test(name) && !/^(生產|生成)/.test(name);
 }
 
+function isTerrainOrPlant(name: string): boolean {
+  if (!name) return true;
+  return name.includes('(礦石方塊)') || name.includes('(香料方塊)') || name.endsWith('植株') || name.endsWith('塊莖');
+}
+
 function getBaseItemName(str: string): string {
   return normalizeMatName(str)
     .replace(/^(煮熟的|新鮮的|烘烤的|油炸的|生鮮的|熟的|生的|生|熟)/, '')
@@ -69,6 +74,10 @@ function matchMaterial(prodItem: { name: string; isFluid: boolean }, reqItem: { 
   const pNorm = normalizeMatName(prodItem.name);
   const rNorm = normalizeMatName(reqItem.name);
   if (pNorm === rNorm) return true;
+
+  if ((pNorm === '·椒' || pNorm === '辣椒') && (rNorm === '·椒' || rNorm === '辣椒')) {
+    return true;
+  }
 
   // 泛用底料配對：任意物品 / 重構底料 / 底料 / 底料專供 互通
   const isGenericBase = (n: string) => n === '任意物品' || n === '重構底料' || n === '底料' || n === '底料專供' || n === '底料作物';
@@ -268,6 +277,173 @@ function getProcessInputItems(
   return [];
 }
 
+export function generateProcessesFromRecipe(
+  dishName: string,
+  recipes: Recipe[],
+  intermediateRecipes: IntermediateRecipe[],
+  items: Item[],
+  machines: Machine[]
+): CalculatorProcess[] {
+  const dishRec = recipes.find(r => r.name === dishName);
+  if (!dishRec) return [];
+
+  const processes: CalculatorProcess[] = [];
+  const machMap = new Map(machines.map(m => [m.name, m]));
+
+  const outCnt = dishRec.outputCount || 1;
+  const cycle = dishRec.cycleTime || 5;
+  const chefBaseRate = outCnt / cycle;
+  const chefMach = machMap.get('自動廚師機');
+
+  // 1. 終端組裝工序
+  processes.push({
+    dish: dishName,
+    processName: '終端組裝',
+    machine: '自動廚師機',
+    baseRate: chefBaseRate,
+    power: chefMach?.power || 0,
+    goblins: chefMach?.goblins || 1
+  });
+
+  // 2. 廣度優先遍歷向上追溯原料與中間配方
+  const queue: { name: string; reqPerDish: number }[] = [];
+  (dishRec.inputs || []).forEach(inp => {
+    if (inp.name && !['無', '任意物品', '無(空載)', '重構底料', '底料'].includes(inp.name) && inp.count > 0) {
+      queue.push({ name: inp.name, reqPerDish: inp.count / outCnt });
+    }
+  });
+
+  if (dishRec.fluidType && !['無', '水', '油', '虛空'].includes(dishRec.fluidType)) {
+    const fRate = dishRec.fluidRate || 1;
+    queue.push({ name: dishRec.fluidType, reqPerDish: fRate / outCnt });
+  }
+
+  interface InterNodeData {
+    recipe: IntermediateRecipe;
+    countPerDish: number;
+  }
+  const interMap = new Map<string, InterNodeData>();
+  const rawMap = new Map<string, { machine: string; countPerDish: number }>();
+  const visitedInter = new Set<string>();
+
+  while (queue.length > 0) {
+    const { name, reqPerDish } = queue.shift()!;
+    if (!name || ['無', '任意物品', '無(空載)', '重構底料', '底料'].includes(name)) {
+      continue;
+    }
+
+    const inter = intermediateRecipes.find(r => r.name === name);
+    if (inter) {
+      const ikey = inter.name;
+      if (!interMap.has(ikey)) {
+        interMap.set(ikey, { recipe: inter, countPerDish: 0 });
+      }
+      interMap.get(ikey)!.countPerDish += reqPerDish;
+
+      if (!visitedInter.has(ikey)) {
+        visitedInter.add(ikey);
+        const iOut = inter.outputCount || 1;
+        const cycles = reqPerDish / iOut;
+        (inter.inputs || []).forEach(inp => {
+          if (inp.name && !['無', '任意物品', '無(空載)', '重構底料', '底料'].includes(inp.name) && inp.count > 0) {
+            queue.push({ name: inp.name, reqPerDish: inp.count * cycles });
+          }
+        });
+        if (inter.fluidType && !['無', '水', '油', '虛空'].includes(inter.fluidType)) {
+          const fRate = inter.fluidRate || 1;
+          queue.push({ name: inter.fluidType, reqPerDish: fRate * cycles });
+        }
+      }
+    } else {
+      if (isTerrainOrPlant(name)) {
+        continue;
+      }
+      const it = items.find(i => i.name === name);
+      let harvestMach = '收割機';
+      const src = it?.source || '';
+      if (src.includes('採掘') || src.includes('礦') || ['鹽', '石', '粉'].some(k => name.includes(k))) {
+        harvestMach = '採掘機';
+      } else if (src.includes('物質操縱') || src.includes('異界') || src.includes('重構') || ['史萊姆', '蟑螂', '蜘蛛', '蛇蛋', '骸骨', '仙子'].some(k => name.includes(k))) {
+        harvestMach = '物質操縱機';
+      }
+
+      if (!rawMap.has(name)) {
+        rawMap.set(name, { machine: harvestMach, countPerDish: 0 });
+      }
+      rawMap.get(name)!.countPerDish += reqPerDish;
+    }
+  }
+
+  // 3. 轉換中間配方為工序節點
+  const getVerb = (machine: string, rName: string): string => {
+    if (ACTION_VERBS.test(rName)) return '';
+    switch (machine) {
+      case '物質操縱機': return '重構';
+      case '採掘機': return '開採';
+      case '收割機': return '採收';
+      case '混合機': return '混和';
+      case '烤箱': return '烘烤';
+      case '發酵罐': return '發酵';
+      case '油炸鍋': return '炸';
+      case '研磨機': return '研磨';
+      case '擠出機': return '擠出';
+      case '煮鍋': return '水煮';
+      case '攪拌機': return '攪拌';
+      case '注入機': return '';
+      default: return '';
+    }
+  };
+
+  interMap.forEach(data => {
+    const r = data.recipe;
+    const totalReq = data.countPerDish;
+    const rOut = r.outputCount || 1;
+    const rCycle = r.cycleTime || 5;
+    const baseRate = totalReq > 0 ? (rOut / rCycle) / totalReq : (rOut / rCycle);
+    const mInfo = machMap.get(r.machine);
+    const pname = getVerb(r.machine, r.name) + r.name;
+
+    processes.push({
+      dish: dishName,
+      processName: pname,
+      machine: r.machine,
+      baseRate,
+      power: mInfo?.power || 0,
+      goblins: mInfo?.goblins || 1
+    });
+  });
+
+  // 4. 轉換基礎原物料採集為工序節點
+  rawMap.forEach((data, rkey) => {
+    const totalReq = data.countPerDish;
+    const mach = data.machine;
+    let stdRate = 0.2;
+    let pname = '採收' + rkey;
+
+    if (mach === '採掘機') {
+      pname = '開採' + rkey;
+      stdRate = 0.2;
+    } else if (mach === '物質操縱機') {
+      pname = '重構' + rkey;
+      stdRate = (rkey.includes('蟑螂') || rkey.includes('史萊姆') || rkey.includes('骸骨')) ? 0.4 : 0.2;
+    }
+
+    const baseRate = totalReq > 0 ? stdRate / totalReq : stdRate;
+    const mInfo = machMap.get(mach);
+
+    processes.push({
+      dish: dishName,
+      processName: pname,
+      machine: mach,
+      baseRate,
+      power: mInfo?.power || 0,
+      goblins: mInfo?.goblins || 1
+    });
+  });
+
+  return processes;
+}
+
 export function calculateSingleDish(
   dishName: string,
   targetRate: number, // dishes/s (e.g. 0.2)
@@ -281,10 +457,11 @@ export function calculateSingleDish(
   const intermediateRecipes = dataService.getIntermediateRecipes();
 
   // 1. Get processes for this dish
-  const processesRaw = calcDb.processes.filter(p => p.dish === dishName);
+  let processesRaw = calcDb.processes.filter(p => p.dish === dishName);
   if (processesRaw.length === 0) {
     const r = recipes.find(rec => rec.name === dishName);
     if (!r) return null;
+    processesRaw = generateProcessesFromRecipe(dishName, recipes, intermediateRecipes, items, machines);
   }
 
   const machineMap = new Map(machines.map(m => [m.name, m]));
@@ -618,15 +795,38 @@ export function calculateSingleDish(
   let baseOil = 0;
   let baseVoid = 0;
 
-  for (const m of materialsRaw) {
-    const amt = parseFractionOrNumber(m.amount);
-    const matName = m.material.toLowerCase();
-    if (matName.includes('水') || matName.includes('water')) {
-      baseWater += amt;
-    } else if (matName.includes('油') || matName.includes('oil')) {
-      baseOil += amt;
-    } else if (matName.includes('虛空') || matName.includes('void')) {
-      baseVoid += amt;
+  if (materialsRaw.length > 0) {
+    for (const m of materialsRaw) {
+      const amt = parseFractionOrNumber(m.amount);
+      const matName = m.material.toLowerCase();
+      if (matName.includes('水') || matName.includes('water')) {
+        baseWater += amt;
+      } else if (matName.includes('油') || matName.includes('oil')) {
+        baseOil += amt;
+      } else if (matName.includes('虛空') || matName.includes('void')) {
+        baseVoid += amt;
+      }
+    }
+  } else {
+    // Dynamic derivation of fluid BOM for custom dishes
+    const dishRecipe = recipes.find(r => r.name === dishName);
+    if (dishRecipe) {
+      if (dishRecipe.fluidType === '水') baseWater += (dishRecipe.fluidRate || 1.0);
+      else if (dishRecipe.fluidType === '油') baseOil += (dishRecipe.fluidRate || 1.0);
+      else if (dishRecipe.fluidType === '虛空') baseVoid += (dishRecipe.fluidRate || 1.0);
+
+      processNodes.forEach(p => {
+        if (p.machine === '自動廚師機') return;
+        if (p.machine === '煮鍋') baseWater += 1.0;
+        else if (p.machine === '油炸鍋') baseOil += 1.0;
+        else if (p.machine === '物質操縱機') baseVoid += 1.0;
+        else if (p.machine === '混合機') {
+          const inter = intermediateRecipes.find(r => r.name === p.processName || p.processName.includes(r.name));
+          if (inter?.fluidType === '水') baseWater += (inter.fluidRate || 0.5);
+          else if (inter?.fluidType === '油') baseOil += (inter.fluidRate || 0.5);
+          else if (inter?.fluidType === '虛空') baseVoid += (inter.fluidRate || 1.0);
+        }
+      });
     }
   }
 
@@ -831,11 +1031,6 @@ function resolveItem(cand: string, itemMap: Map<string, Item>): Item | null {
   if (itemMap.has('生' + norm)) return itemMap.get('生' + norm)!;
   if (itemMap.has('煮熟的' + norm)) return itemMap.get('煮熟的' + norm)!;
   return null;
-}
-
-function isTerrainOrPlant(name: string): boolean {
-  if (!name) return true;
-  return name.includes('(礦石方塊)') || name.includes('(香料方塊)') || name.endsWith('植株') || name.endsWith('塊莖');
 }
 
 function assembleResult(params: any): CalculationResult {
