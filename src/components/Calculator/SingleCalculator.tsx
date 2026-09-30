@@ -558,11 +558,11 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                         ) : p.downstreamTargets && p.downstreamTargets.length > 0 ? (
                           <div className="flex flex-col gap-y-1.5 w-fit">
                             {chunkTargets(p.downstreamTargets).map((pair, rowIdx) => (
-                              <div key={rowIdx} className="flex items-center space-x-2 whitespace-nowrap">
+                              <div key={rowIdx} className="flex items-center space-x-3.5 whitespace-nowrap">
                                 {pair.map((t, tIdx) => (
                                   <div
                                     key={tIdx}
-                                    className={`flex items-center space-x-1.5 whitespace-nowrap ${tIdx === 0 && pair.length > 1 ? 'w-[98px] shrink-0' : ''}`}
+                                    className="flex items-center space-x-1.5 whitespace-nowrap shrink-0"
                                     title={`連至工序：【${t.processName}】`}
                                   >
                                     <span className={`inline-flex items-center space-x-1 whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass(t.machine, t.isByproduct)}`}>
