@@ -301,9 +301,22 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
             bfSummary.offsetDetails = [singleBf.offsetSource];
           }
         } else {
-          // Multi-dish parallel: clean previous feeder roles and recalculate strictly on merged physical flow
+          // Multi-dish parallel: clean previous feeder roles, dish demands, and byproduct downstream targets
+          // to recalculate strictly on merged physical flow
           list.forEach(proc => {
             proc.feederRoles = [];
+            if (proc.downstreamTargets) {
+              proc.downstreamTargets.forEach(dt => {
+                dt.targets = dt.targets.filter(t => !t.isByproduct);
+              });
+              proc.downstreamTargets = proc.downstreamTargets.filter(dt => dt.targets.length > 0);
+            }
+            if (proc.dishDemands) {
+              proc.dishDemands.forEach(dd => {
+                dd.feederRole = undefined;
+                dd.feederNote = undefined;
+              });
+            }
           });
 
           // Deadlock / Progenitor protection
@@ -1300,6 +1313,12 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                             <span className="text-emerald-400">0 台</span>
                           ) : (
                             <span className="text-cyan-300">{r.parallelRounded} 台</span>
+                          )}
+                          {effectivePlannedList.length > 1 && r.feederRoles.some(fr => fr.role === 'donor') && (
+                            <span className="text-[10px] text-emerald-400 block font-normal font-sans whitespace-nowrap">⚡ 過剩供給</span>
+                          )}
+                          {effectivePlannedList.length > 1 && r.feederRoles.some(fr => fr.role === 'recipient') && (
+                            <span className="text-[10px] text-purple-300 block font-normal font-sans whitespace-nowrap">🌱 接收底料</span>
                           )}
                         </td>
 
