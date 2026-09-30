@@ -29,6 +29,14 @@ export function sizeAutonomousPump(demand: number, hasVoid: boolean): FluidTierI
   };
 }
 
+export function computeIntegerRatio(rates: number[]): number[] {
+  if (rates.length === 0) return [];
+  const ints = rates.map(r => Math.round(r * 10000));
+  const g = gcdArray(ints);
+  if (g <= 0) return rates.map(() => 1);
+  return ints.map(val => Math.round(val / g));
+}
+
 /**
  * Downstream physical topology routing engine:
  * Dynamically resolves downstream machine connections and material distribution ratios
@@ -48,7 +56,7 @@ const COOKED_GROUPS = [
   ['麵包麵團', '麵包麵糰', '發酵麵糰', '發酵麵團', '麵團', '麵糰']
 ];
 
-const ACTION_VERBS = /^(採收|採掘|開採|採集|重構|物質操縱|研磨|混和|混合|水煮|燉煮|清蒸|擠出|油炸|油煎|烘烤|烘焙|注入|發酵|切片|壓榨|離心|煎烤|熬煮|烹煮|絞碎|剝皮|攪拌|萃取|提煉|粉碎|打碎|調配|製造|加工)/;
+const ACTION_VERBS = /^(採收|採掘|開採|採集|重構|物質操縱|研磨|混和|混合|水煮|燉煮|清蒸|擠出|油炸|炸|油煎|煎|烘烤|烘焙|注入|發酵|切片|壓榨|離心|煎烤|熬煮|烹煮|絞碎|剝皮|攪拌|萃取|提煉|粉碎|打碎|調配|製造|加工)/;
 
 function normalizeMatName(str: string): string {
   return str.replace(/麵糰/g, '麵團');
@@ -309,16 +317,18 @@ export function generateProcessesFromRecipe(
   });
 
   // 2. 廣度優先遍歷向上追溯原料與中間配方
-  const queue: { name: string; reqPerDish: number }[] = [];
+  const queue: { name: string; reqPerDish: number; path: string[] }[] = [];
   (dishRec.inputs || []).forEach(inp => {
     if (inp.name && !['無', '任意物品', '無(空載)', '重構底料', '底料'].includes(inp.name) && inp.count > 0) {
-      queue.push({ name: inp.name, reqPerDish: inp.count / outCnt });
+      queue.push({ name: inp.name, reqPerDish: inp.count / outCnt, path: [dishName] });
     }
   });
 
   if (dishRec.fluidType && !['無', '水', '油', '虛空'].includes(dishRec.fluidType)) {
     const fRate = dishRec.fluidRate || 1;
-    queue.push({ name: dishRec.fluidType, reqPerDish: fRate / outCnt });
+    const dishCycle = dishRec.cycleTime || 5;
+    // 終端組裝單次耗時 dishCycle 秒，持續通入 fRate fl/s，單次耗水量 = fRate * dishCycle，產出 outCnt 份料理
+    queue.push({ name: dishRec.fluidType, reqPerDish: (fRate * dishCycle) / outCnt, path: [dishName] });
   }
 
   interface InterNodeData {
@@ -327,10 +337,9 @@ export function generateProcessesFromRecipe(
   }
   const interMap = new Map<string, InterNodeData>();
   const rawMap = new Map<string, { machine: string; countPerDish: number }>();
-  const visitedInter = new Set<string>();
 
   while (queue.length > 0) {
-    const { name, reqPerDish } = queue.shift()!;
+    const { name, reqPerDish, path } = queue.shift()!;
     if (!name || ['無', '任意物品', '無(空載)', '重構底料', '底料'].includes(name)) {
       continue;
     }
@@ -343,19 +352,25 @@ export function generateProcessesFromRecipe(
       }
       interMap.get(ikey)!.countPerDish += reqPerDish;
 
-      if (!visitedInter.has(ikey)) {
-        visitedInter.add(ikey);
-        const iOut = inter.outputCount || 1;
-        const cycles = reqPerDish / iOut;
-        (inter.inputs || []).forEach(inp => {
-          if (inp.name && !['無', '任意物品', '無(空載)', '重構底料', '底料'].includes(inp.name) && inp.count > 0) {
-            queue.push({ name: inp.name, reqPerDish: inp.count * cycles });
-          }
-        });
-        if (inter.fluidType && !['無', '水', '油', '虛空'].includes(inter.fluidType)) {
-          const fRate = inter.fluidRate || 1;
-          queue.push({ name: inter.fluidType, reqPerDish: fRate * cycles });
+      // DAG 死循環防護：若在同一溯源路徑中重複出現則中斷；但允許多個不同下游工序匯流消費同一中間物料
+      if (path.includes(ikey)) {
+        continue;
+      }
+
+      const iOut = inter.outputCount || 1;
+      const iCycle = inter.cycleTime || 5;
+      const cycles = reqPerDish / iOut;
+      const newPath = [...path, ikey];
+
+      (inter.inputs || []).forEach(inp => {
+        if (inp.name && !['無', '任意物品', '無(空載)', '重構底料', '底料'].includes(inp.name) && inp.count > 0) {
+          queue.push({ name: inp.name, reqPerDish: inp.count * cycles, path: newPath });
         }
+      });
+      if (inter.fluidType && !['無', '水', '油', '虛空'].includes(inter.fluidType)) {
+        const fRate = inter.fluidRate || 1;
+        // 中間工序單週期耗時 iCycle 秒，持續通入 fRate fl/s，每週期耗液量 = fRate * iCycle
+        queue.push({ name: inter.fluidType, reqPerDish: fRate * iCycle * cycles, path: newPath });
       }
     } else {
       if (isTerrainOrPlant(name)) {
@@ -856,9 +871,15 @@ export function calculateSingleDish(
         }];
       }
     } else {
-      const reqCounts = consumers.map(c => c.reqCount);
-      const g = gcdArray(reqCounts);
-      const ratioStr = reqCounts.map(c => c / g).join(' : ');
+      const flowRates = consumers.map(c => {
+        const targetCycle = recipes.find(r => r.name === c.target.processName)?.cycleTime
+          || intermediateRecipes.find(r => r.name === c.target.processName || c.target.processName.includes(r.name))?.cycleTime
+          || (c.target.machine === '混合機' ? 4 : 5);
+        const perMachineRate = (c.reqCount || 1) / targetCycle;
+        return (c.target.demandRate || c.target.countRounded) * perMachineRate;
+      });
+      const intRatios = computeIntegerRatio(flowRates);
+      const ratioStr = intRatios.join(' : ');
       const desc = consumers.length === 2
         ? `【${consumers[0].target.processName}】(${consumers[0].target.machine}) 與【${consumers[1].target.processName}】(${consumers[1].target.machine})`
         : consumers.slice(0, -1).map(c => `【${c.target.processName}】(${c.target.machine})`).join('、') + ` 與【${consumers[consumers.length - 1].target.processName}】(${consumers[consumers.length - 1].target.machine})`;
@@ -866,7 +887,7 @@ export function calculateSingleDish(
       curr.node.downstreamTargets = consumers.map((c, idx) => ({
         processName: c.target.processName,
         machine: c.target.machine,
-        ratio: reqCounts[idx] / (g > 0 ? g : 1),
+        ratio: intRatios[idx],
         isFluid: c.isFluid
       }));
     }
