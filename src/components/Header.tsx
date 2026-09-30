@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calculator, Layers, Database, RefreshCw, ExternalLink } from 'lucide-react';
+import { Calculator, Database, RefreshCw, ExternalLink } from 'lucide-react';
 
 interface HeaderProps {
   activeTab: 'calculator' | 'data' | 'sync';

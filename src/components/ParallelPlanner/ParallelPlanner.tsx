@@ -5,7 +5,7 @@ import { dataService } from '../../services/dataService';
 import { getMachineBadgeClass, chunkTargets } from '../../utils/machineBadge';
 import { RecipeSearchSelect } from '../Common/RecipeSearchSelect';
 import { ItemIcon } from '../Common/ItemIcon';
-import { Layers, Plus, Trash2, ShieldCheck, ShieldAlert, Zap, Droplets, Users, Flame, Sparkles, Sprout, Calculator } from 'lucide-react';
+import { Plus, Trash2, ShieldCheck, ShieldAlert, Zap, Droplets, Users, Flame, Sparkles, Sprout, Calculator } from 'lucide-react';
 import { formatFractionOrDecimal, gcdArray } from '../../utils/math';
 
 interface ParallelPlannerProps {
