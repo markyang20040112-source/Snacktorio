@@ -1795,5 +1795,17 @@
     "spoilProduct": "",
     "attributes": "熾熱",
     "notes": ""
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "炸鷹身女妖肉",
+    "source": "油炸鍋",
+    "isFluid": false,
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "",
+    "attributes": "",
+    "notes": "",
+    "icon": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAC0AAAAkCAYAAAAdFbNSAAABx0lEQVR4AeyVMU7DQBBFh0hUtFtsBQhEBR2IC9AiJEoOQMcRUuYIdByAEgnRcgEEHVQIBFQp0lJRgFbRJ8+RJzgYI9typK8ZjWd3//75sXtW8S+ubX7+hHkpVE56XkJF+jvSUol2ODvZsTz0D1ZNYL/2mBU7pWep85fPXKU5Mi8nEfbQDiFGC3EM9q8sBxNkkxS5D/uZu6TZVLe8+aQ5Go44jS0PXn+IYzuEGG00HH7Dm5hskqLXw3rzleZt6pz3OOKLwb4JJJ3GJrC+vvRhAuu0xOvbyPIQ4sRCXEsbkht7OntQjSrzjNIca4j54yOZo70NE1hnLluleH79aMLdzb0JIU7OSn2CZ5UMaR5W57xdpGkVT/Xt3S0TvB6vPrh8MUE2SZFvGm9tu5T2blmHem/4/LAgHJ/emuCRkx1S9CwU4uRtwH2e3hdN0JkpyibTkWuZ/789ePov83aRDjF/xEUswR7ZLcVkBYEiqzYdaRc+a5fSVKJueUZpjuCwf2VCiPlW4WVoiSIfCK71cvJhT4Y0H9Q5bxdpjkY2SZEToA2Ye/96ri2Tt0vpMkpUvbaQ0rRK+kgItAFz9ldxgUKkqzi4zJ6NJP0FAAD//wOkqvkAAAAGSURBVAMAgv+q3JQn668AAAAASUVORK5CYII="
   }
 ]
