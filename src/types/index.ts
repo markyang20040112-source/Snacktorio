@@ -60,7 +60,7 @@ export interface CalculatorProcess {
   baseRate: number | string;
   power: number;
   goblins: number;
-  order: number;
+  order?: number;
 }
 
 export interface CalculatorMaterial {

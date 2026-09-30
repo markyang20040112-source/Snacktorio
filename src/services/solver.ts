@@ -295,6 +295,8 @@ export function generateProcessesFromRecipe(
   const chefBaseRate = outCnt / cycle;
   const chefMach = machMap.get('自動廚師機');
 
+  let order = 1;
+
   // 1. 終端組裝工序
   processes.push({
     dish: dishName,
@@ -302,7 +304,8 @@ export function generateProcessesFromRecipe(
     machine: '自動廚師機',
     baseRate: chefBaseRate,
     power: chefMach?.power || 0,
-    goblins: chefMach?.goblins || 1
+    goblins: chefMach?.goblins || 1,
+    order: order++
   });
 
   // 2. 廣度優先遍歷向上追溯原料與中間配方
@@ -409,7 +412,8 @@ export function generateProcessesFromRecipe(
       machine: r.machine,
       baseRate,
       power: mInfo?.power || 0,
-      goblins: mInfo?.goblins || 1
+      goblins: mInfo?.goblins || 1,
+      order: order++
     });
   });
 
@@ -437,7 +441,8 @@ export function generateProcessesFromRecipe(
       machine: mach,
       baseRate,
       power: mInfo?.power || 0,
-      goblins: mInfo?.goblins || 1
+      goblins: mInfo?.goblins || 1,
+      order: order++
     });
   });
 
