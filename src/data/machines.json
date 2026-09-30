@@ -7,7 +7,8 @@
     "fluidType": "無",
     "fluidRate": 0,
     "baseRate": "4 FV/s (常規) / 16 FV/s (汙泥增效)",
-    "notes": "供給機器運轉；燃燒煤炭(0.1/s)常規發電 4 FV/s；每10秒多消耗1個虛空汙泥(0.1/s)可提升發電量至 16 FV/s。"
+    "notes": "供給機器運轉；燃燒煤炭(0.1/s)常規發電 4 FV/s；每10秒多消耗1個虛空汙泥(0.1/s)可提升發電量至 16 FV/s。",
+    "icon": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAC0AAAAtCAYAAAA6GuKaAAABSUlEQVR4AeyZPQrCQBCFh5SilaCdveIlBFtLT2LhKbyR59DeTsFKsTQyxYMNJNnfMbvsBh4TdjKzX95OlVSr9a6GNvtjHavAyLGiBK80oefLFUH364Wgz/NNQwssHMHIMU2nExxpajg9mS0IiuFlwMJR5WlAq4mY7/OAfj1uFFq2p5qH07auSDxv5LQ6DhIQtv2NoCVAfXoW6Db3zqeKoLa8y1px2sU1lxoRpzEOHF2gdDUi0LpNffN5Q/MoQL5O6ur/77SOyCBfoNtM2h6+BLXlXdaK0y6uudSIOI1x4OgCpasRgdZt6pvPG5pHAfJ1Uleft9M6d0LmjZzmz1JQyM3RC705Yq0vGkH3NRgilwc0H2Fo2Z5WHk7buiLxfMNp289TEkBqzy6eBrRaEPN9mtD8uwvi313QaDqmoQUWjmDkmKbTMc9uF9sPAAD//2/qTSoAAAAGSURBVAMAK3tfCkQDbGUAAAAASUVORK5CYII="
   },
   {
     "category": "必備機器",
