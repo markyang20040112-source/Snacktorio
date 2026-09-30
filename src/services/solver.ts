@@ -449,6 +449,28 @@ export function generateProcessesFromRecipe(
   return processes;
 }
 
+export function getProcessItemOutputRate(
+  processName: string,
+  machine: string,
+  intermediateRecipes: IntermediateRecipe[]
+): number {
+  const stripped = processName.replace(ACTION_VERBS, '').trim();
+  const inter = intermediateRecipes.find(r => (r.name === stripped || r.name === processName) && r.machine === machine);
+  if (inter) {
+    const outCnt = inter.outputCount || 1;
+    const cycle = inter.cycleTime || 5;
+    return outCnt / cycle;
+  }
+  // Default extraction rates for 5s cycle machines
+  if (machine === '物質操縱機') {
+    if (['蟑螂', '史萊姆', '骸骨'].some(k => processName.includes(k))) {
+      return 2 / 5; // 0.4 items/s
+    }
+    return 1 / 5; // 0.2 items/s
+  }
+  return 1 / 5; // 0.2 items/s for 採掘機, 收割機, etc.
+}
+
 export function calculateSingleDish(
   dishName: string,
   targetRate: number, // dishes/s (e.g. 0.2)
@@ -647,28 +669,6 @@ export function calculateSingleDish(
       }));
     }
   });
-
-export function getProcessItemOutputRate(
-  processName: string,
-  machine: string,
-  intermediateRecipes: IntermediateRecipe[]
-): number {
-  const stripped = processName.replace(ACTION_VERBS, '').trim();
-  const inter = intermediateRecipes.find(r => (r.name === stripped || r.name === processName) && r.machine === machine);
-  if (inter) {
-    const outCnt = inter.outputCount || 1;
-    const cycle = inter.cycleTime || 5;
-    return outCnt / cycle;
-  }
-  // Default extraction rates for 5s cycle machines
-  if (machine === '物質操縱機') {
-    if (['蟑螂', '史萊姆', '骸骨'].some(k => processName.includes(k))) {
-      return 2 / 5; // 0.4 items/s
-    }
-    return 1 / 5; // 0.2 items/s
-  }
-  return 1 / 5; // 0.2 items/s for 採掘機, 收割機, etc.
-}
 
   // 3. 泛用底料收割機 (Base Feeder Harvesters - 物質操縱機或任何需「任意物品/底料」之設備)
   let offsetCount = 0;
