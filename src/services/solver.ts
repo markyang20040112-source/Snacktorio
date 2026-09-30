@@ -824,6 +824,7 @@ function assembleResult(params: any): CalculationResult {
   // Biochemical Warnings
   const biochemicalWarnings: { item: string; type: string; detail: string }[] = [];
   const itemMap = new Map<string, Item>((items as Item[]).map((it: Item) => [it.name, it]));
+  const interMap = new Map<string, IntermediateRecipe>((intermediateRecipes as IntermediateRecipe[]).map((r: IntermediateRecipe) => [r.name, r]));
   const seenWarnings = new Set<string>();
 
   const candidateNames = new Set<string>();
@@ -841,19 +842,38 @@ function assembleResult(params: any): CalculationResult {
     }
   }
 
-  // 2. Candidate names from process nodes
+  // 2. Candidate names from process nodes & intermediate inputs
   processNodes.forEach((p: ProcessNode) => {
     if (p.processName && p.processName !== '終端組裝') {
       candidateNames.add(p.processName);
+      const inter = interMap.get(p.processName);
+      if (inter && inter.inputs) {
+        inter.inputs.forEach(inp => {
+          if (inp.name && inp.name !== '無') candidateNames.add(inp.name);
+        });
+      }
     }
   });
 
+  // Resolve items
+  const candidateItems: Item[] = [];
   candidateNames.forEach((cand: string) => {
     const it = resolveItem(cand, itemMap);
     if (!it) return;
-    const iname = it.name;
-    if (isTerrainOrPlant(iname)) return;
+    if (isTerrainOrPlant(it.name)) return;
+    candidateItems.push(it);
+  });
 
+  // 檢測產線是否包含炙熱/熾熱屬性物品（排除中和與胃復慘）
+  const isHotAttr = (attrStr: string) => {
+    return (attrStr.includes('炙熱') || attrStr.includes('熾熱') || attrStr.includes('炽热')) && !attrStr.includes('中和');
+  };
+
+  const hasHotItem = candidateItems.some(it => isHotAttr(it.attributes || '') && !it.name.includes('胃復慘')) ||
+    Boolean(recipe?.attributes && isHotAttr(recipe.attributes));
+
+  candidateItems.forEach((it: Item) => {
+    const iname = it.name;
     const attrs = it.attributes || '';
     const isPerish = it.isPerishable;
     const spoilTime = it.spoilTime;
@@ -899,32 +919,21 @@ function assembleResult(params: any): CalculationResult {
     }
 
     // 4. 遇熱凝固 (Strictly data-driven: item must have '遇熱凝固' in attributes)
-    if (attrs.includes('遇熱凝固')) {
+    // 物理法則：遇熱凝固物品不能碰到炙熱屬性物品；除非一道料理產線中同時存在遇熱凝固與炙熱物品，否則不顯示警示。
+    // 有顯示需要時只需顯示遇熱凝固的警示（炙熱物品不影響其他物品，不需單獨警示）。
+    if (attrs.includes('遇熱凝固') && hasHotItem) {
       const key = `${iname}-遇熱凝固`;
       if (!seenWarnings.has(key)) {
         seenWarnings.add(key);
         biochemicalWarnings.push({
           item: iname,
           type: '遇熱凝固',
-          detail: '遇熱或辛辣物質會凝固堵管，傳送與儲存管線必須與熱源徹底實體隔離。'
+          detail: '遇熱或辛辣物質會凝固堵管，因本料理產線包含炙熱/熾熱原料，傳送與儲存管線必須與熱源徹底實體隔離！'
         });
       }
     }
 
-    // 5. 熾熱菜餚 (Strictly data-driven: item must have '熾熱' or '炽热' in attributes)
-    if ((attrs.includes('熾熱') || attrs.includes('炽热')) && !attrs.includes('中和') && !iname.includes('胃復慘')) {
-      const key = `${iname}-熾熱`;
-      if (!seenWarnings.has(key)) {
-        seenWarnings.add(key);
-        biochemicalWarnings.push({
-          item: iname,
-          type: '熾熱',
-          detail: '任何熾熱的菜餚都必須搭配【胃復慘】🌸 一起上菜，否則巨獸會消化不良！'
-        });
-      }
-    }
-
-    // 6. 時效腐壞 (Strictly data-driven: item must have isPerishable && spoilTime)
+    // 5. 時效腐壞 (Strictly data-driven: item must have isPerishable && spoilTime)
     if (isPerish && spoilTime) {
       const key = `${iname}-時效腐壞`;
       if (!seenWarnings.has(key)) {
@@ -938,9 +947,8 @@ function assembleResult(params: any): CalculationResult {
     }
   });
 
-  // Sort warnings: 熾熱 -> 氣味刺鼻 -> 食物中毒 -> 過敏原防護 -> 遇熱凝固 -> 時效腐壞
+  // Sort warnings: 氣味刺鼻 -> 食物中毒 -> 過敏原防護 -> 遇熱凝固 -> 時效腐壞
   const orderMap: Record<string, number> = {
-    熾熱: 0,
     氣味刺鼻: 1,
     食物中毒: 2,
     過敏原防護: 3,
