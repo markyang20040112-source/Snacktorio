@@ -139,6 +139,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
         offsetCount: number;
         finalCount: number;
         offsetDetails: string[];
+        consumerMachine?: string;
       };
     }
 
@@ -202,6 +203,11 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
     );
 
     if (dishesWithManipulators.length > 0) {
+      const allConsumers = Array.from(new Set(
+        dishesWithManipulators.flatMap(d => d.calc?.baseFeeders.consumerMachines || [d.calc?.baseFeeders.consumerMachine || '物質操縱機'])
+      ));
+      const primaryConsumer = allConsumers.length === 1 ? allConsumers[0] : (allConsumers.length > 1 ? allConsumers.join('、') : '物質操縱機');
+
       const feederKey = '重構底料作物採集 (收割機 底料專供)';
       const feederRecord: ConsolidatedProcessRecord = {
         processName: feederKey,
@@ -214,7 +220,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
         savedCount: 0,
         powerPerUnit: 1.0,
         goblinsPerUnit: 1.0,
-        topologies: [{ dishName: '全廠', text: '1:1 防堵專線直供物質操縱機' }],
+        topologies: [{ dishName: '全廠', text: `1:1 防堵專線直供${primaryConsumer}` }],
         downstreamTargets: [],
         feederRoles: [],
         isBaseFeeder: true,
@@ -222,7 +228,8 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
           grossRequired: 0,
           offsetCount: 0,
           finalCount: 0,
-          offsetDetails: []
+          offsetDetails: [],
+          consumerMachine: primaryConsumer
         }
       };
 
@@ -272,7 +279,8 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
         if (needyDishes.length > 0) {
           list.forEach(proc => {
             if (proc.isBaseFeeder) return;
-            const nonDonorMachines = ['自動廚師機', '物質操縱機', '攪拌機', '注入機', '虛空熔爐', '虛空泵機'];
+            const consumerName = bfSummary.consumerMachine || '物質操縱機';
+            const nonDonorMachines = ['自動廚師機', consumerName, '物質操縱機', '攪拌機', '注入機', '虛空熔爐', '虛空泵機'];
             if (nonDonorMachines.includes(proc.machine)) return;
 
             const baseRateNum = proc.baseRate || 0.2;
@@ -303,17 +311,17 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                 bfSummary.offsetCount += 1;
                 bfSummary.finalCount = feederRow.parallelRounded;
 
-                const crossDetail = `由【${donorDishName}】之【${proc.processName}】跨料理過剩直供【${needy.dishName}】之操縱機 (折抵 1 台)`;
+                const crossDetail = `由【${donorDishName}】之【${proc.processName}】跨料理過剩直供【${needy.dishName}】之${consumerName} (折抵 1 台)`;
                 bfSummary.offsetDetails.push(crossDetail);
 
                 proc.feederRoles.push({
                   dishName: donorDishName,
                   role: 'donor',
-                  note: `跨料理過剩分流直供【${needy.dishName}】物質操縱機作為底料 (0.20/s)`
+                  note: `跨料理過剩分流直供【${needy.dishName}】${consumerName}作為底料 (0.20/s)`
                 });
 
                 const recipientManipulator = list.find(r =>
-                  r.machine === '物質操縱機' &&
+                  (r.machine === consumerName || r.machine === '物質操縱機') &&
                   r.dishDemands.some(dd => dd.dishName === needy.dishName) &&
                   !r.feederRoles.some(fr => fr.role === 'recipient')
                 );
@@ -1187,32 +1195,38 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                     {/* 8. 物料關聯與拓撲說明 */}
                     <td className="py-3 px-4 text-xs">
                       {isBaseFeeder ? (
-                        r.baseFeederSummary && r.baseFeederSummary.offsetCount > 0 ? (
-                          <div className="flex items-center space-x-1.5 whitespace-nowrap" title={r.baseFeederSummary.offsetDetails.join('；')}>
-                            <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass('物質操縱機', true)}`}>
-                              物質操縱機
-                            </span>
-                            {r.parallelRounded === 0 ? (
-                              <span className="text-xs text-emerald-300 font-medium">
-                                🎉 (全廠副產物全額折抵免建)
+                        (() => {
+                          const consumerLabel = r.baseFeederSummary?.consumerMachine || '物質操縱機';
+                          if (r.baseFeederSummary && r.baseFeederSummary.offsetCount > 0) {
+                            return (
+                              <div className="flex items-center space-x-1.5 whitespace-nowrap" title={r.baseFeederSummary.offsetDetails.join('；')}>
+                                <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass(consumerLabel, true)}`}>
+                                  {consumerLabel}
+                                </span>
+                                {r.parallelRounded === 0 ? (
+                                  <span className="text-xs text-emerald-300 font-medium">
+                                    🎉 (全廠副產物全額折抵免建)
+                                  </span>
+                                ) : (
+                                  <span className="text-xs text-emerald-300 font-medium">
+                                    (已折抵 {r.baseFeederSummary.offsetCount} 台，剩餘需直供)
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          }
+                          return (
+                            <div className="flex items-center space-x-1.5 whitespace-nowrap" title={`專線直供${consumerLabel}，每秒消耗 1 份作物底料完成原料供給 (1:1 防堵專線)`}>
+                              <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass(consumerLabel)}`}>
+                                {consumerLabel}
                               </span>
-                            ) : (
-                              <span className="text-xs text-emerald-300 font-medium">
-                                (已折抵 {r.baseFeederSummary.offsetCount} 台，剩餘需直供)
+                              <span className="font-mono font-bold text-xs text-slate-200">1</span>
+                              <span className="text-xs text-purple-300 font-normal">
+                                (1:1 防堵專線)
                               </span>
-                            )}
-                          </div>
-                        ) : (
-                          <div className="flex items-center space-x-1.5 whitespace-nowrap" title="專線直供物質操縱機，每秒消耗 1 份作物底料完成異界質量重構 (1:1 防堵專線)">
-                            <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass('物質操縱機')}`}>
-                              物質操縱機
-                            </span>
-                            <span className="font-mono font-bold text-xs text-slate-200">1</span>
-                            <span className="text-xs text-purple-300 font-normal">
-                              (1:1 防堵專線)
-                            </span>
-                          </div>
-                        )
+                            </div>
+                          );
+                        })()
                       ) : r.machine === '自動廚師機' ? (
                         <span className="text-amber-400 font-bold whitespace-nowrap">終端出餐 (大炮發射)</span>
                       ) : r.downstreamTargets && r.downstreamTargets.length > 0 ? (

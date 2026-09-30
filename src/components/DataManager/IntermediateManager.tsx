@@ -229,8 +229,8 @@ export const IntermediateManager: React.FC<IntermediateManagerProps> = ({
       options: [
         {
           value: '任意物品',
-          label: '任意物品 (物質操縱機底料專供 / 任意固體作物)',
-          sublabel: '物質操縱機'
+          label: '任意物品 (泛用底料 / 任意固體原料)',
+          sublabel: '泛用底料作物專供'
         },
         {
           value: '無(空載)',

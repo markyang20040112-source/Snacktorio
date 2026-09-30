@@ -137,7 +137,7 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                     ? 'bg-purple-500/20 border-purple-500 text-purple-300 shadow-sm'
                     : 'bg-slate-950 border-slate-800 text-slate-400 hover:bg-slate-850 hover:text-slate-200'
                 }`}
-                title="每台物質操縱機配屬 1 台專用收割機直供底料 (最安全防呆、零死鎖)"
+                title="每台底料消耗設備配屬 1 台專用收割機直供底料 (最安全防呆、零死鎖)"
               >
                 <span className="whitespace-nowrap">獨立專供</span>
                 <span className="font-normal text-[10px] text-slate-400 font-sans whitespace-nowrap">(安全防呆)</span>
@@ -626,36 +626,45 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
                       <td className="py-3 px-4 text-right font-mono whitespace-nowrap">{result.baseFeeders.power.toFixed(1)}</td>
                       <td className="py-3 px-4 text-right font-mono whitespace-nowrap">{result.baseFeeders.goblins}</td>
                       <td className="py-3 px-4 text-xs">
-                        {result.baseFeeders.count === 0 ? (
-                          <div className="flex items-center space-x-1.5 whitespace-nowrap" title={result.baseFeeders.offsetSource || `已由產線過剩副產物折抵 ${result.baseFeeders.offsetCount} 台`}>
-                            <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass('物質操縱機', true)}`}>
-                              物質操縱機
-                            </span>
-                            <span className="text-xs text-emerald-300 font-medium">
-                              🎉 (副產物全額折抵免建)
-                            </span>
-                          </div>
-                        ) : result.baseFeeders.offsetCount > 0 ? (
-                          <div className="flex items-center space-x-1.5 whitespace-nowrap" title={result.baseFeeders.offsetSource || `已由副產物折抵 ${result.baseFeeders.offsetCount} 台`}>
-                            <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass('物質操縱機')}`}>
-                              物質操縱機
-                            </span>
-                            <span className="font-mono font-bold text-xs text-slate-200">1</span>
-                            <span className="text-xs text-emerald-300 font-medium">
-                              (已折抵 {result.baseFeeders.offsetCount} 台，剩餘需直供)
-                            </span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center space-x-1.5 whitespace-nowrap" title="專線直供物質操縱機，每秒消耗 1 份作物底料完成異界質量重構 (1:1 防堵專線)">
-                            <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass('物質操縱機')}`}>
-                              物質操縱機
-                            </span>
-                            <span className="font-mono font-bold text-xs text-slate-200">1</span>
-                            <span className="text-xs text-purple-300 font-normal">
-                              (1:1 防堵專線)
-                            </span>
-                          </div>
-                        )}
+                        {(() => {
+                          const consumerLabel = result.baseFeeders.consumerMachine || '物質操縱機';
+                          if (result.baseFeeders.count === 0) {
+                            return (
+                              <div className="flex items-center space-x-1.5 whitespace-nowrap" title={result.baseFeeders.offsetSource || `已由產線過剩副產物折抵 ${result.baseFeeders.offsetCount} 台`}>
+                                <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass(consumerLabel, true)}`}>
+                                  {consumerLabel}
+                                </span>
+                                <span className="text-xs text-emerald-300 font-medium">
+                                  🎉 (副產物全額折抵免建)
+                                </span>
+                              </div>
+                            );
+                          }
+                          if (result.baseFeeders.offsetCount > 0) {
+                            return (
+                              <div className="flex items-center space-x-1.5 whitespace-nowrap" title={result.baseFeeders.offsetSource || `已由副產物折抵 ${result.baseFeeders.offsetCount} 台`}>
+                                <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass(consumerLabel)}`}>
+                                  {consumerLabel}
+                                </span>
+                                <span className="font-mono font-bold text-xs text-slate-200">1</span>
+                                <span className="text-xs text-emerald-300 font-medium">
+                                  (已折抵 {result.baseFeeders.offsetCount} 台，剩餘需直供)
+                                </span>
+                              </div>
+                            );
+                          }
+                          return (
+                            <div className="flex items-center space-x-1.5 whitespace-nowrap" title={`專線直供${consumerLabel}，每秒消耗 1 份作物底料完成原料供給 (1:1 防堵專線)`}>
+                              <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded border text-xs font-mono ${getMachineBadgeClass(consumerLabel)}`}>
+                                {consumerLabel}
+                              </span>
+                              <span className="font-mono font-bold text-xs text-slate-200">1</span>
+                              <span className="text-xs text-purple-300 font-normal">
+                                (1:1 防堵專線)
+                              </span>
+                            </div>
+                          );
+                        })()}
                       </td>
                     </tr>
                   )}

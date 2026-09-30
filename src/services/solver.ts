@@ -70,6 +70,12 @@ function matchMaterial(prodItem: { name: string; isFluid: boolean }, reqItem: { 
   const rNorm = normalizeMatName(reqItem.name);
   if (pNorm === rNorm) return true;
 
+  // 泛用底料配對：任意物品 / 重構底料 / 底料 / 底料專供 互通
+  const isGenericBase = (n: string) => n === '任意物品' || n === '重構底料' || n === '底料' || n === '底料專供' || n === '底料作物';
+  if (isGenericBase(pNorm) && isGenericBase(rNorm)) {
+    return true;
+  }
+
   // 生熟嚴格隔離：生料（如生通心粉、生千層麵、生史萊姆肉丸）絕不可直供需熟料之設備（自動廚師機），必須經由熱加工烹飪設備（煮鍋、油炸鍋等）
   const pRaw = isRawItem(pNorm);
   const rRaw = isRawItem(rNorm);
@@ -98,7 +104,7 @@ function getProcessOutputItem(
   allItems: Set<string>
 ): { name: string; isFluid: boolean } {
   if (p.machine === '自動廚師機') return { name: dishName, isFluid: false };
-  if (p.processName.includes('底料作物採集') || p.processName.includes('底料專供')) {
+  if (p.processName.includes('底料作物採集') || p.processName.includes('底料專供') || p.processName.includes('任意物品')) {
     return { name: '重構底料', isFluid: false };
   }
 
@@ -307,6 +313,10 @@ export function calculateSingleDish(
     if (p.machine === '物質操縱機') {
       warnings.push('異界重構：每台需 1.0 fl/s 虛空 ＋ 1 台底料收割機');
     }
+    const matchingInter = intermediateRecipes.find(r => r.name === p.processName);
+    if (p.machine !== '物質操縱機' && matchingInter && matchingInter.inputs?.some(inp => ['任意物品', '重構底料', '底料'].includes(inp.name))) {
+      warnings.push('泛用底料供給：每台需 1 台底料收割機直供任意原料');
+    }
 
     processNodes.push({
       processName: p.processName,
@@ -353,6 +363,26 @@ export function calculateSingleDish(
     inputs: getProcessInputItems(p, dishName, processNodes, recipes, intermediateRecipes)
   }));
 
+  // Identify base consumer nodes (machines consuming 任意物品 / 重構底料, e.g. 物質操縱機, 烤箱等)
+  const baseConsumerNodes = processNodes.filter(p => {
+    if (p.machine === '物質操縱機') return true;
+    const ctx = nodeContexts.find(nc => nc.node === p);
+    if (ctx && ctx.inputs.some(inp => ['任意物品', '重構底料', '底料'].includes(inp.name))) {
+      return true;
+    }
+    const inter = intermediateRecipes.find(r => r.name === p.processName);
+    if (inter && inter.inputs?.some(inp => ['任意物品', '重構底料', '底料'].includes(inp.name))) {
+      return true;
+    }
+    return false;
+  });
+
+  const baseConsumerCount = baseConsumerNodes.reduce((sum, p) => sum + p.countRounded, 0);
+  const consumerMachines = Array.from(new Set(baseConsumerNodes.map(p => p.machine)));
+  const primaryConsumerMachine = consumerMachines.length === 1
+    ? consumerMachines[0]
+    : (consumerMachines.length > 1 ? consumerMachines.join('、') : '物質操縱機');
+
   nodeContexts.forEach(curr => {
     if (curr.node.machine === '自動廚師機') {
       curr.node.topology = '終端出餐 (大炮發射)';
@@ -384,11 +414,12 @@ export function calculateSingleDish(
           isFluid: true,
           note: '1.0 fl/s'
         }];
-      } else if (curr.node.processName.includes('底料作物採集') || curr.node.processName.includes('底料專供')) {
-        curr.node.topology = '直供【物質操縱機】(重構底料)';
+      } else if (curr.node.processName.includes('底料作物採集') || curr.node.processName.includes('底料專供') || curr.node.processName.includes('任意物品')) {
+        const targetMach = primaryConsumerMachine || '物質操縱機';
+        curr.node.topology = `直供【${targetMach}】(底料原料)`;
         curr.node.downstreamTargets = [{
-          processName: '重構底料',
-          machine: '物質操縱機',
+          processName: '底料原料',
+          machine: targetMach,
           ratio: 1
         }];
       } else {
@@ -435,17 +466,13 @@ export function calculateSingleDish(
     }
   });
 
-  // 3. 重構底料收割機 (Matter Manipulator Base Feeder Harvesters)
-  const matterManipulatorsCount = processNodes
-    .filter(p => p.machine === '物質操縱機')
-    .reduce((sum, p) => sum + p.countRounded, 0);
-
+  // 3. 泛用底料收割機 (Base Feeder Harvesters - 物質操縱機或任何需「任意物品/底料」之設備)
   let offsetCount = 0;
   let offsetSource = '';
 
-  if (feederStrategy === 'recycle' && matterManipulatorsCount > 0) {
-    // 檢查產線中是否有具備過剩產能的固體中間加工工序 (排除終端組裝、純流體與發電機)
-    const nonDonorMachines = ['自動廚師機', '物質操縱機', '攪拌機', '注入機', '虛空熔爐', '虛空泵機'];
+  if (feederStrategy === 'recycle' && baseConsumerCount > 0) {
+    // 檢查產線中是否有具備過剩產能的固體中間加工工序 (排除終端組裝、純流體與發電機，以及底料消耗設備自身)
+    const nonDonorMachines = ['自動廚師機', ...consumerMachines, '物質操縱機', '攪拌機', '注入機', '虛空熔爐', '虛空泵機'];
     const candidateNodes = processNodes.filter(p => 
       !nonDonorMachines.includes(p.machine) &&
       p.countRounded > p.demandRate
@@ -468,10 +495,10 @@ export function calculateSingleDish(
     });
 
     if (totalOffsetAvailable > 0) {
-      const manipulators = processNodes.filter(p => p.machine === '物質操縱機');
+      const manipulators = baseConsumerNodes;
 
-      // 動態分析：判斷是否有候選過剩工序的原料鏈向上依賴本料理中的某台物質操縱機產物 (Chicken-and-Egg 死鎖防護)
-      // 若依賴某台物質操縱機，該操縱機即為「起始啟動機 (Progenitor)」，必須保留其專屬底料收割機啟動鏈條
+      // 動態分析：判斷是否有候選過剩工序的原料鏈向上依賴本料理中的某台底料設備產物 (Chicken-and-Egg 死鎖防護)
+      // 若依賴某台設備，該設備即為「起始啟動機 (Progenitor)」，必須保留其專屬底料收割機啟動鏈條
       const progenitorManipulators = manipulators.filter(m => {
         const mProduct = m.processName.replace('重構', '').replace('物質操縱', '').trim();
         return candidateNodes.some(c => {
@@ -484,7 +511,7 @@ export function calculateSingleDish(
 
       const hasManipulatorChain = progenitorManipulators.length > 0;
       const rootManipulator = progenitorManipulators[0] || manipulators[0];
-      const maxAllowed = hasManipulatorChain ? Math.max(0, matterManipulatorsCount - 1) : matterManipulatorsCount;
+      const maxAllowed = hasManipulatorChain ? Math.max(0, baseConsumerCount - 1) : baseConsumerCount;
       offsetCount = Math.min(totalOffsetAvailable, maxAllowed);
 
       if (offsetCount > 0) {
@@ -539,7 +566,7 @@ export function calculateSingleDish(
             ds.recipients.forEach(r => {
               d.downstreamTargets!.push({
                 processName: r.processName,
-                machine: '物質操縱機',
+                machine: r.machine,
                 ratio: 1,
                 isByproduct: true,
                 note: '副產物折抵'
@@ -557,15 +584,17 @@ export function calculateSingleDish(
     }
   }
 
-  const finalFeederCount = Math.max(0, matterManipulatorsCount - offsetCount);
+  const finalFeederCount = Math.max(0, baseConsumerCount - offsetCount);
   const baseFeeders = {
     strategy: feederStrategy,
-    grossRequired: matterManipulatorsCount,
+    grossRequired: baseConsumerCount,
     offsetCount,
     count: finalFeederCount,
     offsetSource: offsetSource || undefined,
     power: finalFeederCount * 1.0, // 1 FV/s per feeder
-    goblins: finalFeederCount * 1.0 // 1 goblin per feeder
+    goblins: finalFeederCount * 1.0, // 1 goblin per feeder
+    consumerMachine: primaryConsumerMachine,
+    consumerMachines: consumerMachines.length > 0 ? consumerMachines : ['物質操縱機']
   };
 
   // 4. Fluids System (Four-Quadrant Dashboard Structure)

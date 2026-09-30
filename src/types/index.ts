@@ -130,6 +130,8 @@ export interface CalculationResult {
     offsetSource?: string;
     power: number;
     goblins: number;
+    consumerMachine?: string;
+    consumerMachines?: string[];
   };
 
   // Four-Quadrant Fluid Dashboard
