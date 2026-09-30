@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Recipe, ProcessNode, FeederStrategy, DownstreamTarget } from '../../types';
-import { calculateSingleDish, sizeAutonomousPump, isScorchingDish, getProcessItemOutputRate, getProcessRealSurplusRate, sortProcessesDownstreamToUpstream } from '../../services/solver';
+import { calculateSingleDish, sizeAutonomousPump, isScorchingDish, getProcessRealSurplusRate, sortProcessesDownstreamToUpstream } from '../../services/solver';
 import { dataService } from '../../services/dataService';
 import { getMachineBadgeClass, chunkTargets } from '../../utils/machineBadge';
 import { RecipeSearchSelect } from '../Common/RecipeSearchSelect';
