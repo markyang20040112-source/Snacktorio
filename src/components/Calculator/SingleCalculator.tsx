@@ -68,7 +68,7 @@ export const SingleCalculator: React.FC<SingleCalculatorProps> = ({ recipes }) =
             <div className="flex space-x-2">
               <input
                 type="number"
-                step="1"
+                step="any"
                 min="0.1"
                 value={targetRateMin}
                 onChange={(e) => setTargetRateMin(parseFloat(e.target.value) || 0)}

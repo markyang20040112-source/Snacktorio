@@ -638,7 +638,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
                 <label className="text-xs text-slate-400 whitespace-nowrap">目標速率 (份/分):</label>
                 <input
                   type="number"
-                  step="1"
+                  step="any"
                   min="0.1"
                   value={item.rateMin}
                   onChange={(e) => updateDish(item.id, { rateMin: parseFloat(e.target.value) || 0 })}

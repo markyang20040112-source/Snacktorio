@@ -633,8 +633,8 @@ export const IntermediateManager: React.FC<IntermediateManagerProps> = ({
                       <div className="flex items-center space-x-1 shrink-0">
                         <input
                           type="number"
-                          step="0.5"
-                          min="0.1"
+                          step="any"
+                          min="0.01"
                           value={inp.count}
                           onChange={(e) => {
                             const newInputs = [...editingRecipe.inputs];
@@ -717,7 +717,7 @@ export const IntermediateManager: React.FC<IntermediateManagerProps> = ({
                     <label className="block text-[11px] text-slate-400 mb-1">持續液體流量 (fl/s)</label>
                     <input
                       type="number"
-                      step="0.1"
+                      step="any"
                       min="0"
                       value={editingRecipe.fluidRate}
                       onChange={(e) => setEditingRecipe({ ...editingRecipe, fluidRate: parseFloat(e.target.value) || 0 })}
@@ -774,8 +774,8 @@ export const IntermediateManager: React.FC<IntermediateManagerProps> = ({
                     <label className="block text-[11px] text-slate-400 mb-1">單次加工週期 (秒)</label>
                     <input
                       type="number"
-                      step="0.5"
-                      min="0.1"
+                      step="any"
+                      min="0.01"
                       value={editingRecipe.cycleTime}
                       onChange={(e) => setEditingRecipe({ ...editingRecipe, cycleTime: parseFloat(e.target.value) || 1 })}
                       className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-slate-100 font-mono"
@@ -785,6 +785,7 @@ export const IntermediateManager: React.FC<IntermediateManagerProps> = ({
                     <label className="block text-[11px] text-slate-400 mb-1">單次產量 ({outputType === 'liquid' ? 'fl' : '個'})</label>
                     <input
                       type="number"
+                      step="any"
                       min="1"
                       value={editingRecipe.outputCount}
                       onChange={(e) => setEditingRecipe({ ...editingRecipe, outputCount: parseFloat(e.target.value) || 1 })}
