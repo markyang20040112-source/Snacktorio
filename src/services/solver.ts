@@ -600,6 +600,17 @@ export function calculateSingleDish(
       if (other === curr) return;
       const matchingInput = other.inputs.find(inp => matchMaterial(curr.output, inp));
       if (matchingInput) {
+        // Dedicated pipeline isolation: if current process specifies a dedicated target in parentheses
+        // like (廚師機專線), (奶油專線), (奶酪專線), (黃油專線), only link to that matching machine/process
+        if (curr.node.processName.includes('(') && curr.node.processName.includes('專線)')) {
+          const match = curr.node.processName.match(/\((.*?)專線\)/);
+          if (match) {
+            const hint = match[1];
+            const isMatch = other.node.machine.includes(hint) ||
+                            other.node.processName.includes(hint);
+            if (!isMatch) return;
+          }
+        }
         consumers.push({
           target: other.node,
           reqCount: matchingInput.count || 1,
@@ -637,13 +648,15 @@ export function calculateSingleDish(
     } else if (consumers.length === 1) {
       const c = consumers[0];
       if (c.isFluid) {
-        curr.node.topology = `專線直供【${c.target.processName}】(${c.target.machine}) (1.0 fl/s)`;
+        const rateVal = c.reqCount || (c.target.machine === '混合機' ? 0.5 : 1.0);
+        const rateStr = `${rateVal} fl/s`;
+        curr.node.topology = `專線直供【${c.target.processName}】(${c.target.machine}) (${rateStr})`;
         curr.node.downstreamTargets = [{
           processName: c.target.processName,
           machine: c.target.machine,
           ratio: 1,
           isFluid: true,
-          note: '1.0 fl/s'
+          note: rateStr
         }];
       } else {
         curr.node.topology = `連至【${c.target.processName}】(${c.target.machine})`;
