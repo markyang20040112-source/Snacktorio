@@ -1617,12 +1617,13 @@
   {
     "island": "斯科瓦拉",
     "name": "哈瓦那魔椒",
-    "source": "",
+    "source": "油炸鍋",
     "isPerishable": false,
     "spoilTime": null,
     "spoilProduct": "-",
-    "attributes": "無",
-    "notes": ""
+    "attributes": "熾熱",
+    "notes": "",
+    "isFluid": false
   },
   {
     "island": "斯科瓦拉",
