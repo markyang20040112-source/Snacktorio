@@ -1606,5 +1606,35 @@
     "cycleTime": 5,
     "outputCount": 5,
     "notes": ""
+  },
+  {
+    "name": "炸鷹身女妖肉",
+    "machine": "油炸鍋",
+    "fluidType": "油",
+    "fluidRate": 1,
+    "inputs": [
+      {
+        "name": "生鷹身女妖肉",
+        "count": 1
+      }
+    ],
+    "cycleTime": 5,
+    "outputCount": 1,
+    "notes": ""
+  },
+  {
+    "name": "哈瓦那魔椒",
+    "machine": "油炸鍋",
+    "fluidType": "致命莎莎醬",
+    "fluidRate": 1,
+    "inputs": [
+      {
+        "name": "魔鬼椒",
+        "count": 1
+      }
+    ],
+    "cycleTime": 5,
+    "outputCount": 1,
+    "notes": ""
   }
 ]
