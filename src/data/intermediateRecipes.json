@@ -1405,7 +1405,7 @@
       }
     ],
     "cycleTime": 5,
-    "outputCount": 5,
+    "outputCount": 1,
     "notes": "辣椒注入油池原位轉化為炙烈紅油，需泵機抽取輸送"
   },
   {
@@ -1486,7 +1486,7 @@
       }
     ],
     "cycleTime": 5,
-    "outputCount": 5,
+    "outputCount": 1,
     "notes": "甘酒通過注入機於水池原位轉化製成醋(不需外採抽水管線)"
   },
   {
@@ -1600,6 +1600,10 @@
       },
       {
         "name": "油荳蔻",
+        "count": 1
+      },
+      {
+        "name": "辛辣沙沙醬",
         "count": 1
       }
     ],
