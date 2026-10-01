@@ -362,6 +362,22 @@ export function generateProcessesFromRecipe(
     const inter = intermediateRecipes.find(r => r.name === name);
     if (inter) {
       const ikey = inter.name;
+
+      // 原位轉化機制 (Injector In-situ Transformation Rule):
+      // 注入機直接置於環境池中，單道料理只需 1 台注入機原位轉化，單次固定消耗 1 個辛香料 (0.2/s)，不隨下游流體抽取量倍增。
+      if (inter.machine === '注入機') {
+        if (!interMap.has(ikey)) {
+          interMap.set(ikey, { recipe: inter, countPerDish: 1 });
+          const newPath = [...path, ikey];
+          (inter.inputs || []).forEach(inp => {
+            if (inp.name && !['無', '任意物品', '無(空載)', '重構底料', '底料'].includes(inp.name) && inp.count > 0) {
+              queue.push({ name: inp.name, reqPerDish: inp.count * 1, path: newPath });
+            }
+          });
+        }
+        continue;
+      }
+
       if (!interMap.has(ikey)) {
         interMap.set(ikey, { recipe: inter, countPerDish: 0 });
       }
@@ -1152,14 +1168,15 @@ export function calculateSingleDish(
 
       processNodes.forEach(p => {
         if (p.machine === '自動廚師機') return;
-        if (p.machine === '煮鍋') baseWater += 1.0;
-        else if (p.machine === '油炸鍋') baseOil += 1.0;
+        const inter = intermediateRecipes.find(r => r.name === p.processName || p.processName.includes(r.name));
+        const fType = inter?.fluidType;
+        if (p.machine === '煮鍋' && fType !== '醋') baseWater += 1.0;
+        else if (p.machine === '油炸鍋' && fType !== '炙烈紅油') baseOil += 1.0;
         else if (p.machine === '物質操縱機') baseVoid += 1.0;
         else if (p.machine === '混合機') {
-          const inter = intermediateRecipes.find(r => r.name === p.processName || p.processName.includes(r.name));
-          if (inter?.fluidType === '水') baseWater += (inter.fluidRate || 0.5);
-          else if (inter?.fluidType === '油') baseOil += (inter.fluidRate || 0.5);
-          else if (inter?.fluidType === '虛空') baseVoid += (inter.fluidRate || 1.0);
+          if (fType === '水') baseWater += (inter?.fluidRate || 0.5);
+          else if (fType === '油') baseOil += (inter?.fluidRate || 0.5);
+          else if (fType === '虛空') baseVoid += (inter?.fluidRate || 1.0);
         }
       });
     }
@@ -1173,10 +1190,15 @@ export function calculateSingleDish(
 
   // Dual-Tier Node Engine fallback validation matching Excel N9 and N10:
   // Water: MAX(BOM, 煮鍋 + ⌈混合機/2⌉)
+  // 排除使用衍生流體（炙烈紅油、醋）的設備，杜絕重疊外採
   const cookersCount = processNodes.filter(p => p.machine === '煮鍋').reduce((sum, p) => sum + p.countRounded, 0);
-  const fryersCount = processNodes.filter(p => p.machine === '油炸鍋').reduce((sum, p) => sum + p.countRounded, 0);
+  const fryersCount = processNodes.filter(p => {
+    if (p.machine !== '油炸鍋') return false;
+    const inter = intermediateRecipes.find(r => r.name === p.processName || p.processName.includes(r.name));
+    return inter?.fluidType !== '炙烈紅油';
+  }).reduce((sum, p) => sum + p.countRounded, 0);
   const waterMixers = processNodes.filter(p => p.machine === '混合機' && (p.processName.includes('麵包') || p.processName.includes('甘酒') || p.processName.includes('黃油'))).reduce((sum, p) => sum + p.countRounded, 0);
-  const oilMixers = processNodes.filter(p => p.machine === '混合機' && (p.processName.includes('玉米') || p.processName.includes('沙沙'))).reduce((sum, p) => sum + p.countRounded, 0);
+  const oilMixers = processNodes.filter(p => p.machine === '混合機' && p.processName.includes('玉米')).reduce((sum, p) => sum + p.countRounded, 0);
 
   const demandWater = Math.max(demandWaterRaw, cookersCount * 1.0 + Math.ceil(waterMixers / 2.0));
   const demandOil = Math.max(demandOilRaw, fryersCount * 1.0 + Math.ceil(oilMixers / 2.0));
@@ -1190,14 +1212,21 @@ export function calculateSingleDish(
     transFluidName = injProcess ? injProcess.processName.replace('注入', '').replace('採收', '').trim() : '衍生流體';
     injProcessName = injProcess?.processName || '原位轉化抽取';
     
-    // In Excel: if 炙烈紅油: cookers * 1.0 + mixers * 0.5; else 1.0 fl/s
-    if (transFluidName.includes('紅油')) {
+    // 動態結算所有直接或中間抽取此衍生流體（炙烈紅油、醋等）之設備流率總和
+    let directDemand = 0;
+    if (dishRecipe?.fluidType === transFluidName) {
       const cookerCount = processNodes.filter(p => p.machine === '自動廚師機').reduce((sum, p) => sum + p.countRounded, 0);
-      const mixerCount = processNodes.filter(p => p.machine === '混合機').reduce((sum, p) => sum + p.countRounded, 0);
-      transDemand = cookerCount * 1.0 + mixerCount * 0.5;
-    } else {
-      transDemand = 1.0;
+      directDemand += cookerCount * (dishRecipe.fluidRate || 1.0);
     }
+    processNodes.forEach(p => {
+      if (p.machine === '自動廚師機' || p.machine === '注入機') return;
+      const inter = intermediateRecipes.find(r => r.name === p.processName || p.processName.includes(r.name));
+      if (inter?.fluidType === transFluidName) {
+        directDemand += p.countRounded * (inter.fluidRate || 1.0);
+      }
+    });
+
+    transDemand = directDemand > 0 ? directDemand : 1.0;
   }
 
   // Autonomous Overclocking Threshold Rule:
