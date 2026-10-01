@@ -61,10 +61,24 @@ class DataService {
 
       const ir = localStorage.getItem(STORAGE_KEYS.INTERMEDIATE);
       if (ir) {
-        const parsedIr = JSON.parse(ir);
+        const parsedIr: IntermediateRecipe[] = JSON.parse(ir);
         const existingIrNames = new Set(parsedIr.map((rec: any) => rec.name));
         const missingIr = (initialIntermediate as IntermediateRecipe[]).filter(rec => !existingIrNames.has(rec.name));
-        this.intermediate = [...parsedIr, ...missingIr];
+        let changed = false;
+        this.intermediate = [...parsedIr, ...missingIr].map(rec => {
+          const init = (initialIntermediate as IntermediateRecipe[]).find(i => i.name === rec.name);
+          if (init) {
+            // 自動同步系統標準之連續流體產量 (例如炙烈紅油與醋為 5 秒 5 fl = 1.0 fl/s 專線供液)
+            if (init.outputCount && rec.outputCount !== init.outputCount && ['炙烈紅油', '醋'].includes(rec.name)) {
+              changed = true;
+              return { ...rec, outputCount: init.outputCount };
+            }
+          }
+          return rec;
+        });
+        if (changed || missingIr.length > 0) {
+          localStorage.setItem(STORAGE_KEYS.INTERMEDIATE, JSON.stringify(this.intermediate));
+        }
       } else {
         this.intermediate = initialIntermediate;
       }
