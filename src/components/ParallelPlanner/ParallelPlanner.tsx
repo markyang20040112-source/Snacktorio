@@ -273,7 +273,8 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
     }
 
     const list = Array.from(processMap.values()).map(record => {
-      const parallelRounded = Math.ceil(record.totalDemandRate);
+      // 注入機環境設施並聯整併法則：全廠共用同一片轉化池，並聯時整併為 1 台環境轉化機，節省其餘重複台數
+      const parallelRounded = record.machine === '注入機' ? 1 : Math.ceil(record.totalDemandRate);
       const savedCount = record.independentSum - parallelRounded;
       return {
         ...record,
@@ -477,11 +478,16 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
       totalOilDemand += item.calc.fluids.oil.demand;
       totalProcessVoid += item.calc.fluids.voidFluid.breakdown.processVoid;
       item.calc.fluids.transformations.forEach(t => {
-        allTransformations.push({
-          name: t.name,
-          fluid: t.fluid,
-          demand: t.demand
-        });
+        const existing = allTransformations.find(x => x.fluid === t.fluid);
+        if (existing) {
+          existing.demand = Number((existing.demand + t.demand).toFixed(2));
+        } else {
+          allTransformations.push({
+            name: t.name,
+            fluid: t.fluid,
+            demand: t.demand
+          });
+        }
       });
       item.calc.fluids.sauces.forEach(s => {
         allSauces.push({

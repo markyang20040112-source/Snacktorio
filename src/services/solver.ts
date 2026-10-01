@@ -1674,6 +1674,27 @@ export function combineCalculationResults(
     combinedProcesses = [...primaryProcesses, ...secondaryProcesses];
   }
 
+  // 注入機環境設施並聯整併：全廠共用 1 片轉化池，並聯時整併為 1 台
+  const injectorProcs = combinedProcesses.filter(p => p.machine === '注入機');
+  if (injectorProcs.length > 1) {
+    const firstInj = injectorProcs[0];
+    const otherInjs = injectorProcs.slice(1);
+    combinedProcesses = combinedProcesses.filter(p => !otherInjs.includes(p)).map(p => {
+      if (p === firstInj) {
+        return {
+          ...p,
+          countExact: 1,
+          countRounded: 1,
+          demandRate: 1,
+          power: 1.0,
+          goblins: 2.0,
+          dishTag: '全廠'
+        };
+      }
+      return p;
+    });
+  }
+
   // Combined base feeders summary
   const combinedBaseFeeders = {
     strategy: primary.baseFeeders.strategy,
@@ -1689,7 +1710,17 @@ export function combineCalculationResults(
   const totalWaterDemand = Number((primary.fluids.water.demand + secondary.fluids.water.demand).toFixed(2));
   const totalOilDemand = Number((primary.fluids.oil.demand + secondary.fluids.oil.demand).toFixed(2));
   const totalProcessVoid = Number((primary.fluids.voidFluid.breakdown.processVoid + secondary.fluids.voidFluid.breakdown.processVoid).toFixed(2));
-  const combinedTransformations = [...primary.fluids.transformations, ...secondary.fluids.transformations];
+
+  // Merge in-situ transformation pumps by fluid type
+  const mergedTransMap = new Map<string, { name: string; fluid: string; demand: number }>();
+  [...primary.fluids.transformations, ...secondary.fluids.transformations].forEach(t => {
+    if (mergedTransMap.has(t.fluid)) {
+      mergedTransMap.get(t.fluid)!.demand = Number((mergedTransMap.get(t.fluid)!.demand + t.demand).toFixed(2));
+    } else {
+      mergedTransMap.set(t.fluid, { name: t.name, fluid: t.fluid, demand: t.demand });
+    }
+  });
+  const combinedTransformations = Array.from(mergedTransMap.values());
   const combinedSauces = [...primary.fluids.sauces, ...secondary.fluids.sauces];
 
   const anyTransOver6 = combinedTransformations.some(t => t.demand > 6.0);
