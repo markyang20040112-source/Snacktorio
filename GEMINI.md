@@ -48,3 +48,5 @@
 - 核心邏輯手冊：`./docs/01_production_logic_and_physics.md`
 - 動態公式手冊：`./docs/02_spreadsheet_architecture_and_formulas.md`
 - 食譜登錄與 SOP：`./docs/03_recipe_ingestion_sop_and_case_studies.md`
+- 開發決策日誌：`./docs/CHANGELOG.md`（詳細歷史紀錄；`PROJECT_STATUS.md` 僅保留現況摘要與近期決策）
+- 回歸測試：`./scripts/regression/`（重構 solver / planner 前後須比對結果為 IDENTICAL）
