@@ -1,6 +1,7 @@
 import itemIconsData from '../data/itemIcons.json';
 import recipesData from '../data/recipes.json';
 import { dataService } from '../services/dataService';
+import { ITEM_ACTION_PREFIX } from './actionVerbs';
 
 const itemIcons: Record<string, string> = itemIconsData as Record<string, string>;
 
@@ -93,8 +94,7 @@ export function getItemIcon(name: string, customIcon?: string): string | undefin
 
   // 5. Extended action verb prefix stripping
   // Matches: 採收, 開採, 採集, 製作, 調配, 水煮, 油炸, 重構, 擠出, 研磨, 混合, 混和, 烘焙, 烘烤, 攪拌, 剝皮, 注入, 絞碎, 發酵, 炸, 煮, 採
-  const actionPattern = /^(採收|開採|採集|製作|調配|水煮|油炸|重構|擠出|研磨|混合|混和|烘焙|烘烤|攪拌|剝皮|注入|絞碎|發酵|炸|煮|採)/;
-  const strippedAction = baseName.replace(actionPattern, '').trim();
+  const strippedAction = baseName.replace(ITEM_ACTION_PREFIX, '').trim();
 
   if (strippedAction) {
     if (DIRECT_PROCESS_ALIASES[strippedAction]) {

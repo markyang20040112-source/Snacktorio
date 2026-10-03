@@ -1,6 +1,7 @@
 import { dataService } from './dataService';
 import { CalculationResult, ProcessNode, FluidTierInfo, Item, FeederStrategy, Recipe, IntermediateRecipe, Machine, CalculatorProcess, DownstreamTarget } from '../types';
 import { parseFractionOrNumber, formatFractionOrDecimal, gcdArray } from '../utils/math';
+import { PROCESS_ACTION_VERBS, ITEM_ACTION_PREFIX } from '../utils/actionVerbs';
 
 /**
  * Autonomous pump sizing ladder matching Excel formulas
@@ -157,7 +158,7 @@ const COOKED_GROUPS = [
   ['麵包麵團', '麵包麵糰', '發酵麵糰', '發酵麵團', '麵團', '麵糰']
 ];
 
-const ACTION_VERBS = /^(採收|採掘|開採|採集|重構|物質操縱|研磨|混和|混合|水煮|燉煮|清蒸|擠出|油炸|炸|油煎|煎|烘烤|烘焙|注入|發酵|切片|壓榨|離心|煎烤|熬煮|烹煮|絞碎|剝皮|攪拌|萃取|提煉|粉碎|打碎|調配|製造|加工)/;
+const ACTION_VERBS = PROCESS_ACTION_VERBS;
 
 function normalizeMatName(str: string): string {
   return str.replace(/麵糰/g, '麵團');
@@ -1364,7 +1365,7 @@ export function calculateSingleDish(
 function normalizeProcessOrItemName(name: string): string {
   if (!name) return '';
   let cleaned = name.replace(/[\(（][^\)）]*[\)）]/g, '').trim();
-  cleaned = cleaned.replace(/^(採收|開採|採集|製作|調配|水煮|油炸|重構|擠出|研磨|混合|混和|烘焙|烘烤|攪拌|剝皮|注入|絞碎|發酵|炸|煮|採)/, '').trim();
+  cleaned = cleaned.replace(ITEM_ACTION_PREFIX, '').trim();
   cleaned = cleaned.replace(/莎莎/g, '沙沙').replace(/波蘿/g, '菠蘿');
   if (cleaned === '史萊姆') return '綠色史萊姆';
   if (cleaned === '鷹身女妖肉') return '生鷹身女妖肉';
