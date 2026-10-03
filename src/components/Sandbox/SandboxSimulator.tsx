@@ -731,10 +731,10 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
 
               {/* 分頁 2: 基礎物資、採掘礦產與活體重構 */}
               {activeCatalogTab === 'items' && (() => {
-                // 嚴格過濾原生開採物資 (排除熟食、半成品、地圖方塊與建築結構)
-                const isReconItem = (i: Item) => i.source === '物質操縱機' || ['泥沼蟑螂', '綠色史萊姆', '巫妖骸骨', '粉紅仙子', '鷹身女妖翅膀', '虛空汙泥'].includes(i.name);
-                const isMinerItem = (i: Item) => i.source === '採掘機' || i.source === '採掘機直接開採' || ['煤炭', '鹽', '鐵礦石', '黏土', '豆肉蔻', '香豆蔻'].includes(i.name);
-                const isHarvestItem = (i: Item) => !isReconItem(i) && !isMinerItem(i) && (i.source === '收割機' || ['辣椒', '水稻', '小麥', '洋蔥蔥', '土豆', '小蒜', '日桂葉', '刺波蘿', '菠菜', '油荳蔻', '松子', '姜姜', '樹脂', '鬼魅菇孢子', '致命傘菇'].includes(i.name));
+                // 嚴格過濾原生開採物資：一律依 items.json 之 source 欄位判定（純資料庫驅動，新增食材免改程式）
+                const isReconItem = (i: Item) => i.source === '物質操縱機';
+                const isMinerItem = (i: Item) => i.source === '採掘機' || i.source === '採掘機直接開採';
+                const isHarvestItem = (i: Item) => !isReconItem(i) && !isMinerItem(i) && i.source === '收割機';
 
                 const filteredRawItems = items.filter(i => {
                   if (i.isFluid) return false;
