@@ -1,5 +1,5 @@
 import React from 'react';
-import { SandboxNodeData, PortDefinition } from './sandboxTypes';
+import { SandboxNodeData } from './sandboxTypes';
 import { ItemIcon } from '../Common/ItemIcon';
 import { getMachineBadgeClass } from '../../utils/machineBadge';
 import { Zap, Users, Flame, Droplets, Trash2, Infinity as InfinityIcon } from 'lucide-react';

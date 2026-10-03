@@ -1,8 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   SandboxNodeData, 
-  SandboxConnection, 
-  SandboxMetrics 
+  SandboxConnection 
 } from './sandboxTypes';
 import { simulateSandboxPhysics } from './sandboxPhysics';
 import { SandboxNode } from './SandboxNode';
@@ -13,16 +12,12 @@ import {
   Users, 
   Droplets, 
   Plus, 
-  RotateCcw, 
   Search, 
   Compass, 
-  Share2, 
-  Play, 
-  HelpCircle,
-  FolderOpen,
-  Sparkles,
-  Layers,
-  Flame
+  Sparkles, 
+  Layers, 
+  Flame,
+  Pickaxe
 } from 'lucide-react';
 
 interface SandboxSimulatorProps {
@@ -208,6 +203,45 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
       solidSaturation: 1.0,
       inputs,
       outputs
+    };
+
+    setNodes(prev => [...prev, newNode]);
+    setSelectedNodeId(id);
+  };
+
+  const handleAddItemHarvester = (item: Item) => {
+    const id = `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
+    const isOre = item.name.includes('礦') || item.name.includes('鹽') || item.name.includes('煤');
+    const machName = isOre ? '採掘機' : '收割機';
+    const mach = machines.find(m => m.name === machName) || { name: machName, power: 1.0, goblins: 1 };
+
+    const newNode: SandboxNodeData = {
+      id,
+      type: 'machine',
+      title: `採收/開採：${item.name}`,
+      machineName: machName,
+      island: item.island,
+      x: -pan.x + 350 + Math.random() * 60,
+      y: -pan.y + 200 + Math.random() * 60,
+      baseCycleTime: 5,
+      baseOutputCount: 1,
+      basePowerConsumption: mach.power,
+      baseGoblins: mach.goblins,
+      actualCycleTime: 5,
+      efficiency: 1.0,
+      actualPower: mach.power,
+      actualGoblins: mach.goblins,
+      fluidSaturation: 1.0,
+      solidSaturation: 1.0,
+      inputs: [],
+      outputs: [
+        {
+          id: `out-${item.name}`,
+          name: item.name,
+          type: 'solid',
+          rateProvided: 0.2
+        }
+      ]
     };
 
     setNodes(prev => [...prev, newNode]);
@@ -514,22 +548,28 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         {isSidebarOpen && (
           <>
             {/* 分類標籤切換 */}
-            <div className="flex border-b border-[#1c2e38] text-[11px] font-bold p-1 bg-slate-950/40">
+            <div className="grid grid-cols-4 border-b border-[#1c2e38] text-[10px] font-bold p-1 bg-slate-950/40 gap-0.5">
               <button 
                 onClick={() => setActiveCatalogTab('machines')}
-                className={`flex-1 py-1.5 rounded-lg transition-colors ${activeCatalogTab === 'machines' ? 'bg-amber-500/20 text-amber-300' : 'text-slate-400 hover:text-slate-200'}`}
+                className={`py-1.5 rounded-lg transition-colors text-center ${activeCatalogTab === 'machines' ? 'bg-amber-500/20 text-amber-300' : 'text-slate-400 hover:text-slate-200'}`}
               >
-                機器設備
+                中間工序
+              </button>
+              <button 
+                onClick={() => setActiveCatalogTab('items')}
+                className={`py-1.5 rounded-lg transition-colors text-center ${activeCatalogTab === 'items' ? 'bg-emerald-500/20 text-emerald-300' : 'text-slate-400 hover:text-slate-200'}`}
+              >
+                自然採集
               </button>
               <button 
                 onClick={() => setActiveCatalogTab('fluids')}
-                className={`flex-1 py-1.5 rounded-lg transition-colors ${activeCatalogTab === 'fluids' ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-400 hover:text-slate-200'}`}
+                className={`py-1.5 rounded-lg transition-colors text-center ${activeCatalogTab === 'fluids' ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-400 hover:text-slate-200'}`}
               >
                 流體/能源
               </button>
               <button 
                 onClick={() => setActiveCatalogTab('recipes')}
-                className={`flex-1 py-1.5 rounded-lg transition-colors ${activeCatalogTab === 'recipes' ? 'bg-emerald-500/20 text-emerald-300' : 'text-slate-400 hover:text-slate-200'}`}
+                className={`py-1.5 rounded-lg transition-colors text-center ${activeCatalogTab === 'recipes' ? 'bg-purple-500/20 text-purple-300' : 'text-slate-400 hover:text-slate-200'}`}
               >
                 終端食譜
               </button>
@@ -585,7 +625,48 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
                 </div>
               )}
 
-              {/* 分頁 2: 流體環境池、外採泵機與電網 */}
+              {/* 分頁 2: 自然採集/開採作物與礦石 */}
+              {activeCatalogTab === 'items' && (
+                <div className="space-y-2">
+                  <div className="text-[10px] font-bold text-slate-500 px-1 uppercase tracking-wider flex items-center justify-between">
+                    <span>原生礦產與作物</span>
+                    <Pickaxe className="w-3 h-3 text-slate-500" />
+                  </div>
+                  {items
+                    .filter(i => !i.isFluid && (i.name.includes(searchQuery) || (i.source && i.source.includes(searchQuery))))
+                    .map(item => {
+                      const isOre = item.name.includes('礦') || item.name.includes('鹽') || item.name.includes('煤');
+                      return (
+                        <div
+                          key={item.name}
+                          onClick={() => handleAddItemHarvester(item)}
+                          className="flex items-center justify-between p-2 rounded-xl bg-[#0e171c] hover:bg-[#14222a] border border-slate-800/80 hover:border-emerald-500/50 cursor-pointer transition-all group"
+                        >
+                          <div className="flex items-center space-x-2 truncate">
+                            <ItemIcon name={item.name} size="sm" />
+                            <div className="truncate">
+                              <div className="font-bold text-slate-200 truncate group-hover:text-emerald-300 transition-colors">
+                                {item.name}
+                              </div>
+                              <div className="text-[10px] text-slate-500 flex items-center space-x-1">
+                                <span>{isOre ? '採掘機' : '收割機'}</span>
+                                {item.island && (
+                                  <>
+                                    <span>·</span>
+                                    <span>{item.island}</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          <Plus className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 shrink-0" />
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+
+              {/* 分頁 3: 流體環境池、外採泵機與電網 */}
               {activeCatalogTab === 'fluids' && (
                 <div className="space-y-2">
                   <div className="text-[10px] font-bold text-slate-500 px-1 uppercase tracking-wider">⚡ 電網基礎設施</div>
