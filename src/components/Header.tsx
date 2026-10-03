@@ -1,9 +1,9 @@
 import React from 'react';
-import { Calculator, Database, RefreshCw, ExternalLink } from 'lucide-react';
+import { Calculator, Database, RefreshCw, ExternalLink, Sparkles } from 'lucide-react';
 
 interface HeaderProps {
-  activeTab: 'calculator' | 'data' | 'sync';
-  setActiveTab: (tab: 'calculator' | 'data' | 'sync') => void;
+  activeTab: 'sandbox' | 'calculator' | 'data' | 'sync';
+  setActiveTab: (tab: 'sandbox' | 'calculator' | 'data' | 'sync') => void;
   dishesCount: number;
   machinesCount: number;
 }
@@ -55,6 +55,19 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Navigation Tabs */}
             <nav className="flex items-center space-x-1 sm:space-x-2 overflow-x-auto py-1">
+              <button
+                onClick={() => setActiveTab('sandbox')}
+                className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${
+                  activeTab === 'sandbox'
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 shadow-md shadow-emerald-500/10'
+                    : 'text-slate-400 hover:text-emerald-300 hover:bg-[#15232b]'
+                }`}
+                title="自由沙盒模擬器：全自主拖曳連線、流體分配、欠壓稀釋與電網負載模擬"
+              >
+                <Sparkles className="w-4 h-4 text-emerald-400" />
+                <span>★ 自由沙盒</span>
+              </button>
+
               <button
                 onClick={() => setActiveTab('calculator')}
                 className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${

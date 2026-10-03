@@ -3,13 +3,14 @@ import { Header } from './components/Header';
 import { ParallelPlanner } from './components/ParallelPlanner/ParallelPlanner';
 import { DataManager } from './components/DataManager/DataManager';
 import { SyncSettings } from './components/DataManager/SyncSettings';
+import { SandboxSimulator } from './components/Sandbox/SandboxSimulator';
 import { dataService } from './services/dataService';
 import { Machine, Item, IntermediateRecipe, Recipe } from './types';
 import { ExternalLink } from 'lucide-react';
 import { DynamicBackground } from './components/Common/DynamicBackground';
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'calculator' | 'data' | 'sync'>('calculator');
+  const [activeTab, setActiveTab] = useState<'sandbox' | 'calculator' | 'data' | 'sync'>('sandbox');
   const [machines, setMachines] = useState<Machine[]>([]);
   const [items, setItems] = useState<Item[]>([]);
   const [intermediate, setIntermediate] = useState<IntermediateRecipe[]>([]);
@@ -40,7 +41,16 @@ export const App: React.FC = () => {
           machinesCount={machines.length}
         />
 
-        <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className={`flex-1 w-full mx-auto ${activeTab === 'sandbox' ? 'max-w-[1800px] px-2 sm:px-4 py-4' : 'max-w-7xl px-4 sm:px-6 lg:px-8 py-8'}`}>
+          {activeTab === 'sandbox' && (
+            <SandboxSimulator
+              machines={machines}
+              items={items}
+              intermediate={intermediate}
+              recipes={recipes}
+            />
+          )}
+
           {activeTab === 'calculator' && (
             <ParallelPlanner recipes={recipes} />
           )}
