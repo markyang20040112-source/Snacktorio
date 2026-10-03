@@ -1,5 +1,5 @@
 import { Recipe, ProcessNode, FeederStrategy, DownstreamTarget, IntermediateRecipe, CalculationResult } from '../types';
-import { calculateSingleDish, sizeAutonomousPump, isScorchingDish, getProcessRealSurplusRate, sortProcessesDownstreamToUpstream, computeIntegerRatio } from './solver';
+import { calculateSingleDish, settlePlantInfrastructure, isScorchingDish, getProcessRealSurplusRate, sortProcessesDownstreamToUpstream, computeIntegerRatio } from './solver';
 import { dataService } from './dataService';
 import { formatFractionOrDecimal, gcdArray } from '../utils/math';
 
@@ -419,110 +419,19 @@ function consolidatePlan(
   totalOilDemand = Number(totalOilDemand.toFixed(2));
   totalProcessVoid = Number(totalProcessVoid.toFixed(2));
 
-  const anyTransOver6 = allTransformations.some(t => t.demand > 6.0);
-  const hasVoidFacility = totalProcessVoid > 0 ||
-                          powerMode === 'overclock' ||
-                          totalWaterDemand > 6.0 ||
-                          totalOilDemand > 6.0 ||
-                          anyTransOver6;
+  // 全廠基建結算（與單料理求解共用 settlePlantInfrastructure；totalMainPower 已含底料收割機）
+  const infra = settlePlantInfrastructure({
+    powerMode,
+    waterDemand: totalWaterDemand,
+    oilDemand: totalOilDemand,
+    processVoid: totalProcessVoid,
+    transformations: allTransformations,
+    mainPower: totalMainPower
+  });
 
-  // Autonomous Sizing for Plant-Wide Common Pumps
-  const plantWater = sizeAutonomousPump(totalWaterDemand, hasVoidFacility);
-  const plantOil = sizeAutonomousPump(totalOilDemand, hasVoidFacility);
-
-  const sizedTransformations = allTransformations.map(t => ({
-    ...t,
-    ...sizeAutonomousPump(t.demand, hasVoidFacility)
-  }));
-
-  const transSludge = sizedTransformations.reduce((sum, t) => sum + t.sludgeManipulators, 0);
-  const pumpSludgeVoid = (plantWater.sludgeManipulators + plantOil.sludgeManipulators + transSludge) * 1.0;
-
-  // Generator Void Estimation
-  const prelimPumpPower = plantWater.pumpPower + plantOil.pumpPower + sizedTransformations.reduce((sum, t) => sum + t.pumpPower, 0);
-  const prelimBaseLoad = totalMainPower + prelimPumpPower;
-
-  let genSludgeManipulators = 0;
-  let generatorSludgeVoid = 0;
-  if (powerMode === 'overclock') {
-    const prelimFurnaces = Math.max(1, Math.ceil(prelimBaseLoad / 14.0));
-    genSludgeManipulators = Math.ceil(prelimFurnaces / 2.0);
-    generatorSludgeVoid = genSludgeManipulators * 1.0;
-  }
-
-  const totalPlantVoidDemand = Number((totalProcessVoid + pumpSludgeVoid + generatorSludgeVoid).toFixed(2));
-
-  // Autonomous Void Pump sizing (modulo 7 ladder)
-  let voidOverclockPumps = 0;
-  let voidRegularPumps = 0;
-  if (totalPlantVoidDemand > 0) {
-    const rem7 = totalPlantVoidDemand % 7;
-    voidOverclockPumps = Math.floor(totalPlantVoidDemand / 7) + (rem7 > 2.0 ? 1 : 0);
-    voidRegularPumps = (rem7 > 0 && rem7 <= 2.0) ? 1 : 0;
-  }
-  const voidSludgeManipulators = voidOverclockPumps;
-  const voidPumpPower = (voidOverclockPumps + voidRegularPumps + voidSludgeManipulators) * 1.0;
-
-  const plantVoid = {
-    demand: totalPlantVoidDemand,
-    regularPumps: voidRegularPumps,
-    overclockPumps: voidOverclockPumps,
-    sludgeManipulators: voidSludgeManipulators,
-    pumpPower: voidPumpPower,
-    breakdown: {
-      processVoid: totalProcessVoid,
-      generatorSludgeVoid,
-      pumpSludgeVoid
-    }
-  };
-
-  // Plant-Wide Pump & Manipulator Totals
-  const totalPlantRegularPumps = plantWater.regularPumps + plantOil.regularPumps + plantVoid.regularPumps +
-                                 sizedTransformations.reduce((sum, t) => sum + t.regularPumps, 0);
-  const totalPlantOverclockPumps = plantWater.overclockPumps + plantOil.overclockPumps + plantVoid.overclockPumps +
-                                   sizedTransformations.reduce((sum, t) => sum + t.overclockPumps, 0);
-  const totalPlantSludgeManipulators = plantWater.sludgeManipulators + plantOil.sludgeManipulators + plantVoid.sludgeManipulators +
-                                       sizedTransformations.reduce((sum, t) => sum + t.sludgeManipulators, 0) +
-                                       genSludgeManipulators;
-
-  const totalPlantPumpPower = (totalPlantRegularPumps + totalPlantOverclockPumps + totalPlantSludgeManipulators) * 1.0;
-
-  // Power Grid 2:1 Balance Calculation
-  const baseForFurnace = totalMainPower + totalPlantPumpPower;
   const baseFeederRow = list.find(r => r.isBaseFeeder);
   const totalBaseFeederPower = baseFeederRow ? baseFeederRow.parallelRounded * 1.0 : 0;
   const totalPureMainPower = list.filter(r => !r.isBaseFeeder).reduce((acc, r) => acc + r.parallelRounded * r.powerPerUnit, 0);
-
-  let furnaces = 0;
-  let coalMiners = 0;
-  let coalRate = 0;
-  let grossPower = 0;
-  let netPower = 0;
-  let surplusPower = 0;
-
-  if (powerMode === 'regular') {
-    furnaces = Math.max(1, Math.ceil(baseForFurnace / 3.5));
-    coalMiners = Math.ceil(furnaces / 2.0);
-    grossPower = furnaces * 4.0;
-    coalRate = Number((furnaces * 0.1).toFixed(2));
-    const coalMinerPower = coalMiners * 1.0;
-    const totalLoad = baseForFurnace + coalMinerPower;
-    netPower = grossPower - coalMinerPower;
-    surplusPower = Number((netPower - totalLoad).toFixed(2));
-  } else {
-    furnaces = Math.max(1, Math.ceil(baseForFurnace / 14.0));
-    coalMiners = Math.ceil(furnaces / 2.0);
-    genSludgeManipulators = Math.ceil(furnaces / 2.0);
-    grossPower = furnaces * 16.0;
-    coalRate = Number((furnaces * 0.1).toFixed(2));
-    const coalMinerPower = coalMiners * 1.0;
-    const totalLoad = baseForFurnace + coalMinerPower;
-    netPower = grossPower - (coalMinerPower + genSludgeManipulators * 1.0);
-    surplusPower = Number((netPower - totalLoad).toFixed(2));
-  }
-
-  const totalPlantPowerLoad = baseForFurnace + coalMiners * 1.0;
-  const totalPlantGoblins = totalMainGoblins + furnaces * 1 + coalMiners * 1 + totalPlantPumpPower;
 
   return {
     processes: sortProcessesDownstreamToUpstream(list),
@@ -535,25 +444,25 @@ function consolidatePlan(
     totalBaseFeederPower,
     baseFeederSummary: baseFeederRow?.baseFeederSummary,
     totalMainGoblins,
-    plantWater,
-    plantOil,
-    plantVoid,
-    sizedTransformations,
+    plantWater: infra.water,
+    plantOil: infra.oil,
+    plantVoid: infra.voidInfo,
+    sizedTransformations: infra.transformations,
     allSauces,
-    hasVoidFacility,
-    totalPlantRegularPumps,
-    totalPlantOverclockPumps,
-    totalPlantSludgeManipulators,
-    totalPlantPumpPower,
-    furnaces,
-    coalMiners,
-    genSludgeManipulators,
-    coalRate,
-    grossPower,
-    netPower,
-    surplusPower,
-    totalPlantPowerLoad,
-    totalPlantGoblins
+    hasVoidFacility: infra.hasVoidFacility,
+    totalPlantRegularPumps: infra.totalRegularPumps,
+    totalPlantOverclockPumps: infra.totalOverclockPumps,
+    totalPlantSludgeManipulators: infra.totalSludgeManipulators,
+    totalPlantPumpPower: infra.totalPumpManipulatorPower,
+    furnaces: infra.furnaces,
+    coalMiners: infra.coalMiners,
+    genSludgeManipulators: infra.genSludgeManipulators,
+    coalRate: infra.coalRate,
+    grossPower: infra.grossPower,
+    netPower: infra.netPower,
+    surplusPower: infra.surplusPower,
+    totalPlantPowerLoad: infra.totalLoad,
+    totalPlantGoblins: totalMainGoblins + infra.furnaces * 1 + infra.coalMiners * 1 + infra.totalPumpManipulatorPower
   };
 }
 

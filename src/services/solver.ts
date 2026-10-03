@@ -29,6 +29,107 @@ export function sizeAutonomousPump(demand: number, hasVoid: boolean): FluidTierI
   };
 }
 
+export interface PlantInfrastructureInput {
+  powerMode: 'regular' | 'overclock';
+  waterDemand: number;          // 外採水需量 (fl/s)
+  oilDemand: number;            // 外採油需量 (fl/s)
+  processVoid: number;          // 工序物質操縱機虛空需量 (fl/s)
+  transformations: { name: string; fluid: string; demand: number }[]; // 原位轉化抽取需量（已依流體合併）
+  mainPower: number;            // 主要生產設備負載 (FV/s)
+  feederPower?: number;         // 底料收割機負載 (FV/s)，若已含於 mainPower 則省略
+  forceVoidFacility?: boolean;  // 其他使全廠視為有虛空設施之條件（如食譜直接耗用虛空）
+}
+
+/**
+ * 全廠基建結算（單一事實來源）：流體泵機自主超頻階梯、虛空閉環（工序 + 泵自耗 + 發電自耗）、
+ * 發電熔爐 2:1（常規 4 FV/s）/ 2:1:1（超頻 16 FV/s）配置與電網盈餘。
+ * 單料理求解（calculateSingleDish）與多料理並聯（parallelPlanner）共用此函式。
+ */
+export function settlePlantInfrastructure(input: PlantInfrastructureInput) {
+  const { powerMode, waterDemand, oilDemand, processVoid, mainPower, feederPower = 0 } = input;
+
+  // 超頻門檻：全廠有任何虛空設施時 > 2 fl/s，否則 > 6 fl/s
+  const hasVoidFacility = !!input.forceVoidFacility ||
+                          processVoid > 0 ||
+                          powerMode === 'overclock' ||
+                          waterDemand > 6.0 ||
+                          oilDemand > 6.0 ||
+                          input.transformations.some(t => t.demand > 6.0);
+
+  const water = sizeAutonomousPump(waterDemand, hasVoidFacility);
+  const oil = sizeAutonomousPump(oilDemand, hasVoidFacility);
+  const transformations = input.transformations.map(t => ({
+    ...t,
+    ...sizeAutonomousPump(t.demand, hasVoidFacility)
+  }));
+
+  // 虛空需量 2) 超頻泵機汙泥操縱機自耗：每台超頻泵 1.0 fl/s
+  const transSludge = transformations.reduce((sum, t) => sum + t.sludgeManipulators, 0);
+  const pumpSludgeVoid = (water.sludgeManipulators + oil.sludgeManipulators + transSludge) * 1.0;
+
+  // 虛空需量 3) 超頻發電 2:1:1 汙泥操縱機：以初估負載推算熔爐數
+  const prelimPumpPower = water.pumpPower + oil.pumpPower + transformations.reduce((sum, t) => sum + t.pumpPower, 0);
+  const prelimBaseLoad = mainPower + prelimPumpPower + feederPower;
+  let genSludgeManipulators = 0;
+  let generatorSludgeVoid = 0;
+  if (powerMode === 'overclock') {
+    const prelimFurnaces = Math.max(1, Math.ceil(prelimBaseLoad / 14.0));
+    genSludgeManipulators = Math.ceil(prelimFurnaces / 2.0);
+    generatorSludgeVoid = genSludgeManipulators * 1.0;
+  }
+
+  // 虛空泵階梯（超頻淨 7 fl/s = 毛 8 扣自耗 1；常規 2 fl/s）
+  const totalVoidDemand = Number((processVoid + pumpSludgeVoid + generatorSludgeVoid).toFixed(2));
+  let voidOverclockPumps = 0;
+  let voidRegularPumps = 0;
+  if (totalVoidDemand > 0) {
+    const rem7 = totalVoidDemand % 7;
+    voidOverclockPumps = Math.floor(totalVoidDemand / 7) + (rem7 > 2.0 ? 1 : 0);
+    voidRegularPumps = (rem7 > 0 && rem7 <= 2.0) ? 1 : 0;
+  }
+  const voidSludgeManipulators = voidOverclockPumps;
+  const voidInfo: FluidTierInfo & { breakdown: { processVoid: number; generatorSludgeVoid: number; pumpSludgeVoid: number } } = {
+    demand: totalVoidDemand,
+    regularPumps: voidRegularPumps,
+    overclockPumps: voidOverclockPumps,
+    sludgeManipulators: voidSludgeManipulators,
+    pumpPower: (voidOverclockPumps + voidRegularPumps + voidSludgeManipulators) * 1.0,
+    breakdown: { processVoid, generatorSludgeVoid, pumpSludgeVoid }
+  };
+
+  // 全廠泵機與操縱機總計
+  const totalRegularPumps = water.regularPumps + oil.regularPumps + voidInfo.regularPumps +
+                            transformations.reduce((sum, t) => sum + t.regularPumps, 0);
+  const totalOverclockPumps = water.overclockPumps + oil.overclockPumps + voidInfo.overclockPumps +
+                              transformations.reduce((sum, t) => sum + t.overclockPumps, 0);
+  const totalSludgeManipulators = water.sludgeManipulators + oil.sludgeManipulators + voidInfo.sludgeManipulators +
+                                  transformations.reduce((sum, t) => sum + t.sludgeManipulators, 0) +
+                                  genSludgeManipulators;
+  const totalPumpManipulatorPower = (totalRegularPumps + totalOverclockPumps + totalSludgeManipulators) * 1.0;
+
+  // 電網平衡：常規淨 3.5 FV/s/爐（2 爐 : 1 採煤）；超頻淨 14 FV/s/爐（2 爐 : 1 採煤 : 1 汙泥操縱機）
+  const baseForFurnace = mainPower + totalPumpManipulatorPower + feederPower;
+  const isOverclock = powerMode === 'overclock';
+  const furnaces = Math.max(1, Math.ceil(baseForFurnace / (isOverclock ? 14.0 : 3.5)));
+  const coalMiners = Math.ceil(furnaces / 2.0);
+  if (isOverclock) genSludgeManipulators = Math.ceil(furnaces / 2.0);
+  const grossPower = furnaces * (isOverclock ? 16.0 : 4.0);
+  const coalRate = Number((furnaces * 0.1).toFixed(2));
+  const coalMinerPower = coalMiners * 1.0;
+  const totalLoad = baseForFurnace + coalMinerPower;
+  const netPower = isOverclock
+    ? grossPower - (coalMinerPower + genSludgeManipulators * 1.0)
+    : grossPower - coalMinerPower;
+  const surplusPower = Number((netPower - totalLoad).toFixed(2));
+
+  return {
+    hasVoidFacility, water, oil, transformations, voidInfo,
+    totalRegularPumps, totalOverclockPumps, totalSludgeManipulators, totalPumpManipulatorPower,
+    baseForFurnace, furnaces, coalMiners, genSludgeManipulators, coalRate,
+    grossPower, netPower, surplusPower, coalMinerPower, totalLoad
+  };
+}
+
 export function computeIntegerRatio(rates: number[]): number[] {
   if (rates.length === 0) return [];
   const ints = rates.map(r => Math.round(r * 10000));
@@ -1138,7 +1239,6 @@ export function calculateSingleDish(
 
   // (B) Quadrant 3: 轉化流體專屬抽取泵機 (In-situ Transformation Pumps)
   const hasInjector = processNodes.some(p => p.machine === '注入機' || p.processName.includes('注入'));
-  const transformations: (FluidTierInfo & { name: string; fluid: string })[] = [];
 
   // (C) Quadrant 4: 外採流體 (水、油、虛空)
   const materialsRaw = calcDb.materials.filter(m => m.dish === dishName);
@@ -1229,150 +1329,36 @@ export function calculateSingleDish(
     transDemand = directDemand > 0 ? directDemand : 1.0;
   }
 
-  // Autonomous Overclocking Threshold Rule:
-  // 全廠有任何虛空設施（重構機、食譜耗虛空、超頻發電、或任一流體泵超頻需量 > 6）時，門檻即為 > 2 fl/s，否則為 > 6 fl/s。
+  // 全廠基建結算（泵機階梯、虛空閉環、電網 2:1 / 2:1:1）— 與多料理並聯共用 settlePlantInfrastructure
   const matterManipulatorsCount = processNodes
     .filter(p => p.machine === '物質操縱機')
     .reduce((sum, p) => sum + p.countRounded, 0);
-
-  const hasVoidFacility = baseVoid > 0 ||
-                          matterManipulatorsCount > 0 ||
-                          powerMode === 'overclock' ||
-                          demandWater > 6.0 ||
-                          demandOil > 6.0 ||
-                          transDemand > 6.0;
-
-  // Autonomous Sizing for Water, Oil, and Transformation Extraction Pumps
-  const waterInfo = sizeAutonomousPump(demandWater, hasVoidFacility);
-  const oilInfo = sizeAutonomousPump(demandOil, hasVoidFacility);
-
-  if (hasInjector && transDemand > 0) {
-    const transPump = sizeAutonomousPump(transDemand, hasVoidFacility);
-    transformations.push({
-      name: injProcessName,
-      fluid: transFluidName,
-      ...transPump
-    });
-  }
-
-  // 5. Total Void Demand & Sizing
-  // Void consists of:
-  // 1) Process Matter Manipulators: 1.0 fl/s per machine
-  const processVoid = matterManipulatorsCount * 1.0;
-  // 2) Overclock Pump Sludge Manipulators: 1.0 fl/s per overclock pump (Water, Oil, Transformation)
-  const transSludge = transformations.reduce((sum, t) => sum + t.sludgeManipulators, 0);
-  const pumpSludgeVoid = (waterInfo.sludgeManipulators + oilInfo.sludgeManipulators + transSludge) * 1.0;
-
-  // 3) Generator Overclock Sludge Manipulators:
-  // Preliminary estimate of total load to estimate furnaces
   const mainEquipmentPower = processNodes.reduce((sum, p) => sum + p.power, 0);
-  const prelimPumpPower = waterInfo.pumpPower + oilInfo.pumpPower + transformations.reduce((sum, t) => sum + t.pumpPower, 0);
-  const prelimBaseLoad = mainEquipmentPower + prelimPumpPower + baseFeeders.power;
 
-  let prelimFurnaces = 1;
-  let generatorSludgeVoid = 0;
-  let genSludgeManipulators = 0;
+  const infra = settlePlantInfrastructure({
+    powerMode,
+    waterDemand: demandWater,
+    oilDemand: demandOil,
+    processVoid: matterManipulatorsCount * 1.0, // 每台物質操縱機 1.0 fl/s
+    transformations: hasInjector && transDemand > 0
+      ? [{ name: injProcessName, fluid: transFluidName, demand: transDemand }]
+      : [],
+    mainPower: mainEquipmentPower,
+    feederPower: baseFeeders.power,
+    forceVoidFacility: baseVoid > 0
+  });
 
-  if (powerMode === 'overclock') {
-    prelimFurnaces = Math.max(1, Math.ceil(prelimBaseLoad / 14.0));
-    genSludgeManipulators = Math.ceil(prelimFurnaces / 2.0);
-    generatorSludgeVoid = genSludgeManipulators * 1.0;
-  }
-
-  const totalVoidDemand = Number((processVoid + pumpSludgeVoid + generatorSludgeVoid).toFixed(2));
-
-  // Autonomous Void Pump sizing (Gross 8 fl/s, Net 7 fl/s per overclock pump; 2 fl/s per regular pump)
-  let voidOverclockPumps = 0;
-  let voidRegularPumps = 0;
-  if (totalVoidDemand > 0) {
-    const rem7 = totalVoidDemand % 7;
-    voidOverclockPumps = Math.floor(totalVoidDemand / 7) + (rem7 > 2.0 ? 1 : 0);
-    voidRegularPumps = (rem7 > 0 && rem7 <= 2.0) ? 1 : 0;
-  }
-  const voidSludgeManipulators = voidOverclockPumps;
-  const voidPumpPower = (voidOverclockPumps + voidRegularPumps + voidSludgeManipulators) * 1.0;
-
-  const voidInfo: FluidTierInfo & { breakdown: { processVoid: number; generatorSludgeVoid: number; pumpSludgeVoid: number } } = {
-    demand: totalVoidDemand,
-    regularPumps: voidRegularPumps,
-    overclockPumps: voidOverclockPumps,
-    sludgeManipulators: voidSludgeManipulators,
-    pumpPower: voidPumpPower,
-    breakdown: {
-      processVoid,
-      generatorSludgeVoid,
-      pumpSludgeVoid
-    }
-  };
-
-  // Total Pumps and Manipulators across entire plant (matching Excel Row 12 O12, P12, Q12 and Q13)
-  const totalRegularPumps = waterInfo.regularPumps + oilInfo.regularPumps + voidInfo.regularPumps +
-                           transformations.reduce((sum, t) => sum + t.regularPumps, 0);
-
-  const totalOverclockPumps = waterInfo.overclockPumps + oilInfo.overclockPumps + voidInfo.overclockPumps +
-                             transformations.reduce((sum, t) => sum + t.overclockPumps, 0);
-
-  const totalSludgeManipulators = waterInfo.sludgeManipulators + oilInfo.sludgeManipulators + voidInfo.sludgeManipulators +
-                                 transformations.reduce((sum, t) => sum + t.sludgeManipulators, 0) +
-                                 genSludgeManipulators;
-
-  const totalPumpManipulatorPower = (totalRegularPumps + totalOverclockPumps + totalSludgeManipulators) * 1.0;
-
-  // 6. Power Grid Calculation (Matching Excel Row 9..13 B9, B10, B11, B12 -> B13)
-  // B9: mainEquipmentPower
-  // B10: pumpManipulatorPower (= Q13)
-  // B11: baseFeederPower (= D9 * 1)
-  // B12: coalMinerPower (= D12 * 1)
-  const baseForFurnace = mainEquipmentPower + totalPumpManipulatorPower + baseFeeders.power;
-
-  let furnaces = 0;
-  let coalMiners = 0;
-  let coalRate = 0;
-  let grossPower = 0;
-  let netPower = 0;
-  let surplusPower = 0;
-
-  if (powerMode === 'regular') {
-    // 4 FV/s regular mode: net 3.5 FV/s per furnace
-    furnaces = Math.max(1, Math.ceil(baseForFurnace / 3.5));
-    coalMiners = Math.ceil(furnaces / 2.0);
-    grossPower = furnaces * 4.0;
-    coalRate = Number((furnaces * 0.1).toFixed(2));
-    const coalMinerPower = coalMiners * 1.0;
-    const totalLoad = baseForFurnace + coalMinerPower;
-    netPower = grossPower - coalMinerPower;
-    surplusPower = Number((netPower - totalLoad).toFixed(2));
-
-    return assembleResult({
-      dishName, targetRate, powerMode, processNodes, baseFeeders,
-      sauces, transformations, waterInfo, oilInfo, voidInfo,
-      totalRegularPumps, totalOverclockPumps, totalSludgeManipulators, totalPumpManipulatorPower,
-      mainEquipmentPower, coalMinerPower, totalLoad, furnaces, coalMiners,
-      genSludgeManipulators: 0, coalRate, grossPower, netPower, surplusPower,
-      items, recipes
-    });
-  } else {
-    // 16 FV/s overclock mode (2:1:1 module: 2 furnaces, 1 miner, 1 manipulator)
-    // Excel formula: ROUNDUP((B9 + B10 + B11) / 14, 0)
-    furnaces = Math.max(1, Math.ceil(baseForFurnace / 14.0));
-    coalMiners = Math.ceil(furnaces / 2.0);
-    genSludgeManipulators = Math.ceil(furnaces / 2.0);
-    grossPower = furnaces * 16.0;
-    coalRate = Number((furnaces * 0.1).toFixed(2));
-    const coalMinerPower = coalMiners * 1.0;
-    const totalLoad = baseForFurnace + coalMinerPower;
-    netPower = grossPower - (coalMinerPower + genSludgeManipulators * 1.0);
-    surplusPower = Number((netPower - totalLoad).toFixed(2));
-
-    return assembleResult({
-      dishName, targetRate, powerMode, processNodes, baseFeeders,
-      sauces, transformations, waterInfo, oilInfo, voidInfo,
-      totalRegularPumps, totalOverclockPumps, totalSludgeManipulators, totalPumpManipulatorPower,
-      mainEquipmentPower, coalMinerPower, totalLoad, furnaces, coalMiners,
-      genSludgeManipulators, coalRate, grossPower, netPower, surplusPower,
-      items, recipes
-    });
-  }
+  return assembleResult({
+    dishName, targetRate, powerMode, processNodes, baseFeeders,
+    sauces, transformations: infra.transformations, waterInfo: infra.water, oilInfo: infra.oil, voidInfo: infra.voidInfo,
+    totalRegularPumps: infra.totalRegularPumps, totalOverclockPumps: infra.totalOverclockPumps,
+    totalSludgeManipulators: infra.totalSludgeManipulators, totalPumpManipulatorPower: infra.totalPumpManipulatorPower,
+    mainEquipmentPower,
+    coalMinerPower: infra.coalMinerPower, totalLoad: infra.totalLoad, furnaces: infra.furnaces, coalMiners: infra.coalMiners,
+    genSludgeManipulators: infra.genSludgeManipulators, coalRate: infra.coalRate,
+    grossPower: infra.grossPower, netPower: infra.netPower, surplusPower: infra.surplusPower,
+    items, recipes
+  });
 }
 
 function normalizeProcessOrItemName(name: string): string {
