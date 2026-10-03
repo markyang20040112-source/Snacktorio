@@ -27,3 +27,6 @@ __pycache__/
 
 # Scratch & Temporary Analysis Files
 scratch/
+
+# Regression snapshot outputs (generated, large)
+*.snapshot.json
