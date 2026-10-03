@@ -1,23 +1,15 @@
 # Dependencies
 node_modules/
-package-lock.json.log
 
-# Expo & React Native Build artifacts
-.expo/
+# Build output
 dist/
-web-build/
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-*.orig.*
 
-# Environment & Local Configuration
+# Environment & Local Configuration (GitHub Token 等機敏資訊)
 .env
 .env.local
 .env.*.local
 *.log
+*.tmp
 
 # Editor & System Files
 .DS_Store
@@ -26,24 +18,12 @@ Thumbs.db
 !.vscode/settings.json
 !.vscode/extensions.json
 .idea/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
 *.sw?
 
-# Office & Excel Temporary Lock Files
-~$*.xlsx
-~$*.xls
-~$*.xlsm
-*.tmp
-
-# Python & Virtual Environments
+# Python & Virtual Environments (選用輔助腳本，非網頁執行必需)
 .venv/
 __pycache__/
 *.py[cod]
-*$py.class
 
 # Scratch & Temporary Analysis Files
 scratch/
-
