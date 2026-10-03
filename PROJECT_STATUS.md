@@ -18,20 +18,20 @@
   - 多料理並聯規劃：支援最多 3 道菜單並聯，跨料理共通設備去重合併。
   - 全能資料工作台：機器設備、食材與生化屬性、中間配方、終端食譜視覺化 CRUD。
   - GitHub API 雲端同步：免終端機，網頁端一鍵提交 Git Commit 至 GitHub 倉庫。
-* **純文字資料庫 (Git/Diff 友善)**：
+* **純文字資料庫 (100% 獨立，Diff 友善)**：
   - `src/data/machines.json` (20 台設備)
   - `src/data/items.json` (176 種食材與生化屬性)
   - `src/data/intermediateRecipes.json` (64 道中間配方)
   - `src/data/recipes.json` (40 道終端料理食譜)
   - `src/data/calculatorDb.json` (409 道工序與 251 筆流體需量)
+  - 歷史過渡 Excel 檔案已完全退役刪除，系統 100% 由純文字 JSON 與 React 應用原生驅動。
 * **自動部署 CI/CD**：`.github/workflows/deploy.yml`（Push 至 master 自動部署至 GitHub Pages）
 * **核心規範知識庫 (Git/Markdown 模組化體系)**：
   - `docs/README.md`（知識庫總覽、模組導航與核心原則）
   - `docs/01_production_logic_and_physics.md`（產線物理機制與平衡推導規範）
-  - `docs/02_spreadsheet_architecture_and_formulas.md`（試算表架構與動態公式手冊）
+  - `docs/02_spreadsheet_architecture_and_formulas.md`（產線計算演算法與公式手冊）
   - `docs/03_recipe_ingestion_sop_and_case_studies.md`（食譜登錄 SOP 與實戰範本）
-* **備份試算表**：`Snacktorio 遊戲資料庫與生產規劃表.xlsx`（歷史資料備份母庫）
-* **Python 自動化與校驗環境**：`.venv`（Python 3.14，安裝有 `openpyxl`, `python-docx`, `pandas`）
+* **Python 自動化與校驗環境**：`.venv`（Python 3.14）
 
 ---
 
@@ -48,6 +48,15 @@
 - [ ] 依遊戲推進持續登錄後半段新島嶼與高階配方
 
 ---
+
+* **2026-10-03**：歷史過渡 Excel 試算表（.xlsx）正式退役刪除與純文字 Web 輕量化架構確立（Excel Spreadsheet Retirement & Full Native Web Architecture）：
+  - **背景與決策**：
+    1. 專案早期所使用之《Snacktorio 遊戲資料庫與生產規劃表.xlsx》已於先前 100% 無損萃取並結構化至純文字 JSON（`src/data/*.json`）。
+    2. 目前前後台產線計算機、多料理並聯規劃、資料管理工作台與【自由沙盒模擬器】皆原生運行於純文字資料庫與 React 19 架構之上，完全不再讀取或依賴 `.xlsx` 檔案。
+    3. 二進位 Excel 檔案在 Git 倉庫中產生大量 binary blob 冗餘歷史，且無法進行精準行級 Diff。
+  - **執行動作**：
+    1. 正式自倉庫刪除 `Snacktorio 遊戲資料庫與生產規劃表.xlsx`，專案徹底進入純文字、輕量、高效的現代 Web 架構。
+    2. 同步更新 `AGENTS.md` 與 `GEMINI.md`，將原先針對試算表儲存格的防禦限制，精準重構為針對核心 JSON 資料庫的防護規範，大幅釋放 AI 代理人開發效能。
 
 * **2026-10-03**：物質操縱機「虛空汙泥空載凝結免底料」物理落實與終端料理圖示清理（Void Sludge Free Condensation & Terminal Recipe Icon Purge）：
   - **問題根因**：
