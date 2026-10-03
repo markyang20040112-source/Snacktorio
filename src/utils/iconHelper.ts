@@ -1,7 +1,11 @@
 import itemIconsData from '../data/itemIcons.json';
+import recipesData from '../data/recipes.json';
 import { dataService } from '../services/dataService';
 
 const itemIcons: Record<string, string> = itemIconsData as Record<string, string>;
+
+// 核心鐵律：終端菜餚不顯示料理圖片，亦不可模糊匹配原料圖示
+const TERMINAL_RECIPES = new Set((recipesData as Array<{ name: string }>).map(r => r.name));
 
 // Special direct process and alias mappings
 const DIRECT_PROCESS_ALIASES: Record<string, string> = {
@@ -40,6 +44,11 @@ export function getItemIcon(name: string, customIcon?: string): string | undefin
 
   const cleanName = name ? name.trim() : '';
   if (!cleanName) return undefined;
+
+  // 鐵律檢核：終端料理食譜嚴禁模糊匹配任何圖標
+  if (TERMINAL_RECIPES.has(cleanName)) {
+    return undefined;
+  }
 
   // 0. Check dynamic custom icon from dataService (user uploaded photos)
   const customMap = dataService.getCustomIconMap();

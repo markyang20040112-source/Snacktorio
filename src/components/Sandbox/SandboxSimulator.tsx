@@ -226,12 +226,19 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
 
     if (isReconstructor) {
       machName = '物質操縱機';
-      titlePrefix = '重構';
       outCount = item.name === '泥沼蟑螂' ? 2 : 1;
-      baseInputs = [
-        { id: 'in-base', name: '任意物品', type: 'solid', rateRequired: 0.2 },
-        { id: 'in-void', name: '虛空', type: 'fluid', rateRequired: 1.0 }
-      ];
+      if (item.name === '虛空汙泥') {
+        titlePrefix = '空載凝結';
+        baseInputs = [
+          { id: 'in-void', name: '虛空', type: 'fluid', rateRequired: 1.0 }
+        ];
+      } else {
+        titlePrefix = '重構';
+        baseInputs = [
+          { id: 'in-base', name: '任意物品', type: 'solid', rateRequired: 0.2 },
+          { id: 'in-void', name: '虛空', type: 'fluid', rateRequired: 1.0 }
+        ];
+      }
     } else if (isMiner) {
       machName = '採掘機';
       titlePrefix = '開採';
@@ -726,7 +733,9 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
                       if (isRecon) {
                         badgeText = '物質操縱機';
                         badgeClass = 'bg-purple-500/20 text-purple-300 border-purple-500/30';
-                        descText = item.name === '泥沼蟑螂' ? '0.40/s · 吃底料+虛空' : '0.20/s · 吃底料+虛空';
+                        descText = item.name === '虛空汙泥'
+                          ? '0.20/s · 空載凝結 (僅需虛空 1.0 fl/s)'
+                          : (item.name === '泥沼蟑螂' ? '0.40/s · 吃底料+虛空' : '0.20/s · 吃底料+虛空');
                       } else if (isMine) {
                         badgeText = '採掘機';
                         badgeClass = 'bg-amber-500/20 text-amber-300 border-amber-500/30';
@@ -855,13 +864,19 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
                           className="flex items-center justify-between p-2 rounded-xl bg-[#0e171c] hover:bg-[#14222a] border border-slate-800/80 hover:border-amber-500/50 cursor-pointer transition-all group"
                         >
                           <div className="flex items-center space-x-2 truncate">
-                            <ItemIcon name={r.name} size="sm" />
+                            <ItemIcon name="自動廚師機" size="sm" />
                             <div className="truncate">
                               <div className="font-bold text-slate-200 truncate group-hover:text-amber-300 transition-colors">
                                 {r.name}
                               </div>
-                              <div className="text-[10px] text-slate-500">
-                                自動廚師機 · 5s/份
+                              <div className="text-[10px] text-slate-500 flex items-center space-x-1 mt-0.5">
+                                <span>自動廚師機 · 5s/份</span>
+                                {r.island && (
+                                  <>
+                                    <span>·</span>
+                                    <span>{r.island}</span>
+                                  </>
+                                )}
                               </div>
                             </div>
                           </div>

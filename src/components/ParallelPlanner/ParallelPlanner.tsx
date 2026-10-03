@@ -811,7 +811,7 @@ export const ParallelPlanner: React.FC<ParallelPlannerProps> = ({ recipes }) => 
               </div>
 
               <div className="flex items-center space-x-2.5 bg-slate-900/80 p-2.5 rounded-lg border border-slate-800">
-                <ItemIcon name="胃復慘" size="sm" />
+                <ItemIcon name="自動廚師機" size="sm" />
                 <div>
                   <div className="text-sm font-bold text-slate-100 flex items-center space-x-1.5">
                     <span>胃復慘</span>

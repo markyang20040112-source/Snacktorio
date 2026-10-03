@@ -53,7 +53,7 @@ export const SandboxNode: React.FC<SandboxNodeProps> = ({
       {/* 頂部標題列 */}
       <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-slate-800/80 bg-slate-950/40 rounded-t-2xl">
         <div className="flex items-center space-x-2 min-w-0">
-          <ItemIcon name={node.recipeName || node.machineName || node.title} size="sm" />
+          <ItemIcon name={node.machineName === '自動廚師機' ? (node.machineName || node.title) : (node.recipeName || node.machineName || node.title)} size="sm" />
           <div className="truncate">
             <div className="text-xs font-bold text-slate-200 truncate flex items-center space-x-1.5">
               <span>{node.title}</span>
