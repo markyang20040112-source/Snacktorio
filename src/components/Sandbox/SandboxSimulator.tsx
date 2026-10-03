@@ -27,6 +27,30 @@ interface SandboxSimulatorProps {
   recipes: Recipe[];
 }
 
+const KNOWN_FLUIDS = new Set([
+  '水', '油', '虛空',
+  '塔瑪茄醬', '青醬', '麵糊', '白醬', '肉汁', '蟑螂奶', '蒜泥蛋醬',
+  '炙烈紅油', '醋', '致命莎莎醬', '辛辣莎莎醬', '致命沙沙醬', '辛辣沙沙醬'
+]);
+
+function isFluidItem(name: string): boolean {
+  if (!name) return false;
+  if (KNOWN_FLUIDS.has(name)) return true;
+  if (
+    name.endsWith('醬') || 
+    name.endsWith('油') || 
+    name.endsWith('水') || 
+    name.endsWith('汁') || 
+    name.endsWith('奶') || 
+    name.endsWith('醋') || 
+    name.includes('虛空')
+  ) {
+    if (['油荳蔻', '水稻', '醬油'].includes(name)) return false;
+    return true;
+  }
+  return false;
+}
+
 export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
   machines,
   items,
@@ -155,7 +179,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     const inputs: SandboxNodeData['inputs'] = [];
     if (recipeOrInter) {
       (recipeOrInter.inputs || []).forEach((inp, idx) => {
-        if (inp.name && inp.name !== '無' && inp.count > 0) {
+        if (inp.name && !inp.name.startsWith('無') && inp.count > 0) {
           inputs.push({
             id: `in-${idx}-${inp.name}`,
             name: inp.name,
@@ -164,7 +188,8 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
           });
         }
       });
-      if (recipeOrInter.fluidType && recipeOrInter.fluidType !== '無') {
+      // 注入機為環境原位轉化設備，直接置於池中，不需要外採管道供水/供油！
+      if (recipeOrInter.fluidType && recipeOrInter.fluidType !== '無' && mach.name !== '注入機') {
         inputs.push({
           id: `in-fluid-${recipeOrInter.fluidType}`,
           name: recipeOrInter.fluidType,
@@ -177,11 +202,17 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     // 解析輸出端口
     const outputs: SandboxNodeData['outputs'] = [];
     if (recipeOrInter) {
+      const isOutFluid = isFluidItem(recipeOrInter.name) || mach.name === '注入機';
+      const defaultFluidRate = mach.name === '注入機' ? 2.0 : 1.0;
+      const rate = isOutFluid
+        ? (recipeOrInter.outputCount && recipeOrInter.cycleTime ? recipeOrInter.outputCount / recipeOrInter.cycleTime : defaultFluidRate)
+        : ((recipeOrInter.outputCount || 1) / (recipeOrInter.cycleTime || 5));
+
       outputs.push({
         id: `out-${recipeOrInter.name}`,
         name: recipeOrInter.name,
-        type: mach.name === '注入機' || (recipeOrInter as any).fluidType === '無' && recipeOrInter.name.includes('油') ? 'fluid' : 'solid',
-        rateProvided: Number(((recipeOrInter.outputCount || 1) / (recipeOrInter.cycleTime || 5)).toFixed(3))
+        type: isOutFluid ? 'fluid' : 'solid',
+        rateProvided: Number(rate.toFixed(3))
       });
     }
 
@@ -317,27 +348,54 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         outputs: []
       };
     } else if (type === 'pump') {
-      const isOC = subtype === 'overclock';
-      const fluidName = subtype?.includes('油') ? '油' : subtype?.includes('虛空') ? '虛空' : '水';
+      const isGeneric = subtype === 'generic' || !subtype;
+      const fluidName = isGeneric ? '通用流體' : subtype;
+      
+      const inputs: SandboxPort[] = [];
+      if (isGeneric) {
+        inputs.push({
+          id: 'in-fluid',
+          name: '原位轉化液/環境池',
+          type: 'fluid',
+          rateRequired: 2.0
+        });
+      }
+      // 統一配備虛空汙泥超頻端口 (可選輸入，供汙泥自動升級為 8.0 fl/s)
+      inputs.push({
+        id: 'in-sludge',
+        name: '虛空汙泥 (超頻)',
+        type: 'solid',
+        rateRequired: 0.2
+      });
+
       node = {
         id,
         type: 'pump',
-        title: `${fluidName}抽取泵機 (${isOC ? '超頻 8 fl/s' : '常規 2 fl/s'})`,
-        powerMode: isOC ? 'overclock' : 'regular',
+        title: isGeneric ? '通用抽取泵機 (待接液源)' : `${fluidName}抽取泵機 (常規 2 fl/s)`,
+        machineName: '虛空泵機',
+        powerMode: 'regular',
         x: -pan.x + 350,
         y: -pan.y + 200,
         baseCycleTime: 1,
-        baseOutputCount: isOC ? 8 : 2,
-        basePowerConsumption: isOC ? 2.0 : 1.0,
-        baseGoblins: isOC ? 2 : 1,
+        baseOutputCount: 2,
+        basePowerConsumption: 1.0,
+        baseGoblins: 1,
         actualCycleTime: 1,
-        efficiency: 1.0,
-        actualPower: isOC ? 2.0 : 1.0,
-        actualGoblins: isOC ? 2 : 1,
+        efficiency: isGeneric ? 0 : 1.0,
+        actualPower: 1.0,
+        actualGoblins: 1,
         fluidSaturation: 1.0,
         solidSaturation: 1.0,
-        inputs: isOC ? [{ id: 'in-sludge', name: '虛空汙泥', type: 'solid', rateRequired: 0.2 }] : [],
-        outputs: [{ id: `out-${fluidName}`, name: fluidName, type: 'fluid', rateProvided: isOC ? 8 : 2 }]
+        statusNote: isGeneric ? '⚠️ 待連接原位轉化液或環境池' : '正常運轉中 (常規 2.0 fl/s)',
+        inputs,
+        outputs: [
+          {
+            id: 'out-fluid',
+            name: isGeneric ? '流體' : fluidName,
+            type: 'fluid',
+            rateProvided: isGeneric ? 0 : 2.0
+          }
+        ]
       };
     } else {
       // 環境池 (水池, 油池, 虛空裂隙)
@@ -497,6 +555,12 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     // 檢查類型相容性 (solid 連 solid, fluid 連 fluid)
     if (outPort.type !== inPort.type) {
       alert(`⚠️ 端口類型不相容：無法將 ${outPort.type === 'fluid' ? '流體' : '固體'} 連接至 ${inPort.type === 'fluid' ? '流體' : '固體'} 端口！`);
+      return;
+    }
+
+    // 注入機輸出防呆：注入機為原位轉化設備，輸出液體必須先接至泵機，再由泵機供入目標設備
+    if (fromNode.machineName === '注入機' && toNode.type !== 'pump') {
+      alert('⚠️ 注入機屬於「原位轉化」環境設備，原位轉化液無法直接拉管接至加工機台！\n請先將注入機輸出端接至「抽取泵機」，再由泵機抽取輸送至目標設備。');
       return;
     }
 
@@ -810,24 +874,37 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
                     <Plus className="w-4 h-4 text-slate-500 group-hover:text-amber-400" />
                   </div>
 
-                  <div className="text-[10px] font-bold text-slate-500 px-1 uppercase tracking-wider mt-3">💧 外採泵機站</div>
+                  <div className="text-[10px] font-bold text-slate-500 px-1 uppercase tracking-wider mt-3">💧 抽取泵機站 (投入虛空汙泥自動超頻)</div>
                   {['水', '油', '虛空'].map(fluid => (
-                    <div key={fluid} className="space-y-1">
-                      <div 
-                        onClick={() => handleAddInfrastructure('pump', fluid)}
-                        className="p-2 rounded-xl bg-[#0e161c] hover:bg-[#132029] border border-cyan-900/40 hover:border-cyan-500/50 cursor-pointer flex items-center justify-between group"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <Droplets className="w-4 h-4 text-cyan-400" />
-                          <div>
-                            <div className="font-bold text-slate-200 group-hover:text-cyan-300">常規{fluid}泵機 (2.0 fl/s)</div>
-                            <div className="text-[10px] text-slate-400">能耗 1 FV/s · 1 妖精</div>
-                          </div>
+                    <div 
+                      key={fluid}
+                      onClick={() => handleAddInfrastructure('pump', fluid)}
+                      className="p-2 rounded-xl bg-[#0e161c] hover:bg-[#132029] border border-cyan-900/40 hover:border-cyan-500/50 cursor-pointer flex items-center justify-between group"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <Droplets className="w-4 h-4 text-cyan-400" />
+                        <div>
+                          <div className="font-bold text-slate-200 group-hover:text-cyan-300">{fluid}抽取泵機</div>
+                          <div className="text-[10px] text-slate-400">常規 2.0 fl/s · 供汙泥超頻 8.0 fl/s</div>
                         </div>
-                        <Plus className="w-4 h-4 text-slate-500 group-hover:text-cyan-400" />
                       </div>
+                      <Plus className="w-4 h-4 text-slate-500 group-hover:text-cyan-400" />
                     </div>
                   ))}
+
+                  <div 
+                    onClick={() => handleAddInfrastructure('pump', 'generic')}
+                    className="p-2 rounded-xl bg-[#140e1c] hover:bg-[#1f142b] border border-purple-900/40 hover:border-purple-500/50 cursor-pointer flex items-center justify-between group"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <Droplets className="w-4 h-4 text-purple-400" />
+                      <div>
+                        <div className="font-bold text-slate-200 group-hover:text-purple-300">通用抽取泵機 (無指定液體)</div>
+                        <div className="text-[10px] text-slate-400">接注入機或環境池 · 常規 2.0 / 超頻 8.0 fl/s</div>
+                      </div>
+                    </div>
+                    <Plus className="w-4 h-4 text-slate-500 group-hover:text-purple-400" />
+                  </div>
 
                   <div className="text-[10px] font-bold text-slate-500 px-1 uppercase tracking-wider mt-3">🏞️ 環境池節點 (注入機原位轉化)</div>
                   {['油池', '水池', '虛空裂隙'].map(pool => (
