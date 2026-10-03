@@ -46,14 +46,33 @@ export function simulateSandboxPhysics(
       portOutgoingMap.get(key)!.push(c);
     });
 
-    portOutgoingMap.forEach((conns, key) => {
+    portOutgoingMap.forEach((conns) => {
       if (conns.length === 0) return;
-      const [fromNodeId, fromPortId] = key.split('_');
+      const fromNodeId = conns[0].fromNodeId;
+      const fromPortId = conns[0].fromPortId;
       const fromNode = nodeMap.get(fromNodeId);
       if (!fromNode) return;
 
       const outPort = fromNode.outputs.find(p => p.id === fromPortId);
       const totalRate = outPort?.rateProvided || 0;
+
+      // 若來源為環境流體池或注入機 (原位轉化池)
+      if (fromNode.type === 'environment_pool' || fromNode.machineName === '注入機') {
+        conns.forEach(c => {
+          if (fromNode.efficiency === 0) {
+            c.actualFlowRate = 0;
+            return;
+          }
+          const toNode = nodeMap.get(c.toNodeId);
+          const inPort = toNode?.inputs.find(p => p.id === c.toPortId);
+          let demand = inPort?.rateRequired || 1.0;
+          if (toNode?.type === 'pump') {
+            demand = toNode.powerMode === 'overclock' ? 8.0 : 2.0;
+          }
+          c.actualFlowRate = Number(demand.toFixed(2));
+        });
+        return;
+      }
       
       // 均分定律：若輸出端口連至多台下游設備，流率被連線均等分流
       const splitRate = conns.length > 0 ? totalRate / conns.length : 0;
@@ -75,6 +94,10 @@ export function simulateSandboxPhysics(
         node.statusNote = '✨ 無中生有：原料無限供應';
 
         node.outputs.forEach(p => {
+          if (node.machineName === '注入機') {
+            p.rateProvided = 999;
+            return;
+          }
           const rate = node.baseCycleTime > 0 ? node.baseOutputCount / node.baseCycleTime : 0.2;
           p.rateProvided = Number(rate.toFixed(3));
         });
@@ -85,7 +108,8 @@ export function simulateSandboxPhysics(
       if (node.type === 'pump') {
         const sludgeConns = connList.filter(c => c.toNodeId === node.id && (c.toPortId === 'in-sludge' || c.toPortId.includes('sludge')));
         const sludgeRate = sludgeConns.reduce((sum, c) => sum + c.actualFlowRate, 0);
-        const isOverclocked = sludgeRate >= 0.1;
+        // 只要有連線供入虛空汙泥且有流率 (> 0)，即自動觸發超頻
+        const isOverclocked = sludgeConns.length > 0 && sludgeRate > 0;
 
         node.powerMode = isOverclocked ? 'overclock' : 'regular';
         node.basePowerConsumption = isOverclocked ? 2.0 : 1.0;
@@ -220,8 +244,12 @@ export function simulateSandboxPhysics(
 
       // 6. 更新輸出端口產率
       node.outputs.forEach(p => {
+        if (node.machineName === '注入機') {
+          p.rateProvided = node.efficiency > 0 ? 999 : 0;
+          return;
+        }
         const actualOutRate = node.actualCycleTime > 0
-          ? (node.baseOutputCount / node.actualCycleTime) * node.efficiency
+          ? (node.baseOutputCount / node.actualCycleTime) * minSolidSat
           : 0;
         p.rateProvided = Number(actualOutRate.toFixed(3));
       });

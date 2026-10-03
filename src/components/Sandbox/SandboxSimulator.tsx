@@ -204,10 +204,11 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     const outputs: SandboxNodeData['outputs'] = [];
     if (recipeOrInter) {
       const isOutFluid = isFluidItem(recipeOrInter.name) || mach.name === '注入機';
-      const defaultFluidRate = mach.name === '注入機' ? 2.0 : 1.0;
-      const rate = isOutFluid
-        ? (recipeOrInter.outputCount && recipeOrInter.cycleTime ? recipeOrInter.outputCount / recipeOrInter.cycleTime : defaultFluidRate)
-        : ((recipeOrInter.outputCount || 1) / (recipeOrInter.cycleTime || 5));
+      const rate = mach.name === '注入機'
+        ? 999
+        : isOutFluid
+          ? (recipeOrInter.outputCount && recipeOrInter.cycleTime ? recipeOrInter.outputCount / recipeOrInter.cycleTime : 1.0)
+          : ((recipeOrInter.outputCount || 1) / (recipeOrInter.cycleTime || 5));
 
       outputs.push({
         id: `out-${recipeOrInter.name}`,
