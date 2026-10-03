@@ -45,6 +45,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         id: 'gen-1',
         type: 'generator',
         title: '虛空熔爐 (常規發電)',
+        machineName: '虛空熔爐',
         powerMode: 'regular',
         x: 80,
         y: 100,
@@ -110,6 +111,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
 
   // 側邊與抽屜選單狀態
   const [activeCatalogTab, setActiveCatalogTab] = useState<'machines' | 'fluids' | 'items' | 'recipes'>('machines');
+  const [itemsFilter, setItemsFilter] = useState<'all' | 'miner' | 'harvester' | 'reconstructor'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
@@ -211,35 +213,63 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
 
   const handleAddItemHarvester = (item: Item) => {
     const id = `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
-    const isOre = item.name.includes('礦') || item.name.includes('鹽') || item.name.includes('煤');
-    const machName = isOre ? '採掘機' : '收割機';
+    
+    // 依據資料庫 source 與物理特性，精準匹配實體設備
+    let machName = '收割機';
+    let titlePrefix = '採收';
+    let baseInputs: SandboxNodeData['inputs'] = [];
+    let outCount = 1;
+    let cycleTime = 5;
+
+    const isReconstructor = item.source === '物質操縱機' || ['泥沼蟑螂', '綠色史萊姆', '巫妖骸骨', '粉紅仙子', '鷹身女妖翅膀', '虛空汙泥'].includes(item.name);
+    const isMiner = item.source === '採掘機' || item.source === '採掘機直接開採' || ['煤炭', '鹽', '鐵礦石', '黏土', '豆肉蔻', '香豆蔻'].includes(item.name);
+
+    if (isReconstructor) {
+      machName = '物質操縱機';
+      titlePrefix = '重構';
+      outCount = item.name === '泥沼蟑螂' ? 2 : 1;
+      baseInputs = [
+        { id: 'in-base', name: '任意物品', type: 'solid', rateRequired: 0.2 },
+        { id: 'in-void', name: '虛空', type: 'fluid', rateRequired: 1.0 }
+      ];
+    } else if (isMiner) {
+      machName = '採掘機';
+      titlePrefix = '開採';
+      baseInputs = [];
+    } else {
+      machName = '收割機';
+      titlePrefix = '採收';
+      baseInputs = [];
+    }
+
     const mach = machines.find(m => m.name === machName) || { name: machName, power: 1.0, goblins: 1 };
+    const outRate = Number((outCount / cycleTime).toFixed(3));
 
     const newNode: SandboxNodeData = {
       id,
       type: 'machine',
-      title: `採收/開採：${item.name}`,
+      title: `${titlePrefix}：${item.name}`,
       machineName: machName,
       island: item.island,
       x: -pan.x + 350 + Math.random() * 60,
       y: -pan.y + 200 + Math.random() * 60,
-      baseCycleTime: 5,
-      baseOutputCount: 1,
+      baseCycleTime: cycleTime,
+      baseOutputCount: outCount,
       basePowerConsumption: mach.power,
       baseGoblins: mach.goblins,
-      actualCycleTime: 5,
+      actualCycleTime: cycleTime,
       efficiency: 1.0,
       actualPower: mach.power,
       actualGoblins: mach.goblins,
       fluidSaturation: 1.0,
       solidSaturation: 1.0,
-      inputs: [],
+      inputs: baseInputs,
       outputs: [
         {
           id: `out-${item.name}`,
           name: item.name,
           type: 'solid',
-          rateProvided: 0.2
+          rateProvided: outRate
         }
       ]
     };
@@ -257,6 +287,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         id,
         type: 'generator',
         title: subtype === 'overclock' ? '虛空熔爐 (超頻發電 16 FV/s)' : '虛空熔爐 (常規發電 4 FV/s)',
+        machineName: '虛空熔爐',
         powerMode: subtype === 'overclock' ? 'overclock' : 'regular',
         x: -pan.x + 350,
         y: -pan.y + 200,
@@ -625,17 +656,83 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
                 </div>
               )}
 
-              {/* 分頁 2: 自然採集/開採作物與礦石 */}
-              {activeCatalogTab === 'items' && (
-                <div className="space-y-2">
-                  <div className="text-[10px] font-bold text-slate-500 px-1 uppercase tracking-wider flex items-center justify-between">
-                    <span>原生礦產與作物</span>
-                    <Pickaxe className="w-3 h-3 text-slate-500" />
-                  </div>
-                  {items
-                    .filter(i => !i.isFluid && (i.name.includes(searchQuery) || (i.source && i.source.includes(searchQuery))))
-                    .map(item => {
-                      const isOre = item.name.includes('礦') || item.name.includes('鹽') || item.name.includes('煤');
+              {/* 分頁 2: 基礎物資、採掘礦產與活體重構 */}
+              {activeCatalogTab === 'items' && (() => {
+                // 嚴格過濾原生開採物資 (排除熟食、半成品、地圖方塊與建築結構)
+                const isReconItem = (i: Item) => i.source === '物質操縱機' || ['泥沼蟑螂', '綠色史萊姆', '巫妖骸骨', '粉紅仙子', '鷹身女妖翅膀', '虛空汙泥'].includes(i.name);
+                const isMinerItem = (i: Item) => i.source === '採掘機' || i.source === '採掘機直接開採' || ['煤炭', '鹽', '鐵礦石', '黏土', '豆肉蔻', '香豆蔻'].includes(i.name);
+                const isHarvestItem = (i: Item) => !isReconItem(i) && !isMinerItem(i) && (i.source === '收割機' || ['辣椒', '水稻', '小麥', '洋蔥蔥', '土豆', '小蒜', '日桂葉', '刺波蘿', '菠菜', '油荳蔻', '松子', '姜姜', '樹脂', '鬼魅菇孢子', '致命傘菇'].includes(i.name));
+
+                const filteredRawItems = items.filter(i => {
+                  if (i.isFluid) return false;
+                  // 必須屬於三種合法基礎來源之一
+                  const matchType = isReconItem(i) || isMinerItem(i) || isHarvestItem(i);
+                  if (!matchType) return false;
+
+                  // 搜尋關鍵字
+                  const matchQuery = i.name.includes(searchQuery) || (i.source && i.source.includes(searchQuery)) || (i.island && i.island.includes(searchQuery));
+                  if (!matchQuery) return false;
+
+                  // 分類切換過濾
+                  if (itemsFilter === 'miner') return isMinerItem(i);
+                  if (itemsFilter === 'harvester') return isHarvestItem(i);
+                  if (itemsFilter === 'reconstructor') return isReconItem(i);
+                  return true;
+                });
+
+                return (
+                  <div className="space-y-2">
+                    {/* 子分類快速過濾膠囊 */}
+                    <div className="grid grid-cols-4 gap-1 p-1 bg-slate-950/70 rounded-xl text-[10px] font-bold border border-slate-800">
+                      <button
+                        onClick={() => setItemsFilter('all')}
+                        className={`py-1 rounded-lg transition-colors text-center ${itemsFilter === 'all' ? 'bg-emerald-500/20 text-emerald-300' : 'text-slate-400 hover:text-slate-200'}`}
+                      >
+                        全部
+                      </button>
+                      <button
+                        onClick={() => setItemsFilter('miner')}
+                        className={`py-1 rounded-lg transition-colors text-center ${itemsFilter === 'miner' ? 'bg-amber-500/20 text-amber-300' : 'text-slate-400 hover:text-slate-200'}`}
+                      >
+                        ⛏️ 採掘
+                      </button>
+                      <button
+                        onClick={() => setItemsFilter('harvester')}
+                        className={`py-1 rounded-lg transition-colors text-center ${itemsFilter === 'harvester' ? 'bg-green-500/20 text-green-300' : 'text-slate-400 hover:text-slate-200'}`}
+                      >
+                        🌾 收割
+                      </button>
+                      <button
+                        onClick={() => setItemsFilter('reconstructor')}
+                        className={`py-1 rounded-lg transition-colors text-center ${itemsFilter === 'reconstructor' ? 'bg-purple-500/20 text-purple-300' : 'text-slate-400 hover:text-slate-200'}`}
+                      >
+                        🧬 重構
+                      </button>
+                    </div>
+
+                    <div className="text-[10px] font-bold text-slate-500 px-1 uppercase tracking-wider flex items-center justify-between">
+                      <span>基礎原料庫 ({filteredRawItems.length})</span>
+                      <Pickaxe className="w-3 h-3 text-slate-500" />
+                    </div>
+
+                    {filteredRawItems.map(item => {
+                      const isRecon = isReconItem(item);
+                      const isMine = isMinerItem(item);
+
+                      let badgeText = '收割機';
+                      let badgeClass = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
+                      let descText = '0.20/s · 自主採收';
+
+                      if (isRecon) {
+                        badgeText = '物質操縱機';
+                        badgeClass = 'bg-purple-500/20 text-purple-300 border-purple-500/30';
+                        descText = item.name === '泥沼蟑螂' ? '0.40/s · 吃底料+虛空' : '0.20/s · 吃底料+虛空';
+                      } else if (isMine) {
+                        badgeText = '採掘機';
+                        badgeClass = 'bg-amber-500/20 text-amber-300 border-amber-500/30';
+                        descText = '0.20/s · 自主開採';
+                      }
+
                       return (
                         <div
                           key={item.name}
@@ -645,11 +742,16 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
                           <div className="flex items-center space-x-2 truncate">
                             <ItemIcon name={item.name} size="sm" />
                             <div className="truncate">
-                              <div className="font-bold text-slate-200 truncate group-hover:text-emerald-300 transition-colors">
-                                {item.name}
+                              <div className="flex items-center space-x-1.5 truncate">
+                                <span className="font-bold text-slate-200 truncate group-hover:text-emerald-300 transition-colors">
+                                  {item.name}
+                                </span>
+                                <span className={`text-[9px] px-1.5 py-0.2 rounded font-mono font-bold border shrink-0 ${badgeClass}`}>
+                                  {badgeText}
+                                </span>
                               </div>
-                              <div className="text-[10px] text-slate-500 flex items-center space-x-1">
-                                <span>{isOre ? '採掘機' : '收割機'}</span>
+                              <div className="text-[10px] text-slate-500 flex items-center space-x-1 mt-0.5">
+                                <span>{descText}</span>
                                 {item.island && (
                                   <>
                                     <span>·</span>
@@ -663,8 +765,9 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
                         </div>
                       );
                     })}
-                </div>
-              )}
+                  </div>
+                );
+              })()}
 
               {/* 分頁 3: 流體環境池、外採泵機與電網 */}
               {activeCatalogTab === 'fluids' && (
