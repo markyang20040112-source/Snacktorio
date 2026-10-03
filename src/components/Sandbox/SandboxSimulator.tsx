@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { 
   SandboxNodeData, 
-  SandboxConnection 
+  SandboxConnection,
+  PortDefinition
 } from './sandboxTypes';
 import { simulateSandboxPhysics } from './sandboxPhysics';
 import { SandboxNode } from './SandboxNode';
@@ -351,7 +352,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
       const isGeneric = subtype === 'generic' || !subtype;
       const fluidName = isGeneric ? '通用流體' : subtype;
       
-      const inputs: SandboxPort[] = [];
+      const inputs: PortDefinition[] = [];
       if (isGeneric) {
         inputs.push({
           id: 'in-fluid',
