@@ -225,6 +225,80 @@ export function simulateSandboxPhysics(
         return;
       }
 
+      // 物品分流器專屬物理 (Splitter)：1 個輸入端，2 個輸出端均等分流
+      if (node.type === 'splitter') {
+        const inPort = node.inputs[0];
+        const incomingConns = inPort ? connList.filter(c => c.toNodeId === node.id && c.toPortId === inPort.id) : [];
+        const inRate = incomingConns.reduce((sum, c) => sum + c.actualFlowRate, 0);
+
+        if (incomingConns.length > 0 && inRate > 0) {
+          const firstConn = incomingConns[0];
+          const fromNode = nodeMap.get(firstConn.fromNodeId);
+          const fromPort = fromNode?.outputs.find(p => p.id === firstConn.fromPortId);
+          const itemName = fromPort?.name || firstConn.itemOrFluidName || '物品';
+
+          node.efficiency = 1.0;
+          node.solidSaturation = 1.0;
+          node.fluidSaturation = 1.0;
+          node.title = `分流器 (${itemName})`;
+          node.statusNote = `⚡ 均等分流中：進 ${inRate.toFixed(2)}/s，各路 ${(inRate / 2).toFixed(2)}/s`;
+
+          // 將進料流率 1:1 均分至兩個輸出端口 (各 50%)
+          const outPerPort = Number((inRate / 2).toFixed(3));
+          node.outputs.forEach(p => {
+            p.name = itemName;
+            p.rateProvided = outPerPort;
+          });
+        } else {
+          node.efficiency = 0;
+          node.solidSaturation = 0;
+          node.fluidSaturation = 0;
+          node.title = '物品分流器 (待進料)';
+          node.statusNote = incomingConns.length === 0 ? '⚠️ 未連接輸入物料' : '❌ 輸入流量為 0';
+          node.outputs.forEach(p => {
+            p.name = '分流物品';
+            p.rateProvided = 0;
+          });
+        }
+        return;
+      }
+
+      // 發酵變質 / 輸送緩衝方塊專屬物理 (Buffer / Fermentation)
+      if (node.type === 'buffer_decay') {
+        const inPort = node.inputs[0];
+        const incomingConns = inPort ? connList.filter(c => c.toNodeId === node.id && c.toPortId === inPort.id) : [];
+        const inRate = incomingConns.reduce((sum, c) => sum + c.actualFlowRate, 0);
+
+        if (incomingConns.length > 0 && inRate > 0) {
+          const firstConn = incomingConns[0];
+          const fromNode = nodeMap.get(firstConn.fromNodeId);
+          const fromPort = fromNode?.outputs.find(p => p.id === firstConn.fromPortId);
+          const rawName = fromPort?.name || firstConn.itemOrFluidName || '原料';
+
+          // 若節點未指定食譜/成品，預設或沿用 output[0] 名稱
+          const targetOutName = node.outputs[0]?.name || node.recipeName || rawName;
+
+          node.efficiency = 1.0;
+          node.solidSaturation = 1.0;
+          node.fluidSaturation = 1.0;
+          node.statusNote = `⏳ 發酵完成：${rawName} ➔ ${targetOutName} (${inRate.toFixed(2)}/s)`;
+
+          // 產出率 100% 傳遞
+          node.outputs.forEach(p => {
+            p.rateProvided = Number(inRate.toFixed(3));
+          });
+        } else {
+          node.efficiency = 0;
+          node.solidSaturation = 0;
+          node.fluidSaturation = 0;
+          node.statusNote = incomingConns.length === 0 ? '⚠️ 待連接發酵前原料' : '❌ 輸入原料斷供 (0/s)';
+          node.outputs.forEach(p => {
+            p.rateProvided = 0;
+          });
+        }
+        return;
+      }
+
       // 2. 若設備為零輸入節點 (如採掘機、收割機、環境池)
       if (node.inputs.length === 0) {
         node.fluidSaturation = 1.0;

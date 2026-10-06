@@ -18,7 +18,9 @@ import {
   Sparkles, 
   Layers, 
   Flame,
-  Pickaxe
+  Pickaxe,
+  GitFork,
+  Hourglass
 } from 'lucide-react';
 
 interface SandboxSimulatorProps {
@@ -318,7 +320,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     setSelectedNodeId(id);
   };
 
-  const handleAddInfrastructure = (type: 'generator' | 'pump' | 'environment_pool', subtype?: string) => {
+  const handleAddInfrastructure = (type: 'generator' | 'pump' | 'environment_pool' | 'splitter' | 'buffer_decay', subtype?: string) => {
     const id = `infra-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
     let node: SandboxNodeData;
 
@@ -397,6 +399,66 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
             type: 'fluid',
             rateProvided: isGeneric ? 0 : 2.0
           }
+        ]
+      };
+    } else if (type === 'splitter') {
+      node = {
+        id,
+        type: 'splitter',
+        title: '物品分流器 (待進料)',
+        machineName: '分流器',
+        x: -pan.x + 350,
+        y: -pan.y + 200,
+        baseCycleTime: 0,
+        baseOutputCount: 1,
+        basePowerConsumption: 0,
+        baseGoblins: 0,
+        actualCycleTime: 0,
+        efficiency: 0,
+        actualPower: 0,
+        actualGoblins: 0,
+        fluidSaturation: 1.0,
+        solidSaturation: 1.0,
+        statusNote: '⚠️ 待連接輸入物料',
+        inputs: [
+          { id: 'in-item', name: '待分流物料', type: 'solid', rateRequired: 0.2 }
+        ],
+        outputs: [
+          { id: 'out-item-1', name: '分流A (50%)', type: 'solid', rateProvided: 0 },
+          { id: 'out-item-2', name: '分流B (50%)', type: 'solid', rateProvided: 0 }
+        ]
+      };
+    } else if (type === ('buffer_decay' as any)) {
+      // 發酵變質 / 輸送緩衝方塊 (支援指定變質物或泛用緩衝)
+      const perishItem = subtype ? items.find(i => i.name === subtype) : null;
+      const rawName = perishItem?.name || '發酵原料';
+      const prodName = perishItem?.spoilProduct || '熟成產物';
+      const spoilSeconds = perishItem?.spoilTime || 15;
+
+      node = {
+        id,
+        type: 'buffer_decay',
+        title: perishItem ? `發酵：${rawName} ➔ ${prodName}` : '發酵變質緩衝方塊',
+        machineName: '發酵緩衝',
+        recipeName: prodName,
+        x: -pan.x + 350,
+        y: -pan.y + 200,
+        baseCycleTime: spoilSeconds,
+        baseOutputCount: 1,
+        basePowerConsumption: 0,
+        baseGoblins: 0,
+        actualCycleTime: spoilSeconds,
+        efficiency: 0,
+        actualPower: 0,
+        actualGoblins: 0,
+        fluidSaturation: 1.0,
+        solidSaturation: 1.0,
+        statusNote: `⏳ 發酵需時 ${spoilSeconds}s (傳送帶長度 ≥ ${spoilSeconds} 格)`,
+        inputs: [
+          { id: 'in-raw', name: rawName, type: 'solid', rateRequired: 0.2 }
+        ],
+        outputs: [
+          { id: 'out-spoiled', name: prodName, type: 'solid', rateProvided: 0 }
         ]
       };
     } else {
@@ -923,6 +985,63 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
                         </div>
                       </div>
                       <Plus className="w-4 h-4 text-slate-500 group-hover:text-teal-400" />
+                    </div>
+                  ))}
+                  <div className="text-[10px] font-bold text-slate-500 px-1 uppercase tracking-wider mt-3">🔀 物流分流與時序發酵</div>
+                  <div 
+                    onClick={() => handleAddInfrastructure('splitter')}
+                    className="p-2 rounded-xl bg-[#0e1724] hover:bg-[#152336] border border-blue-900/40 hover:border-blue-500/50 cursor-pointer flex items-center justify-between group"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <GitFork className="w-4 h-4 text-blue-400" />
+                      <div>
+                        <div className="font-bold text-slate-200 group-hover:text-blue-300">物品分流器 (1進2出)</div>
+                        <div className="text-[10px] text-slate-400">固體傳送帶 1:1 均分 · 即時分流</div>
+                      </div>
+                    </div>
+                    <Plus className="w-4 h-4 text-slate-500 group-hover:text-blue-400" />
+                  </div>
+
+                  <div 
+                    onClick={() => handleAddInfrastructure('buffer_decay')}
+                    className="p-2 rounded-xl bg-[#0c1a14] hover:bg-[#12261d] border border-emerald-900/40 hover:border-emerald-500/50 cursor-pointer flex items-center justify-between group"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <Hourglass className="w-4 h-4 text-emerald-400" />
+                      <div>
+                        <div className="font-bold text-slate-200 group-hover:text-emerald-300">發酵變質緩衝方塊 (自選)</div>
+                        <div className="text-[10px] text-slate-400">時序輸送帶發酵 · 依原料自動轉化</div>
+                      </div>
+                    </div>
+                    <Plus className="w-4 h-4 text-slate-500 group-hover:text-emerald-400" />
+                  </div>
+
+                  {/* 常用遊戲時序發酵快捷項 */}
+                  {[
+                    { name: '麵包麵團', prod: '發酵麵糰', time: 15 },
+                    { name: '軟質奶酪', prod: '中等熟成奶酪', time: 20 },
+                    { name: '中等熟成奶酪', prod: '硬質奶酪', time: 30 },
+                    { name: '硬質奶酪', prod: '藍紋奶酪', time: 60 },
+                    { name: '蛇蛋', prod: '臭蛇蛋', time: 30 },
+                    { name: '蟑螂奶油', prod: '酸奶油', time: 30 }
+                  ].map(ferment => (
+                    <div 
+                      key={ferment.name}
+                      onClick={() => handleAddInfrastructure('buffer_decay', ferment.name)}
+                      className="p-2 rounded-xl bg-[#091512] hover:bg-[#0e211d] border border-emerald-950/60 hover:border-emerald-500/40 cursor-pointer flex items-center justify-between group pl-4"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <ItemIcon name={ferment.prod} size="sm" />
+                        <div>
+                          <div className="font-bold text-slate-200 group-hover:text-emerald-300 text-[11px]">
+                            {ferment.name} ➔ {ferment.prod}
+                          </div>
+                          <div className="text-[10px] text-slate-400">
+                            發酵 {ferment.time}s · 傳送帶 ≥ {ferment.time} 格
+                          </div>
+                        </div>
+                      </div>
+                      <Plus className="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-400" />
                     </div>
                   ))}
                 </div>

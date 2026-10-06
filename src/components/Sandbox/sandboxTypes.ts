@@ -3,6 +3,8 @@ export type SandboxNodeType =
   | 'environment_pool'  // 環境流體池 (水池, 油池, 虛空裂隙)
   | 'generator'         // 發電熔爐 (常規 4 FV/s, 超頻 16 FV/s)
   | 'pump'              // 泵機 (常規 2 fl/s, 超頻 8 fl/s, 原位抽取)
+  | 'splitter'          // 物品分流器 (1 輸入, 2 輸出均分)
+  | 'buffer_decay'      // 發酵變質 / 輸送緩衝方塊 (時間推進物理轉換)
   | 'infinite_source';  // 無中生有物料源
 
 export interface PortDefinition {

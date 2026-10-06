@@ -26,6 +26,8 @@ export const SandboxNode: React.FC<SandboxNodeProps> = ({
   const isGenerator = node.type === 'generator';
   const isPump = node.type === 'pump';
   const isEnvPool = node.type === 'environment_pool';
+  const isSplitter = node.type === 'splitter';
+  const isBufferDecay = node.type === 'buffer_decay';
 
   // 狀態邊框顏色
   let borderClass = 'border-slate-800 bg-[#0f171c]/95';
@@ -39,6 +41,10 @@ export const SandboxNode: React.FC<SandboxNodeProps> = ({
     borderClass = 'border-amber-500/40 bg-[#1c180e]/95';
   } else if (isPump || isEnvPool) {
     borderClass = 'border-cyan-500/40 bg-[#0e181c]/95';
+  } else if (isSplitter) {
+    borderClass = 'border-blue-500/40 bg-[#0d1624]/95';
+  } else if (isBufferDecay) {
+    borderClass = 'border-emerald-500/40 bg-[#0c1a14]/95';
   }
 
   return (
@@ -66,7 +72,11 @@ export const SandboxNode: React.FC<SandboxNodeProps> = ({
             </div>
             {node.machineName && (
               <div className="text-[10px] text-slate-400 truncate">
-                <span className={`px-1.5 py-0.2 rounded border text-[9px] font-mono ${getMachineBadgeClass(node.machineName)}`}>
+                <span className={`px-1.5 py-0.2 rounded border text-[9px] font-mono ${
+                  isSplitter ? 'bg-blue-500/20 text-blue-300 border-blue-500/30' :
+                  isBufferDecay ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' :
+                  getMachineBadgeClass(node.machineName)
+                }`}>
                   {node.machineName}
                 </span>
               </div>
@@ -124,7 +134,7 @@ export const SandboxNode: React.FC<SandboxNodeProps> = ({
 
           <div className="flex items-center space-x-1">
             <Flame className="w-3.5 h-3.5 text-orange-400" />
-            <span className="font-mono">{node.actualCycleTime}s/次</span>
+            <span className="font-mono">{isSplitter ? '即時' : `${node.actualCycleTime}s/次`}</span>
           </div>
         </div>
 
