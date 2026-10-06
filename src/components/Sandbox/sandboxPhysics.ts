@@ -543,6 +543,22 @@ export function simulateSandboxPhysics(
       node.efficiency = 1.0;
       node.statusNote = '正常運轉中';
     }
+
+    // 連線收斂後同步最終輸出端口產率
+    node.outputs.forEach(p => {
+      if (node.efficiency === 0) {
+        p.rateProvided = 0;
+        return;
+      }
+      if (node.machineName === '注入機') {
+        p.rateProvided = 999;
+        return;
+      }
+      const actualOutRate = node.actualCycleTime > 0
+        ? (node.baseOutputCount / node.actualCycleTime) * minSolidSat
+        : 0;
+      p.rateProvided = Number(actualOutRate.toFixed(3));
+    });
   });
 
   // ==========================================
@@ -558,6 +574,20 @@ export function simulateSandboxPhysics(
     custom: {} as Record<string, { produced: number; consumed: number }>
   };
   const terminalDishes: SandboxMetrics['terminalDishes'] = [];
+
+  const registerFluidTally = (name: string, rate: number, type: 'produced' | 'consumed') => {
+    if (!name || name === '流體' || rate <= 0) return;
+    if (name === '水' || name === '純淨水') {
+      fluidsSummary.water[type] += rate;
+    } else if (name === '油') {
+      fluidsSummary.oil[type] += rate;
+    } else if (name === '虛空' || name === '虛空流體') {
+      fluidsSummary.void[type] += rate;
+    } else {
+      fluidsSummary.custom[name] = fluidsSummary.custom[name] || { produced: 0, consumed: 0 };
+      fluidsSummary.custom[name][type] += rate;
+    }
+  };
 
   nodeMap.forEach(n => {
     // 發電機處理 (燃燒煤炭發電，缺燃料時不發電)
@@ -576,15 +606,7 @@ export function simulateSandboxPhysics(
       totalPowerLoad += n.actualPower || n.basePowerConsumption;
       totalGoblins += n.actualGoblins || n.baseGoblins;
       n.outputs.forEach(p => {
-        const name = p.name;
-        const rate = p.rateProvided || 0;
-        if (name === '水') fluidsSummary.water.produced += rate;
-        else if (name === '油') fluidsSummary.oil.produced += rate;
-        else if (name === '虛空') fluidsSummary.void.produced += rate;
-        else if (name && name !== '流體') {
-          fluidsSummary.custom[name] = fluidsSummary.custom[name] || { produced: 0, consumed: 0 };
-          fluidsSummary.custom[name].produced += rate;
-        }
+        registerFluidTally(p.name, p.rateProvided || 0, 'produced');
       });
       return;
     }
@@ -595,20 +617,18 @@ export function simulateSandboxPhysics(
       totalPowerLoad += power;
       totalGoblins += n.baseGoblins;
 
-      // 累計流體消耗
+      // 累計機台流體產出 (如攪拌機生產蟑螂奶、調和機生產番茄醬等連續流體)
+      n.outputs.forEach(p => {
+        if (p.type === 'fluid') {
+          registerFluidTally(p.name, p.rateProvided || 0, 'produced');
+        }
+      });
+
+      // 累計機台流體消耗
       n.inputs.forEach(p => {
         if (p.type === 'fluid') {
           const req = p.rateRequired || 1.0;
-          if (p.name.includes('水')) fluidsSummary.water.consumed += req;
-          else if (p.name.includes('紅油')) {
-            fluidsSummary.custom['炙烈紅油'] = fluidsSummary.custom['炙烈紅油'] || { produced: 0, consumed: 0 };
-            fluidsSummary.custom['炙烈紅油'].consumed += req;
-          } else if (p.name.includes('油')) fluidsSummary.oil.consumed += req;
-          else if (p.name.includes('虛空')) fluidsSummary.void.consumed += req;
-          else {
-            fluidsSummary.custom[p.name] = fluidsSummary.custom[p.name] || { produced: 0, consumed: 0 };
-            fluidsSummary.custom[p.name].consumed += req;
-          }
+          registerFluidTally(p.name, req, 'consumed');
         }
       });
 
@@ -622,6 +642,17 @@ export function simulateSandboxPhysics(
         });
       }
     }
+  });
+
+  fluidsSummary.water.produced = Number(fluidsSummary.water.produced.toFixed(2));
+  fluidsSummary.water.consumed = Number(fluidsSummary.water.consumed.toFixed(2));
+  fluidsSummary.oil.produced = Number(fluidsSummary.oil.produced.toFixed(2));
+  fluidsSummary.oil.consumed = Number(fluidsSummary.oil.consumed.toFixed(2));
+  fluidsSummary.void.produced = Number(fluidsSummary.void.produced.toFixed(2));
+  fluidsSummary.void.consumed = Number(fluidsSummary.void.consumed.toFixed(2));
+  Object.keys(fluidsSummary.custom).forEach(k => {
+    fluidsSummary.custom[k].produced = Number(fluidsSummary.custom[k].produced.toFixed(2));
+    fluidsSummary.custom[k].consumed = Number(fluidsSummary.custom[k].consumed.toFixed(2));
   });
 
   const powerBalance = Number((totalPowerGen - totalPowerLoad).toFixed(1));
