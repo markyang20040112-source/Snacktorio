@@ -136,9 +136,16 @@ export function simulateSandboxPhysics(
   const connList: SandboxConnection[] = connections.map(c => ({ ...c, actualFlowRate: 0 }));
 
   // ==============================================================
-  // 多輪迭代傳導 (10 次)，確保深層多階 DAG (原料->粗加工->精加工->發酵->廚師機) 依序傳導流率並完全收斂
+  // 動態自適應收斂 (Adaptive Convergence)：
+  // 不死板依賴固定次數，而是動態偵測全廠連線流率與機台稼動率是否完全收斂 (前後輪變量 < 0.0005)。
+  // 簡單拓撲提早中斷 (極速運算)，極深鏈路 (10~20+ 階) 自動延伸推進至完全穩定！
   // ==============================================================
-  for (let iter = 0; iter < 10; iter++) {
+  const MAX_ITERATIONS = Math.max(25, Math.min(60, nodeMap.size * 2 + 5));
+
+  for (let iter = 0; iter < MAX_ITERATIONS; iter++) {
+    const prevConnRates = connList.map(c => c.actualFlowRate);
+    const prevNodeEffs = Array.from(nodeMap.values()).map(n => n.efficiency);
+
     // ----------------------------------------------------
     // 階段 1：更新所有連線傳輸流率 (流體均分定律 + 固體分流傳輸)
     // ----------------------------------------------------
@@ -417,6 +424,30 @@ export function simulateSandboxPhysics(
         p.rateProvided = Number(actualOutRate.toFixed(3));
       });
     });
+
+    // 檢查全廠狀態是否已完全收斂 (前後輪變量 < 0.0005)
+    if (iter >= 1) {
+      let isFullyConverged = true;
+      for (let i = 0; i < connList.length; i++) {
+        if (Math.abs(connList[i].actualFlowRate - prevConnRates[i]) > 0.0005) {
+          isFullyConverged = false;
+          break;
+        }
+      }
+      if (isFullyConverged) {
+        const nodesList = Array.from(nodeMap.values());
+        for (let i = 0; i < nodesList.length; i++) {
+          if (Math.abs(nodesList[i].efficiency - prevNodeEffs[i]) > 0.0005) {
+            isFullyConverged = false;
+            break;
+          }
+        }
+      }
+
+      if (isFullyConverged) {
+        break; // 全廠物理狀態已達到完美穩態，提早結束迴圈
+      }
+    }
   }
 
   // ==============================================================
