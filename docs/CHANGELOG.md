@@ -7,7 +7,22 @@
 
 ## 最新紀錄
 
-* **2026-10-06**：全遊戲 42 道食譜專案藍圖庫批次建置與 localStorage 自動合併機制修復（Full 42 Dish Blueprints & LocalStorage Auto-Merge Fix）：
+* **2026-10-06**：官方專案標籤修復、跨頁面/畫布產線複製貼上與追加、以及未來新食譜自動生成產線專案系統（Official Badge Fix, Cross-Canvas Copy-Paste & Append, and Auto-Blueprint Generation for New Recipes）：
+  - **背景與三大需求**：
+    1. **標籤誤判修正**：先前因藍圖 ID 命名為 `bp_dish_*` 與 `bp_starter_generator`，導致前端判斷條件未對齊，所有專案皆誤顯示為「自訂專案」。
+    2. **產線複製貼上與拼裝產線**：使用者期望能將設計好的產線複製貼上到空白或已經有其他設備編輯過的頁面中。
+    3. **未來新食譜自適應自動生成**：使用者期望未來每在資料庫登錄一個新的終端食譜，系統即全自動出現該食譜的完整自動化產線專案，免手動建置。
+  - **實裝成果**：
+    1. **官方標籤校準與專案分類篩選 (`SandboxBlueprintModal.tsx`)**：
+       - 導出 `isOfficialDishBlueprint` 與 `isOfficialTutorialBlueprint` 識別函式。所有 42 套料理產線正確呈現翠綠色「官方食譜」徽章、新手發電教學呈現靛青色「官方教學」徽章，僅使用者自創/副本專案呈現琥珀色「自訂專案」徽章。
+       - 專案庫頂部搜尋列新增 `全部` / `官方食譜` / `自訂專案` 快速 Tab 篩選器。
+    2. **跨畫布產線追加與剪貼簿複製貼上 (`SandboxSimulator.tsx`)**：
+       - **專案追加至畫布 (`onAppendBlueprint`)**：專案庫卡片新增「➕ 追加至畫布」綠色按鈕。點擊後系統自動計算畫布邊界往右下位移，為所有節點與連線重新生成全新唯一 ID，安全拼裝至當前畫布（不論為空白頁面或已有編輯過的產線），不覆蓋現有機台。
+       - **剪貼簿複製貼上 (`handleCopy` & `handlePaste`)**：支援 **Ctrl+C / Ctrl+V** 快捷鍵與浮動工具列「📋 複製」/「📋 貼上」按鈕。選取機台或全廠產線後，可隨時在任何位置一鍵貼上產線副本。
+    3. **未來新食譜全自動產線藍圖生成服務 (`dishBlueprintGenerator.ts` & `sandboxBlueprintService.ts`)**：
+       - 將高精度拓撲佈局推導封裝為前端原生服務 `buildDishBlueprint`（包含原料採集/開採、中間工序排布、4 FV/s 熔爐發電閉環、流體池/超頻泵、時序發酵變質緩衝與防衰減流量補償）。
+       - **自動檢測補齊**：`getAllBlueprints` 自動檢測食譜庫，只要發現任何尚未擁有專案之新食譜，立即在記憶體與本地存檔中推導並自動生成該食譜之專案。
+       - **登錄即生成**：在 `RecipeManager.tsx` 建立新終端食譜時，按下儲存立即自動觸發 `generateAndSaveRecipeBlueprint`，專案庫即時出現該食譜之完整產線！
   - **背景與問題**：
     - 在批次生成全遊戲 42 道食譜藍圖至 `src/data/sandboxBlueprints.json` 後，若使用者瀏覽器本機先前已儲存或複製過專案，`getAllBlueprints()` 原先因判斷 `localStorage.getItem` 存在且長度 > 0 便直接回傳本機舊陣列，導致使用者開啟「產線專案庫」時只看到先前的 1 套副本，而無法自動讀入全新的 42 道官方食譜藍圖。
   - **架構與實裝成果**：

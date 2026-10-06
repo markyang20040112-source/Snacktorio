@@ -1,10 +1,18 @@
 import initialBlueprints from '../data/sandboxBlueprints.json';
 import { SandboxBlueprint, SandboxNodeData, SandboxConnection } from '../components/Sandbox/sandboxTypes';
-import { SyncConfig } from '../types';
+import { SyncConfig, Recipe } from '../types';
 import { syncDataToGitHub } from './githubSync';
+import { buildDishBlueprint } from './dishBlueprintGenerator';
+import { dataService } from './dataService';
 
 const STORAGE_KEY = 'snacktorio_sandbox_blueprints_v1';
 const DELETED_KEY = 'snacktorio_sandbox_deleted_builtins_v1';
+
+export const isOfficialDishBlueprint = (bp: SandboxBlueprint) =>
+  bp.id.startsWith('bp_dish_') || bp.id.startsWith('bp_recipe_');
+
+export const isOfficialTutorialBlueprint = (bp: SandboxBlueprint) =>
+  bp.id === 'bp_starter_generator' || bp.id === 'bp_tutorial_power';
 
 class SandboxBlueprintService {
   private getDeletedIds(): Set<string> {
@@ -25,10 +33,41 @@ class SandboxBlueprintService {
   }
 
   /**
+   * 取得完整內建/官方料理藍圖清單 (含未來動態登錄之新料理自適應自動生成)
+   */
+  public getBuiltInAndDynamicBlueprints(): SandboxBlueprint[] {
+    const list = [...((initialBlueprints as unknown as SandboxBlueprint[]) || [])];
+    const existingDishNames = new Set<string>();
+    list.forEach(bp => {
+      (bp.stats?.mainDishes || []).forEach(d => existingDishNames.add(d));
+    });
+
+    // 動態自適應：若有新食譜尚無內建藍圖，即時自動推導產線並補齊
+    try {
+      const allRecipes = dataService.getRecipes();
+      allRecipes.forEach((dish, idx) => {
+        if (!existingDishNames.has(dish.name)) {
+          try {
+            const newBp = buildDishBlueprint(dish, idx);
+            list.push(newBp);
+            existingDishNames.add(dish.name);
+          } catch (err) {
+            console.warn(`自動為新食譜 ${dish.name} 生成產線專案失敗:`, err);
+          }
+        }
+      });
+    } catch (e) {
+      console.error('無法讀取食譜庫進行藍圖自適應檢查', e);
+    }
+
+    return list;
+  }
+
+  /**
    * 取得所有儲存之產線專案 (自動合併官方全套食譜藍圖與使用者自訂/副本專案)
    */
   public getAllBlueprints(): SandboxBlueprint[] {
-    const builtInList = (initialBlueprints as unknown as SandboxBlueprint[]) || [];
+    const builtInList = this.getBuiltInAndDynamicBlueprints();
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
@@ -219,7 +258,7 @@ class SandboxBlueprintService {
       localStorage.removeItem(DELETED_KEY);
     } catch {}
 
-    const builtInList = (initialBlueprints as unknown as SandboxBlueprint[]) || [];
+    const builtInList = this.getBuiltInAndDynamicBlueprints();
     const currentList = this.getAllBlueprints();
 
     // 找出使用者自訂/副本專案 (非官方 ID)
@@ -230,6 +269,29 @@ class SandboxBlueprintService {
     const restored = [...userCustomBlueprints, ...builtInList];
     this.saveList(restored);
     return restored;
+  }
+
+  /**
+   * 為新食譜即時生成專案藍圖並直接寫入專案庫 (供 RecipeManager 登錄新食譜時自動調用)
+   */
+  public generateAndSaveRecipeBlueprint(dish: Recipe): SandboxBlueprint {
+    const allRecipes = dataService.getRecipes();
+    const idx = allRecipes.findIndex(r => r.name === dish.name);
+    const bp = buildDishBlueprint(dish, idx >= 0 ? idx : allRecipes.length);
+
+    const currentList = this.getAllBlueprints();
+    const existingIndex = currentList.findIndex(b => b.id === bp.id || b.stats?.mainDishes.includes(dish.name));
+
+    let updatedList: SandboxBlueprint[];
+    if (existingIndex >= 0) {
+      currentList[existingIndex] = bp;
+      updatedList = [...currentList];
+    } else {
+      updatedList = [bp, ...currentList];
+    }
+
+    this.saveList(updatedList);
+    return bp;
   }
 
   /**

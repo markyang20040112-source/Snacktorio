@@ -27,7 +27,9 @@ import {
   Hourglass,
   FolderKanban,
   Save,
-  Cloud
+  Cloud,
+  Copy,
+  Clipboard
 } from 'lucide-react';
 
 interface SandboxSimulatorProps {
@@ -296,19 +298,102 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     }
   }, [currentBlueprintId, currentBlueprintName, nodes, connections, pan, zoom]);
 
-  // 鍵盤 Ctrl+S / Cmd+S 快速存檔監聽
+  // 剪貼簿狀態 (支援選中機台或整廠產線複製貼上)
+  const [clipboardData, setClipboardData] = useState<{
+    nodes: SandboxNodeData[];
+    connections: SandboxConnection[];
+  } | null>(null);
+
+  // 複製選中或全廠產線
+  const handleCopy = useCallback(() => {
+    let nodesToCopy: SandboxNodeData[] = [];
+    if (selectedNodeId) {
+      const selectedNode = nodes.find(n => n.id === selectedNodeId);
+      if (selectedNode) nodesToCopy = [selectedNode];
+    }
+    // 若未選取特定節點，則預設複製當前整廠產線
+    if (nodesToCopy.length === 0) {
+      nodesToCopy = [...nodes];
+    }
+    if (nodesToCopy.length === 0) return;
+
+    const nodeIds = new Set(nodesToCopy.map(n => n.id));
+    const connsToCopy = connections.filter(c => nodeIds.has(c.fromNodeId) && nodeIds.has(c.toNodeId));
+
+    setClipboardData({ nodes: nodesToCopy, connections: connsToCopy });
+    setQuickSaveFeedback(`已複製 ${nodesToCopy.length} 台設備至剪貼簿！(按 Ctrl+V 貼上)`);
+    setTimeout(() => setQuickSaveFeedback(null), 3000);
+  }, [selectedNodeId, nodes, connections]);
+
+  // 貼上產線 (在當前視野中央附近產生副本)
+  const handlePaste = useCallback(() => {
+    if (!clipboardData || clipboardData.nodes.length === 0) {
+      setQuickSaveFeedback('剪貼簿為空！請先選取機台或按 Ctrl+C 複製');
+      setTimeout(() => setQuickSaveFeedback(null), 2500);
+      return;
+    }
+
+    const { nodes: clipNodes, connections: clipConns } = clipboardData;
+    const minX = Math.min(...clipNodes.map(n => n.x));
+    const minY = Math.min(...clipNodes.map(n => n.y));
+
+    // 計算貼上座標：置於目前視野中央附近，微幅錯開 40px
+    const offsetX = (-pan.x + 350) - minX + (Math.random() * 40);
+    const offsetY = (-pan.y + 180) - minY + (Math.random() * 40);
+
+    const idMap = new Map<string, string>();
+    const newNodes: SandboxNodeData[] = clipNodes.map(n => {
+      const newId = `node_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      idMap.set(n.id, newId);
+      return {
+        ...n,
+        id: newId,
+        x: n.x + offsetX,
+        y: n.y + offsetY,
+        inputs: n.inputs.map(p => ({ ...p })),
+        outputs: n.outputs.map(p => ({ ...p }))
+      };
+    });
+
+    const newConns: SandboxConnection[] = clipConns.map(c => ({
+      ...c,
+      id: `c_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      fromNodeId: idMap.get(c.fromNodeId) || c.fromNodeId,
+      toNodeId: idMap.get(c.toNodeId) || c.toNodeId
+    }));
+
+    setNodes(prev => [...prev, ...newNodes]);
+    setConnections(prev => [...prev, ...newConns]);
+    if (newNodes.length === 1) setSelectedNodeId(newNodes[0].id);
+
+    setQuickSaveFeedback(`已貼上 ${newNodes.length} 台設備與 ${newConns.length} 條管線！`);
+    setTimeout(() => setQuickSaveFeedback(null), 3000);
+  }, [clipboardData, pan]);
+
+  // 鍵盤 Ctrl+S / Ctrl+C / Ctrl+V 快捷鍵監聽
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
-        e.preventDefault();
-        handleQuickSave();
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) {
+        return;
+      }
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key.toLowerCase() === 's') {
+          e.preventDefault();
+          handleQuickSave();
+        } else if (e.key.toLowerCase() === 'c') {
+          e.preventDefault();
+          handleCopy();
+        } else if (e.key.toLowerCase() === 'v') {
+          e.preventDefault();
+          handlePaste();
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleQuickSave]);
+  }, [handleQuickSave, handleCopy, handlePaste]);
 
-  // 載入專案
+  // 載入專案 (清空並覆寫當前畫布)
   const handleLoadBlueprint = useCallback((bp: SandboxBlueprint) => {
     setNodes(bp.nodes);
     setConnections(bp.connections);
@@ -319,6 +404,46 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     setQuickSaveFeedback(`已載入「${bp.name}」！`);
     setTimeout(() => setQuickSaveFeedback(null), 3000);
   }, []);
+
+  // 追加專案至當前畫布 (不覆寫現有機台，自動計算右側邊界平移)
+  const handleAppendBlueprint = useCallback((bp: SandboxBlueprint) => {
+    if (bp.nodes.length === 0) return;
+
+    // 計算現有畫布右側邊界
+    const maxX = nodes.length > 0 ? Math.max(...nodes.map(n => n.x)) + 380 : (-pan.x + 100);
+    const minY = nodes.length > 0 ? Math.min(...nodes.map(n => n.y)) : (-pan.y + 100);
+    const bpMinX = Math.min(...bp.nodes.map(n => n.x));
+    const bpMinY = Math.min(...bp.nodes.map(n => n.y));
+    const offsetX = maxX - bpMinX;
+    const offsetY = minY - bpMinY;
+
+    const idMap = new Map<string, string>();
+    const clonedNodes: SandboxNodeData[] = bp.nodes.map(n => {
+      const newId = `node_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      idMap.set(n.id, newId);
+      return {
+        ...n,
+        id: newId,
+        x: n.x + offsetX,
+        y: n.y + offsetY,
+        inputs: n.inputs.map(p => ({ ...p })),
+        outputs: n.outputs.map(p => ({ ...p }))
+      };
+    });
+
+    const clonedConns: SandboxConnection[] = bp.connections.map(c => ({
+      ...c,
+      id: `c_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      fromNodeId: idMap.get(c.fromNodeId) || c.fromNodeId,
+      toNodeId: idMap.get(c.toNodeId) || c.toNodeId
+    }));
+
+    setNodes(prev => [...prev, ...clonedNodes]);
+    setConnections(prev => [...prev, ...clonedConns]);
+    setQuickSaveFeedback(`已將「${bp.name}」追加至畫布 (${clonedNodes.length} 台設備)！`);
+    setTimeout(() => setQuickSaveFeedback(null), 3500);
+    setIsBlueprintModalOpen(false);
+  }, [nodes, pan]);
 
   // 另存/儲存成功回調
   const handleSaveCurrentSuccess = useCallback((bp: SandboxBlueprint) => {
@@ -1727,6 +1852,26 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
             <span>同步 GIT</span>
           </button>
 
+          {/* 剪貼簿 複製 / 貼上 按鈕 */}
+          <div className="flex items-center pl-1 border-l border-[#1e3340] space-x-1">
+            <button
+              onClick={handleCopy}
+              className="px-2 py-1.5 hover:bg-slate-800 hover:text-cyan-300 rounded-xl transition-colors flex items-center space-x-1 text-slate-300"
+              title="複製選取機台或全廠產線至剪貼簿 (Ctrl+C)"
+            >
+              <Copy className="w-3.5 h-3.5 text-cyan-400" />
+              <span>複製</span>
+            </button>
+            <button
+              onClick={handlePaste}
+              className="px-2 py-1.5 hover:bg-slate-800 hover:text-emerald-300 rounded-xl transition-colors flex items-center space-x-1 text-slate-300"
+              title="貼上剪貼簿產線 (Ctrl+V，可重複貼上至任何頁面)"
+            >
+              <Clipboard className="w-3.5 h-3.5 text-emerald-400" />
+              <span>貼上</span>
+            </button>
+          </div>
+
           {quickSaveFeedback && (
             <div className="px-2 py-1 bg-emerald-950/80 border border-emerald-500/60 text-emerald-300 text-[11px] rounded-lg animate-fadeIn font-bold">
               {quickSaveFeedback}
@@ -2039,6 +2184,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         currentZoom={zoom}
         currentBlueprintId={currentBlueprintId}
         onLoadBlueprint={handleLoadBlueprint}
+        onAppendBlueprint={handleAppendBlueprint}
         onSaveCurrentSuccess={handleSaveCurrentSuccess}
       />
 

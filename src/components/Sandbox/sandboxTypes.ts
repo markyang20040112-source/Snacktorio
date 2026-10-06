@@ -31,6 +31,7 @@ export interface SandboxNodeData {
 
   // 物理與運轉參數
   powerMode?: 'regular' | 'overclock'; // 用於發電熔爐或泵機
+  pumpCapacity?: number;              // 泵機額定容量 (2.0 或 8.0 fl/s)
   isMockInfiniteSupply?: boolean;      // 無中生有：原料無限供應
   overclockPercent?: number;          // 超頻百分比 (預設 100%)
   splitterMode?: 'equal' | 'custom';  // 分流器模式：均分 或 自訂比例

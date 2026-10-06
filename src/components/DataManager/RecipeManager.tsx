@@ -3,6 +3,7 @@ import { Recipe, Item, IntermediateRecipe } from '../../types';
 import { SearchableSelect, SelectOptionGroup } from '../Common/SearchableSelect';
 import { Plus, Edit2, Trash2, Search, X, Check } from 'lucide-react';
 import { ItemIcon } from '../Common/ItemIcon';
+import { sandboxBlueprintService } from '../../services/sandboxBlueprintService';
 
 interface RecipeManagerProps {
   recipes: Recipe[];
@@ -341,6 +342,14 @@ export const RecipeManager: React.FC<RecipeManagerProps> = ({
     } else {
       onSave(recipes.map(r => r.name === toSave.name ? toSave : r));
     }
+
+    // 自動為此食譜推導並生成完整沙盒產線專案
+    try {
+      sandboxBlueprintService.generateAndSaveRecipeBlueprint(toSave);
+    } catch (bpErr) {
+      console.warn('自動生成食譜藍圖時發生錯誤:', bpErr);
+    }
+
     setEditingRecipe(null);
   };
 
