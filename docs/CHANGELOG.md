@@ -7,6 +7,14 @@
 
 ## 最新紀錄
 
+* **2026-10-06**：停機設備零產出強約束與連線流量收斂最終結算（Machine Zero-Efficiency Output Cutoff & Final Flow Reconciliation）：
+  - **問題根因**：
+    1. **停機設備仍虛擬產出**：當設備因缺少流體或固體原料停機（`efficiency === 0`）時，先前在更新輸出端口產率時漏判了 `node.efficiency === 0`，僅用 `minSolidSat` 計算產率。對於無固體輸入的設備（如未通虛空的「空載凝結：虛空汙泥」操縱機），`minSolidSat` 為 1.0，導致輸出端口仍被賦予 `0.20 /s` 的滿額產率。
+    2. **連線流量單向延遲**：連線計算在機台狀態演算前執行，且最後一輪迭代後未對連線進行最終閉環結算，導致下游泵機在機台已停機時仍讀取到上一次殘留的虛擬汙泥流量（`0.20 /s`），進而觸發假性超頻（`⚡ 超頻 8 fl/s`）。
+  - **修復方案**：
+    1. **停機產率歸零硬性約束 (`sandboxPhysics.ts`)**：只要 `node.efficiency === 0`，輸出端口產率無條件強制作為 `0`；下游連線在來源機台 `efficiency === 0` 時流量絕對歸零（`0 /s`）。
+    2. **最終連線與泵機超頻狀態結算 (`sandboxPhysics.ts`)**：在 4 輪 DAG 傳導後，新增連線流量與泵機超頻狀態的最終閉環結算，確保畫面上所有連線數值與泵機模式 100% 反映上游設備的即時運轉實況。
+
 * **2026-10-03**：程式瘦身與文件分層重構（零功能變更，1008 案例黃金快照逐字驗證 IDENTICAL）：
   - **並聯規劃拆分**：`ParallelPlanner.tsx` 由 1640 行縮減為 289 行；純運算抽出為 `src/services/parallelPlanner.ts`（`runParallelPlan`、`consolidatePlan`），顯示拆為 `FluidStation`、`PowerStation`、`ProcessTable`、`KpiSummary` 四個元件（JSX 原樣搬移）。
   - **基建結算單一化**：`solver.ts` 中單料理與並聯各自重複的「泵機階梯 + 虛空閉環 + 電網」結算合併為 `settlePlantInfrastructure()`，運算順序完全保留；刪除無任何呼叫者的 `combineCalculationResults`。

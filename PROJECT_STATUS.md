@@ -96,6 +96,7 @@
 ## 7. 近期決策摘要 (Recent Decisions)
 > 完整原文見 [`docs/CHANGELOG.md`](docs/CHANGELOG.md)。新紀錄請先追加詳細內容至 CHANGELOG 頂端，再於此更新摘要（保留最近約 10 筆）。
 
+* **2026-10-06**：停機設備零產出強約束與連線流量收斂最終結算（修復缺少原料/流體停機時輸出端仍給出流率導致下游泵機假性超頻問題）。
 * **2026-10-03｜程式瘦身重構（零功能變更）**：
   - `ParallelPlanner.tsx` 1640 → 289 行：運算抽至 `services/parallelPlanner.ts`，顯示拆為 4 個子元件。
   - `solver.ts` 三處重複的泵機/虛空/電網結算合併為 `settlePlantInfrastructure`；刪除無呼叫者的 `combineCalculationResults`。

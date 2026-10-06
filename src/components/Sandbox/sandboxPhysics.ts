@@ -74,6 +74,14 @@ export function simulateSandboxPhysics(
         return;
       }
       
+      // 若來源機台停機 (efficiency === 0)，下游連線流量絕對為 0
+      if (fromNode.efficiency === 0) {
+        conns.forEach(c => {
+          c.actualFlowRate = 0;
+        });
+        return;
+      }
+
       // 均分定律：若輸出端口連至多台下游設備，流率被連線均等分流
       const splitRate = conns.length > 0 ? totalRate / conns.length : 0;
       conns.forEach(c => {
@@ -244,8 +252,13 @@ export function simulateSandboxPhysics(
 
       // 6. 更新輸出端口產率
       node.outputs.forEach(p => {
+        // 若機台停機 (efficiency === 0)，輸出端口產率絕對為 0
+        if (node.efficiency === 0) {
+          p.rateProvided = 0;
+          return;
+        }
         if (node.machineName === '注入機') {
-          p.rateProvided = node.efficiency > 0 ? 999 : 0;
+          p.rateProvided = 999;
           return;
         }
         const actualOutRate = node.actualCycleTime > 0
@@ -255,6 +268,110 @@ export function simulateSandboxPhysics(
       });
     });
   }
+
+  // ==============================================================
+  // 最終連線流量結算：確保所有連線 100% 與機台最終收斂狀態一致
+  // ==============================================================
+  const finalPortOutgoingMap = new Map<string, SandboxConnection[]>();
+  connList.forEach(c => {
+    const key = `${c.fromNodeId}_${c.fromPortId}`;
+    if (!finalPortOutgoingMap.has(key)) {
+      finalPortOutgoingMap.set(key, []);
+    }
+    finalPortOutgoingMap.get(key)!.push(c);
+  });
+
+  finalPortOutgoingMap.forEach((conns) => {
+    if (conns.length === 0) return;
+    const fromNodeId = conns[0].fromNodeId;
+    const fromPortId = conns[0].fromPortId;
+    const fromNode = nodeMap.get(fromNodeId);
+    if (!fromNode) return;
+
+    const outPort = fromNode.outputs.find(p => p.id === fromPortId);
+    const totalRate = outPort?.rateProvided || 0;
+
+    if (fromNode.type === 'environment_pool' || fromNode.machineName === '注入機') {
+      conns.forEach(c => {
+        if (fromNode.efficiency === 0) {
+          c.actualFlowRate = 0;
+          return;
+        }
+        const toNode = nodeMap.get(c.toNodeId);
+        const inPort = toNode?.inputs.find(p => p.id === c.toPortId);
+        let demand = inPort?.rateRequired || 1.0;
+        if (toNode?.type === 'pump') {
+          demand = toNode.powerMode === 'overclock' ? 8.0 : 2.0;
+        }
+        c.actualFlowRate = Number(demand.toFixed(2));
+      });
+      return;
+    }
+
+    if (fromNode.efficiency === 0) {
+      conns.forEach(c => {
+        c.actualFlowRate = 0;
+      });
+      return;
+    }
+
+    const splitRate = conns.length > 0 ? totalRate / conns.length : 0;
+    conns.forEach(c => {
+      c.actualFlowRate = Number(splitRate.toFixed(3));
+    });
+  });
+
+  // 連線流量最終確定後，對所有泵機進行最終超頻狀態結算
+  nodeMap.forEach(node => {
+    if (node.type === 'pump') {
+      const sludgeConns = connList.filter(c => c.toNodeId === node.id && (c.toPortId === 'in-sludge' || c.toPortId.includes('sludge')));
+      const sludgeRate = sludgeConns.reduce((sum, c) => sum + c.actualFlowRate, 0);
+      const isOverclocked = sludgeConns.length > 0 && sludgeRate > 0;
+
+      node.powerMode = isOverclocked ? 'overclock' : 'regular';
+      node.basePowerConsumption = isOverclocked ? 2.0 : 1.0;
+      node.actualPower = node.basePowerConsumption;
+      node.baseGoblins = isOverclocked ? 2 : 1;
+      node.actualGoblins = node.baseGoblins;
+
+      const targetRate = isOverclocked ? 8.0 : 2.0;
+
+      const fluidInPort = node.inputs.find(p => p.type === 'fluid');
+      if (fluidInPort) {
+        const incomingConns = connList.filter(c => c.toNodeId === node.id && c.toPortId === fluidInPort.id);
+        const incomingFluidRate = incomingConns.reduce((sum, c) => sum + c.actualFlowRate, 0);
+        if (incomingConns.length > 0 && incomingFluidRate > 0) {
+          const firstConn = incomingConns[0];
+          const fromNode = nodeMap.get(firstConn.fromNodeId);
+          const fromPort = fromNode?.outputs.find(p => p.id === firstConn.fromPortId);
+          const fluidName = fromPort?.name || firstConn.itemOrFluidName || '流體';
+
+          node.title = `${fluidName}抽取泵機 (${isOverclocked ? '⚡超頻 8 fl/s' : '常規 2 fl/s'})`;
+          node.efficiency = 1.0;
+          node.statusNote = isOverclocked ? `⚡ 超頻運轉中：輸出 ${fluidName} 8.0 fl/s` : `正常運轉中：輸出 ${fluidName} 2.0 fl/s`;
+          node.outputs.forEach(p => {
+            p.name = fluidName;
+            p.rateProvided = targetRate;
+          });
+        } else {
+          node.efficiency = 0;
+          node.title = '通用抽取泵機 (待接液源)';
+          node.statusNote = '❌ 未連接原位轉化液或環境池';
+          node.outputs.forEach(p => {
+            p.rateProvided = 0;
+          });
+        }
+      } else {
+        node.efficiency = 1.0;
+        const fluidName = node.outputs[0]?.name || '流體';
+        node.title = `${fluidName}抽取泵機 (${isOverclocked ? '⚡超頻 8 fl/s' : '常規 2 fl/s'})`;
+        node.statusNote = isOverclocked ? '⚡ 超頻運轉中 (8.0 fl/s)' : '正常運轉中 (常規 2.0 fl/s)';
+        node.outputs.forEach(p => {
+          p.rateProvided = targetRate;
+        });
+      }
+    }
+  });
 
   // ==========================================
   // 階段 3：全廠電網、人力與指標彙整
