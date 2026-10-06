@@ -30,26 +30,19 @@ interface SandboxSimulatorProps {
   recipes: Recipe[];
 }
 
-const KNOWN_FLUIDS = new Set([
+// 全遊戲真正的連續管網流體 (fl/s) 精準集合
+const TRUE_FLUID_NAMES = new Set([
   '水', '油', '虛空',
   '塔瑪茄醬', '青醬', '麵糊', '白醬', '肉汁', '蟑螂奶', '蒜泥蛋醬',
-  '炙烈紅油', '醋', '致命莎莎醬', '辛辣莎莎醬', '致命沙沙醬', '辛辣沙沙醬'
+  '炙烈紅油', '醋', '致命莎莎醬'
 ]);
 
-function isFluidItem(name: string): boolean {
+function isFluidItem(name: string, itemsList?: Item[]): boolean {
   if (!name) return false;
-  if (KNOWN_FLUIDS.has(name)) return true;
-  if (
-    name.endsWith('醬') || 
-    name.endsWith('油') || 
-    name.endsWith('水') || 
-    name.endsWith('汁') || 
-    name.endsWith('奶') || 
-    name.endsWith('醋') || 
-    name.includes('虛空')
-  ) {
-    if (['油荳蔻', '水稻', '醬油'].includes(name)) return false;
-    return true;
+  if (TRUE_FLUID_NAMES.has(name)) return true;
+  if (itemsList) {
+    const item = itemsList.find(i => i.name === name);
+    if (item && item.isFluid !== undefined) return Boolean(item.isFluid);
   }
   return false;
 }
@@ -64,7 +57,17 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
   const [nodes, setNodes] = useState<SandboxNodeData[]>(() => {
     const saved = localStorage.getItem('snacktorio_sandbox_nodes_v1');
     if (saved) {
-      try { return JSON.parse(saved); } catch (e) { /* ignore */ }
+      try {
+        const parsed: SandboxNodeData[] = JSON.parse(saved);
+        // 自動校準既有節點的端口型別 (防止舊版快取將固體標記為 fluid)
+        return parsed.map(n => ({
+          ...n,
+          outputs: n.outputs.map(p => ({
+            ...p,
+            type: isFluidItem(p.name, items) || n.machineName === '注入機' ? 'fluid' : 'solid'
+          }))
+        }));
+      } catch (e) { /* ignore */ }
     }
     // 預設樣板：1 台發電熔爐 + 1 台採煤機 + 1 台水泵 + 1 台煮鍋 (示範新手開局)
     return [
@@ -205,7 +208,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     // 解析輸出端口
     const outputs: SandboxNodeData['outputs'] = [];
     if (recipeOrInter) {
-      const isOutFluid = isFluidItem(recipeOrInter.name) || mach.name === '注入機';
+      const isOutFluid = isFluidItem(recipeOrInter.name, items) || mach.name === '注入機';
       const rate = mach.name === '注入機'
         ? 999
         : isOutFluid
