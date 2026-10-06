@@ -433,7 +433,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
       const perishItem = subtype ? items.find(i => i.name === subtype) : null;
       const rawName = perishItem?.name || '發酵原料';
       const prodName = perishItem?.spoilProduct || '熟成產物';
-      const spoilSeconds = perishItem?.spoilTime || 15;
+      const spoilSeconds = Number(perishItem?.spoilTime) || 15;
 
       node = {
         id,
