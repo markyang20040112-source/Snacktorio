@@ -179,7 +179,7 @@ function getBaseItemName(str: string): string {
     .trim();
 }
 
-function matchMaterial(prodItem: { name: string; isFluid: boolean }, reqItem: { name: string; isFluid: boolean }): boolean {
+export function matchMaterial(prodItem: { name: string; isFluid: boolean }, reqItem: { name: string; isFluid: boolean }): boolean {
   if (prodItem.isFluid !== reqItem.isFluid) return false;
   const pNorm = normalizeMatName(prodItem.name);
   const rNorm = normalizeMatName(reqItem.name);
@@ -216,7 +216,7 @@ function matchMaterial(prodItem: { name: string; isFluid: boolean }, reqItem: { 
   return false;
 }
 
-function getProcessOutputItem(
+export function getProcessOutputItem(
   p: ProcessNode,
   dishName: string,
   intermediateRecipes: IntermediateRecipe[],
@@ -309,7 +309,7 @@ function getProcessOutputItem(
   return { name: stripped, isFluid: false };
 }
 
-function getProcessInputItems(
+export function getProcessInputItems(
   p: ProcessNode,
   dishName: string,
   dishProcesses: ProcessNode[],

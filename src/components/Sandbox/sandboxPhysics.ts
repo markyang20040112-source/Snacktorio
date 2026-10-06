@@ -34,6 +34,10 @@ export function isItemMatch(
   // 1. 完全相同
   if (cleanSource === cleanTarget) return true;
 
+  // 通用底料相容性：任意物品 / 重構底料 / 底料 互相相容
+  const isGenericBase = (s: string) => s === '任意物品' || s === '重構底料' || s === '底料' || s === '底料專供' || s === '底料作物';
+  if (isGenericBase(cleanSource) && isGenericBase(cleanTarget)) return true;
+
   // 2. 特殊設備或通用端口邏輯
   if (targetNode) {
     // 分流器：單一端口為通用接收（多筆輸入是否混流由 incomingItemNames.length 判定）
