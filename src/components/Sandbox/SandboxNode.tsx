@@ -11,6 +11,7 @@ interface SandboxNodeProps {
   onDelete: (id: string) => void;
   onToggleMock: (id: string) => void;
   onUpdateNode?: (id: string, updates: Partial<SandboxNodeData>) => void;
+  onUpdateDishTargetRate?: (id: string, rateMin: number) => void;
   onStartConnect: (nodeId: string, portId: string, portType: 'solid' | 'fluid', isOutput: boolean, e: React.MouseEvent) => void;
   onEndConnect: (nodeId: string, portId: string, isOutput: boolean, e: React.MouseEvent) => void;
 }
@@ -22,6 +23,7 @@ export const SandboxNode: React.FC<SandboxNodeProps> = ({
   onDelete,
   onToggleMock,
   onUpdateNode,
+  onUpdateDishTargetRate,
   onStartConnect,
   onEndConnect
 }) => {
@@ -150,6 +152,72 @@ export const SandboxNode: React.FC<SandboxNodeProps> = ({
                 : 'bg-emerald-950/30 text-emerald-400 border border-emerald-800/30'
           }`}>
             {node.statusNote}
+          </div>
+        )}
+
+        {/* 產能跟不上強烈警示標籤 */}
+        {node.inputs.some(p => p.isDeficit) && (
+          <div className="p-1.5 rounded-lg bg-rose-950/80 border border-rose-600/80 text-[10px] text-rose-300 font-bold flex items-center space-x-1 animate-pulse">
+            <span>⚠️ 產能跟不上！上游原料供應不足</span>
+          </div>
+        )}
+
+        {/* 終端料理產能目標設定面板 (X 份/分，隨炙熱菜餚連動) */}
+        {node.machineName === '自動廚師機' && !!node.recipeName && (
+          <div className="p-2 rounded-xl bg-slate-900/90 border border-amber-900/40 space-y-1.5 mt-1">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-1.5">
+                <span className="text-[10px] font-bold text-amber-300">🎯 出餐目標</span>
+                {node.isAutoPepto && (
+                  <span className="text-[9px] px-1 py-0.2 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 font-mono font-bold" title="自動隨全廠炙熱菜餚產能加總動態連動">
+                    🌶️ 隨炙熱連動
+                  </span>
+                )}
+              </div>
+              <span className="text-[10px] font-mono text-slate-300 font-bold">
+                {node.targetRatePerMin || 12} 份/分
+              </span>
+            </div>
+
+            {/* 快捷目標切換與自訂輸入 */}
+            <div className="flex items-center space-x-1">
+              {[12, 24, 36].map(rate => (
+                <button
+                  key={rate}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onUpdateDishTargetRate) {
+                      onUpdateDishTargetRate(node.id, rate);
+                    }
+                  }}
+                  className={`flex-1 py-0.5 rounded text-[9px] font-mono transition-colors ${
+                    (node.targetRatePerMin || 12) === rate
+                      ? 'bg-amber-500/30 text-amber-300 font-bold border border-amber-500/50'
+                      : 'bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800'
+                  }`}
+                  title={`設定出餐目標為 ${rate} 份/分`}
+                >
+                  {rate}
+                </button>
+              ))}
+              <div className="flex items-center bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 w-16">
+                <input
+                  type="number"
+                  min="1"
+                  value={node.targetRatePerMin || 12}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    const val = Math.max(1, Number(e.target.value) || 12);
+                    if (onUpdateDishTargetRate) {
+                      onUpdateDishTargetRate(node.id, val);
+                    }
+                  }}
+                  className="w-full bg-transparent text-[9px] font-mono text-amber-200 outline-none text-center"
+                />
+                <span className="text-[8px] text-slate-500 ml-0.5">/分</span>
+              </div>
+            </div>
           </div>
         )}
 
@@ -303,7 +371,7 @@ export const SandboxNode: React.FC<SandboxNodeProps> = ({
           {node.inputs.length === 0 ? (
             <div className="text-[10px] text-slate-600 italic">無 (自主產出)</div>
           ) : (
-            node.inputs.map(port => (
+              node.inputs.map(port => (
               <div 
                 key={port.id} 
                 className="flex items-center space-x-1.5 group/port relative cursor-pointer"
@@ -319,15 +387,31 @@ export const SandboxNode: React.FC<SandboxNodeProps> = ({
                 {/* 端口連接圓點 */}
                 <div 
                   className={`w-3 h-3 rounded-full border-2 transition-transform group-hover/port:scale-125 shrink-0 ${
-                    port.type === 'fluid'
-                      ? 'bg-cyan-500 border-cyan-200 shadow-sm shadow-cyan-500/50'
-                      : 'bg-amber-500 border-amber-200 shadow-sm shadow-amber-500/50'
+                    port.isDeficit
+                      ? 'bg-rose-500 border-rose-200 shadow-sm shadow-rose-500/80 animate-pulse'
+                      : port.type === 'fluid'
+                        ? 'bg-cyan-500 border-cyan-200 shadow-sm shadow-cyan-500/50'
+                        : 'bg-amber-500 border-amber-200 shadow-sm shadow-amber-500/50'
                   }`}
                   title={`輸入端口：${port.name} (${port.rateRequired || 0.2}/s) · 可拖曳拉線或作為連線終點`}
                 />
-                <span className="text-[10px] text-slate-300 truncate max-w-[85px]" title={port.name}>
-                  {port.name}
-                </span>
+                <div className="flex items-center space-x-1 min-w-0">
+                  <span className="text-[10px] text-slate-300 truncate max-w-[65px]" title={port.name}>
+                    {port.name}
+                  </span>
+                  {port.rateRequired !== undefined && (
+                    <span 
+                      className={`text-[9px] font-mono px-1 rounded transition-colors ${
+                        port.isDeficit 
+                          ? 'bg-rose-950 text-rose-300 border border-rose-800/80 font-bold' 
+                          : 'text-slate-500'
+                      }`}
+                      title={port.isDeficit ? `產能跟不上！實供 ${port.rateReceived ?? 0}/s < 需求 ${port.rateRequired}/s` : `需求：${port.rateRequired}/s`}
+                    >
+                      {port.rateReceived !== undefined ? `${port.rateReceived.toFixed(2)}/` : ''}{port.rateRequired}{port.type === 'fluid' ? 'fl' : ''}/s
+                    </span>
+                  )}
+                </div>
                 {port.type === 'fluid' && <Droplets className="w-2.5 h-2.5 text-cyan-400 shrink-0" />}
               </div>
             ))
@@ -354,9 +438,16 @@ export const SandboxNode: React.FC<SandboxNodeProps> = ({
                 }}
               >
                 {port.type === 'fluid' && <Droplets className="w-2.5 h-2.5 text-cyan-400 shrink-0" />}
-                <span className="text-[10px] text-slate-300 truncate max-w-[85px]" title={port.name}>
-                  {port.name}
-                </span>
+                <div className="flex items-center justify-end space-x-1 min-w-0">
+                  {node.targetRatePerMin && (
+                    <span className="text-[9px] font-mono text-emerald-400 font-bold shrink-0" title={`目標產能：${node.targetRatePerMin} 份/分`}>
+                      {node.targetRatePerMin}份/分
+                    </span>
+                  )}
+                  <span className="text-[10px] text-slate-300 truncate max-w-[65px]" title={port.name}>
+                    {port.name}
+                  </span>
+                </div>
                 {/* 端口拉出圓點 */}
                 <div 
                   className={`w-3 h-3 rounded-full border-2 transition-transform group-hover/port:scale-125 shrink-0 ${

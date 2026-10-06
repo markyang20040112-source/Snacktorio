@@ -344,14 +344,19 @@ export function simulateSandboxPhysics(
       const fluidInputs = node.inputs.filter(p => p.type === 'fluid');
       let minFluidSat = 1.0;
       let missingFluidName = '';
+      let missingFluidDetail = '';
       if (fluidInputs.length > 0) {
         fluidInputs.forEach(p => {
           const incomingConns = connList.filter(c => c.toNodeId === node.id && c.toPortId === p.id);
           const receivedRate = incomingConns.reduce((sum, c) => sum + c.actualFlowRate, 0);
-          const reqRate = p.rateRequired || 1.0;
+          const reqRate = p.rateRequired !== undefined ? p.rateRequired : 1.0;
+          p.rateReceived = Number(receivedRate.toFixed(2));
+          p.isDeficit = reqRate > 0 && receivedRate < reqRate - 0.005;
           const sat = reqRate > 0 ? Math.min(1.0, receivedRate / reqRate) : 1.0;
           if (sat < minFluidSat) {
             minFluidSat = sat;
+            missingFluidName = p.name;
+            missingFluidDetail = `供給 ${receivedRate.toFixed(2)} fl/s < 需求 ${reqRate.toFixed(2)} fl/s`;
             if (sat === 0) missingFluidName = p.name;
           }
         });
@@ -364,16 +369,20 @@ export function simulateSandboxPhysics(
       const solidInputs = node.inputs.filter(p => p.type === 'solid');
       let minSolidSat = 1.0;
       let missingSolidName = '';
+      let missingSolidDetail = '';
       if (solidInputs.length > 0) {
         solidInputs.forEach(p => {
           const incomingConns = connList.filter(c => c.toNodeId === node.id && c.toPortId === p.id);
           const receivedRate = incomingConns.reduce((sum, c) => sum + c.actualFlowRate, 0);
           const defaultReq = node.baseCycleTime > 0 ? 1 / node.baseCycleTime : 0.2;
           const reqRate = p.rateRequired !== undefined ? p.rateRequired : defaultReq;
+          p.rateReceived = Number(receivedRate.toFixed(2));
+          p.isDeficit = reqRate > 0 && receivedRate < reqRate - 0.005;
           const sat = reqRate > 0 ? Math.min(1.0, receivedRate / reqRate) : 1.0;
           if (sat < minSolidSat) {
             minSolidSat = sat;
             missingSolidName = p.name;
+            missingSolidDetail = `供給 ${receivedRate.toFixed(2)}/s < 需求 ${reqRate.toFixed(2)}/s`;
           }
         });
         node.solidSaturation = Number(minSolidSat.toFixed(3));
@@ -396,11 +405,11 @@ export function simulateSandboxPhysics(
         node.actualCycleTime = Number(dilatedCycle.toFixed(2));
         node.efficiency = Number((minFluidSat * minSolidSat).toFixed(3));
         const solidNote = minSolidSat < 1.0 ? `，且 ${missingSolidName} 不足 (${(minSolidSat * 100).toFixed(0)}%)` : '';
-        node.statusNote = `⚠️ 流體欠壓 ${(minFluidSat * 100).toFixed(0)}%：週期自 ${node.baseCycleTime}s 拉長至 ${node.actualCycleTime}s${solidNote}`;
+        node.statusNote = `⚠️ 產能跟不上！流體欠壓 ${(minFluidSat * 100).toFixed(0)}% (${missingFluidDetail})：週期拉長至 ${node.actualCycleTime}s${solidNote}`;
       } else if (minSolidSat < 1.0) {
         node.actualCycleTime = node.baseCycleTime;
         node.efficiency = Number(minSolidSat.toFixed(3));
-        node.statusNote = `⚠️ ${missingSolidName || '固體原料'}不足 (${(minSolidSat * 100).toFixed(0)}%)：產能降載至 ${(node.efficiency * 100).toFixed(0)}%`;
+        node.statusNote = `⚠️ 產能跟不上！${missingSolidName} 不足 (${(minSolidSat * 100).toFixed(0)}%)：${missingSolidDetail}，產能降載至 ${(node.efficiency * 100).toFixed(0)}%`;
       } else {
         node.actualCycleTime = node.baseCycleTime;
         node.efficiency = 1.0;
@@ -519,14 +528,19 @@ export function simulateSandboxPhysics(
     const fluidInputs = node.inputs.filter(p => p.type === 'fluid');
     let minFluidSat = 1.0;
     let missingFluidName = '';
+    let missingFluidDetail = '';
     if (fluidInputs.length > 0) {
       fluidInputs.forEach(p => {
         const incomingConns = connList.filter(c => c.toNodeId === node.id && c.toPortId === p.id);
         const receivedRate = incomingConns.reduce((sum, c) => sum + c.actualFlowRate, 0);
-        const reqRate = p.rateRequired || 1.0;
+        const reqRate = p.rateRequired !== undefined ? p.rateRequired : 1.0;
+        p.rateReceived = Number(receivedRate.toFixed(2));
+        p.isDeficit = reqRate > 0 && receivedRate < reqRate - 0.005;
         const sat = reqRate > 0 ? Math.min(1.0, receivedRate / reqRate) : 1.0;
         if (sat < minFluidSat) {
           minFluidSat = sat;
+          missingFluidName = p.name;
+          missingFluidDetail = `供給 ${receivedRate.toFixed(2)} fl/s < 需求 ${reqRate.toFixed(2)} fl/s`;
           if (sat === 0) missingFluidName = p.name;
         }
       });
@@ -536,16 +550,20 @@ export function simulateSandboxPhysics(
     const solidInputs = node.inputs.filter(p => p.type === 'solid');
     let minSolidSat = 1.0;
     let missingSolidName = '';
+    let missingSolidDetail = '';
     if (solidInputs.length > 0) {
       solidInputs.forEach(p => {
         const incomingConns = connList.filter(c => c.toNodeId === node.id && c.toPortId === p.id);
         const receivedRate = incomingConns.reduce((sum, c) => sum + c.actualFlowRate, 0);
         const defaultReq = node.baseCycleTime > 0 ? 1 / node.baseCycleTime : 0.2;
         const reqRate = p.rateRequired !== undefined ? p.rateRequired : defaultReq;
+        p.rateReceived = Number(receivedRate.toFixed(2));
+        p.isDeficit = reqRate > 0 && receivedRate < reqRate - 0.005;
         const sat = reqRate > 0 ? Math.min(1.0, receivedRate / reqRate) : 1.0;
         if (sat < minSolidSat) {
           minSolidSat = sat;
           missingSolidName = p.name;
+          missingSolidDetail = `供給 ${receivedRate.toFixed(2)}/s < 需求 ${reqRate.toFixed(2)}/s`;
         }
       });
       node.solidSaturation = Number(minSolidSat.toFixed(3));
@@ -564,11 +582,11 @@ export function simulateSandboxPhysics(
       node.actualCycleTime = Number(dilatedCycle.toFixed(2));
       node.efficiency = Number((minFluidSat * minSolidSat).toFixed(3));
       const solidNote = minSolidSat < 1.0 ? `，且 ${missingSolidName} 不足 (${(minSolidSat * 100).toFixed(0)}%)` : '';
-      node.statusNote = `⚠️ 流體欠壓 ${(minFluidSat * 100).toFixed(0)}%：週期自 ${node.baseCycleTime}s 拉長至 ${node.actualCycleTime}s${solidNote}`;
+      node.statusNote = `⚠️ 產能跟不上！流體欠壓 ${(minFluidSat * 100).toFixed(0)}% (${missingFluidDetail})：週期拉長至 ${node.actualCycleTime}s${solidNote}`;
     } else if (minSolidSat < 1.0) {
       node.actualCycleTime = node.baseCycleTime;
       node.efficiency = Number(minSolidSat.toFixed(3));
-      node.statusNote = `⚠️ ${missingSolidName || '固體原料'}不足 (${(minSolidSat * 100).toFixed(0)}%)：產能降載至 ${(node.efficiency * 100).toFixed(0)}%`;
+      node.statusNote = `⚠️ 產能跟不上！${missingSolidName} 不足 (${(minSolidSat * 100).toFixed(0)}%)：${missingSolidDetail}，產能降載至 ${(node.efficiency * 100).toFixed(0)}%`;
     } else {
       node.actualCycleTime = node.baseCycleTime;
       node.efficiency = 1.0;

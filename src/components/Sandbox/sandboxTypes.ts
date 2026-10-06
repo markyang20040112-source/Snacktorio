@@ -13,6 +13,8 @@ export interface PortDefinition {
   type: 'solid' | 'fluid';
   rateRequired?: number; // fl/s 或 個/秒
   rateProvided?: number; // fl/s 或 個/秒
+  rateReceived?: number; // 實質接收量 (fl/s 或 個/秒)
+  isDeficit?: boolean;   // 是否產能供不應求 (缺料/欠壓)
 }
 
 export interface SandboxNodeData {
@@ -33,6 +35,9 @@ export interface SandboxNodeData {
   overclockPercent?: number;          // 超頻百分比 (預設 100%)
   splitterMode?: 'equal' | 'custom';  // 分流器模式：均分 或 自訂指定流量
   splitterCustomRates?: number[];     // 自訂各端口輸出限流 (個/秒)
+  targetRatePerMin?: number;          // 終端料理目標產能 (份/分，如 12, 24, 36)
+  isAutoPepto?: boolean;              // 隨炙熱菜餚自動配餐之胃復慘節點
+  autoPeptoTrackingRate?: number;     // 當前追蹤之全廠炙熱菜餚總和產能 (份/分)
 
   // 額定標準參數 (來自資料庫)
   baseCycleTime: number;              // 基準加工週期 (秒)

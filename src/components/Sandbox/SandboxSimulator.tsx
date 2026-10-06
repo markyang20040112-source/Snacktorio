@@ -7,6 +7,7 @@ import {
 import { simulateSandboxPhysics } from './sandboxPhysics';
 import { SandboxNode } from './SandboxNode';
 import { Machine, Item, IntermediateRecipe, Recipe } from '../../types';
+import { isScorchingDish } from '../../services/solver';
 import { ItemIcon } from '../Common/ItemIcon';
 import { 
   Zap, 
@@ -144,6 +145,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
   const [itemsFilter, setItemsFilter] = useState<'all' | 'miner' | 'harvester' | 'reconstructor'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [defaultDishRateMin, setDefaultDishRateMin] = useState<number>(12);
 
   // 滑鼠互動狀態 (拖曳節點、拖曳畫布、拉線)
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
@@ -251,6 +253,98 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
   }, [nodes, connections]);
 
   // ==========================================
+  // 終端料理產能換算與炙熱菜餚連動引擎
+  // ==========================================
+  const configureDishNodeRates = useCallback((
+    node: SandboxNodeData,
+    targetRatePerMin: number,
+    recipe: Recipe,
+    mach: Machine
+  ): SandboxNodeData => {
+    const outputCount = recipe.outputCount || 1;
+    const cycleTime = recipe.cycleTime || 5;
+    const singleRate = outputCount / cycleTime; // 單台廚師機產率 (份/秒)
+    const targetPerSec = targetRatePerMin / 60; // 目標產率 (份/秒)
+    const machineMultiplier = targetPerSec / singleRate;
+
+    // 固體輸入端口需求換算
+    const inputs: SandboxNodeData['inputs'] = [];
+    (recipe.inputs || []).forEach((inp, idx) => {
+      if (inp.name && !inp.name.startsWith('無') && inp.count > 0) {
+        const rateReq = Number(((inp.count / outputCount) * targetPerSec).toFixed(3));
+        inputs.push({
+          id: `in-${idx}-${inp.name}`,
+          name: inp.name,
+          type: 'solid',
+          rateRequired: rateReq
+        });
+      }
+    });
+
+    // 連續流體需求換算
+    if (recipe.fluidType && recipe.fluidType !== '無') {
+      const fluidReq = Number(((recipe.fluidRate || 1.0) * machineMultiplier).toFixed(3));
+      inputs.push({
+        id: `in-fluid-${recipe.fluidType}`,
+        name: recipe.fluidType,
+        type: 'fluid',
+        rateRequired: fluidReq
+      });
+    }
+
+    // 終端輸出端口產率
+    const outputs: SandboxNodeData['outputs'] = [{
+      id: `out-${recipe.name}`,
+      name: recipe.name,
+      type: 'solid',
+      rateProvided: Number(targetPerSec.toFixed(3))
+    }];
+
+    return {
+      ...node,
+      targetRatePerMin,
+      basePowerConsumption: Number((mach.power * machineMultiplier).toFixed(2)),
+      baseGoblins: Math.max(1, Math.round(mach.goblins * machineMultiplier)),
+      inputs,
+      outputs
+    };
+  }, []);
+
+  // 動態同步全廠炙熱菜餚總和產能至【胃復慘】終端方塊
+  const syncAutoPeptoNodes = useCallback((currentNodes: SandboxNodeData[]): SandboxNodeData[] => {
+    // 找出畫布上所有炙熱菜餚
+    const scorchingNodes = currentNodes.filter(n => 
+      n.type === 'machine' && 
+      n.recipeName && 
+      isScorchingDish(n.recipeName, items, recipes)
+    );
+    const totalScorchingRate = scorchingNodes.reduce((sum, n) => sum + (n.targetRatePerMin || 12), 0);
+
+    const peptoRecipe = recipes.find(r => r.name === '胃復慘');
+    const chefMach = machines.find(m => m.name === '自動廚師機') || { name: '自動廚師機', power: 1.0, goblins: 3 };
+
+    return currentNodes.map(node => {
+      if (node.recipeName === '胃復慘' && (node.isAutoPepto || node.autoPeptoTrackingRate !== undefined)) {
+        if (totalScorchingRate > 0 && peptoRecipe) {
+          const updated = configureDishNodeRates(node, totalScorchingRate, peptoRecipe, chefMach as Machine);
+          return {
+            ...updated,
+            autoPeptoTrackingRate: totalScorchingRate,
+            statusNote: `🌶️ 隨 ${scorchingNodes.length} 道炙熱菜餚連動 (總和 ${totalScorchingRate} 份/分)`
+          };
+        } else {
+          return {
+            ...node,
+            autoPeptoTrackingRate: 0,
+            statusNote: '⚠️ 畫布上無炙熱菜餚連動'
+          };
+        }
+      }
+      return node;
+    });
+  }, [items, recipes, machines, configureDishNodeRates]);
+
+  // ==========================================
   // 節點生成工廠 (純資料庫驅動，自適應未來任何新配方)
   // ==========================================
   const handleAddMachineWithRecipe = (mach: Machine, recipeOrInter?: IntermediateRecipe | Recipe) => {
@@ -298,7 +392,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
       });
     }
 
-    const newNode: SandboxNodeData = {
+    const rawNode: SandboxNodeData = {
       id,
       type: 'machine',
       title: recipeOrInter ? recipeOrInter.name : mach.name,
@@ -320,8 +414,54 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
       outputs
     };
 
-    setNodes(prev => [...prev, newNode]);
-    setSelectedNodeId(id);
+    const isDish = recipeOrInter && recipes.some(r => r.name === recipeOrInter.name);
+    let finalNewNode = rawNode;
+
+    if (isDish && recipeOrInter) {
+      finalNewNode = configureDishNodeRates(rawNode, defaultDishRateMin, recipeOrInter as Recipe, mach);
+    }
+
+    // 若為炙熱料理，自動加入胃復慘終端方塊並動態連動產能！
+    if (isDish && recipeOrInter && isScorchingDish(recipeOrInter.name, items, recipes)) {
+      const hasPepto = nodes.some(n => n.recipeName === '胃復慘');
+      if (!hasPepto) {
+        const peptoRecipe = recipes.find(r => r.name === '胃復慘');
+        const chefMach = machines.find(m => m.name === '自動廚師機') || { name: '自動廚師機', power: 1.0, goblins: 3 };
+        if (peptoRecipe) {
+          const peptoId = `node-pepto-${Date.now()}`;
+          const peptoRawNode: SandboxNodeData = {
+            id: peptoId,
+            type: 'machine',
+            title: '胃復慘',
+            machineName: '自動廚師機',
+            recipeName: '胃復慘',
+            island: '斯科瓦拉',
+            x: finalNewNode.x + 30,
+            y: finalNewNode.y + 240,
+            baseCycleTime: 5,
+            baseOutputCount: 10,
+            basePowerConsumption: 1.0,
+            baseGoblins: 3,
+            actualCycleTime: 5,
+            efficiency: 1.0,
+            actualPower: 1.0,
+            actualGoblins: 3,
+            fluidSaturation: 1.0,
+            solidSaturation: 1.0,
+            isAutoPepto: true,
+            inputs: [],
+            outputs: []
+          };
+          const peptoNode = configureDishNodeRates(peptoRawNode, defaultDishRateMin, peptoRecipe, chefMach as Machine);
+          setNodes(prev => syncAutoPeptoNodes([...prev, finalNewNode, peptoNode]));
+          setSelectedNodeId(finalNewNode.id);
+          return;
+        }
+      }
+    }
+
+    setNodes(prev => syncAutoPeptoNodes([...prev, finalNewNode]));
+    setSelectedNodeId(finalNewNode.id);
   };
 
   const handleAddItemHarvester = (item: Item) => {
@@ -741,10 +881,30 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
   };
 
   const handleDeleteNode = (id: string) => {
-    setNodes(prev => prev.filter(n => n.id !== id));
+    setNodes(prev => {
+      const remaining = prev.filter(n => n.id !== id);
+      return syncAutoPeptoNodes(remaining);
+    });
     setConnections(prev => prev.filter(c => c.fromNodeId !== id && c.toNodeId !== id));
     if (selectedNodeId === id) setSelectedNodeId(null);
   };
+
+  const handleUpdateDishTargetRate = useCallback((nodeId: string, rateMin: number) => {
+    setNodes(prev => {
+      const next = prev.map(node => {
+        if (node.id === nodeId) {
+          const rec = recipes.find(r => r.name === node.recipeName);
+          const mach = machines.find(m => m.name === (node.machineName || '自動廚師機')) || { name: '自動廚師機', power: 1.0, goblins: 3 };
+          if (rec) {
+            return configureDishNodeRates(node, rateMin, rec, mach as Machine);
+          }
+          return { ...node, targetRatePerMin: rateMin };
+        }
+        return node;
+      });
+      return syncAutoPeptoNodes(next);
+    });
+  }, [recipes, machines, configureDishNodeRates, syncAutoPeptoNodes]);
 
   const handleToggleMock = (id: string) => {
     setNodes(prev => prev.map(n => {
@@ -1279,12 +1439,60 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
 
               {/* 分頁 3: 終端料理自動廚師機 */}
               {activeCatalogTab === 'recipes' && (
-                <div className="space-y-2">
-                  <div className="text-[10px] font-bold text-slate-500 px-1 uppercase tracking-wider">終端組裝料理</div>
+                <div className="space-y-3">
+                  {/* 全域料理出餐目標設定 */}
+                  <div className="p-2.5 rounded-xl bg-slate-900/90 border border-amber-900/50 space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-amber-300 flex items-center space-x-1">
+                        <Flame className="w-3.5 h-3.5 text-amber-400" />
+                        <span>預設料理出餐目標</span>
+                      </span>
+                      <span className="font-mono text-slate-300 font-bold">
+                        {defaultDishRateMin} 份/分
+                      </span>
+                    </div>
+
+                    <div className="flex items-center space-x-1">
+                      {[12, 24, 36].map(rate => (
+                        <button
+                          key={rate}
+                          onClick={() => setDefaultDishRateMin(rate)}
+                          className={`flex-1 py-1 rounded-lg text-[10px] font-mono transition-colors ${
+                            defaultDishRateMin === rate
+                              ? 'bg-amber-500/30 text-amber-300 font-bold border border-amber-500/50'
+                              : 'bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800'
+                          }`}
+                          title={`設定預設出餐目標為 ${rate} 份/分 (${(rate / 12).toFixed(1)} 台廚師機需求)`}
+                        >
+                          {rate} 份/分
+                        </button>
+                      ))}
+                      <div className="flex items-center bg-slate-950 px-2 py-1 rounded-lg border border-slate-800 w-20">
+                        <input
+                          type="number"
+                          min="1"
+                          value={defaultDishRateMin}
+                          onChange={(e) => setDefaultDishRateMin(Math.max(1, Number(e.target.value) || 12))}
+                          className="w-full bg-transparent text-[10px] font-mono text-amber-200 outline-none text-center"
+                          title="自訂出餐目標"
+                        />
+                        <span className="text-[9px] text-slate-500 ml-0.5">/分</span>
+                      </div>
+                    </div>
+                    <div className="text-[9px] text-slate-500">
+                      💡 放置料理時直接以此產能為基準；若為熾熱料理將自動連動【胃復慘】。
+                    </div>
+                  </div>
+
+                  <div className="text-[10px] font-bold text-slate-500 px-1 uppercase tracking-wider flex items-center justify-between">
+                    <span>終端組裝料理 ({recipes.filter(r => r.name.includes(searchQuery)).length})</span>
+                    <Sparkles className="w-3 h-3 text-amber-400" />
+                  </div>
                   {recipes
                     .filter(r => r.name.includes(searchQuery))
                     .map(r => {
                       const mach = machines.find(m => m.name === '自動廚師機') || { name: '自動廚師機', power: 1.0, goblins: 3 };
+                      const isScorching = isScorchingDish(r.name, items, recipes);
                       return (
                         <div
                           key={r.name}
@@ -1294,11 +1502,18 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
                           <div className="flex items-center space-x-2 truncate">
                             <ItemIcon name="自動廚師機" size="sm" />
                             <div className="truncate">
-                              <div className="font-bold text-slate-200 truncate group-hover:text-amber-300 transition-colors">
-                                {r.name}
+                              <div className="flex items-center space-x-1.5 truncate">
+                                <span className="font-bold text-slate-200 truncate group-hover:text-amber-300 transition-colors">
+                                  {r.name}
+                                </span>
+                                {isScorching && (
+                                  <span className="text-[9px] px-1 py-0.2 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 font-mono font-bold shrink-0" title="熾熱菜餚：點擊將自動配對【胃復慘】">
+                                    🌶️ 熾熱
+                                  </span>
+                                )}
                               </div>
                               <div className="text-[10px] text-slate-500 flex items-center space-x-1 mt-0.5">
-                                <span>自動廚師機 · 5s/份</span>
+                                <span>出餐 {defaultDishRateMin} 份/分</span>
                                 {r.island && (
                                   <>
                                     <span>·</span>
@@ -1446,6 +1661,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
                 onDelete={handleDeleteNode}
                 onToggleMock={handleToggleMock}
                 onUpdateNode={handleUpdateNode}
+                onUpdateDishTargetRate={handleUpdateDishTargetRate}
                 onStartConnect={handleStartConnect}
                 onEndConnect={handleEndConnect}
               />
