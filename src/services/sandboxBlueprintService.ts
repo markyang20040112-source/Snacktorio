@@ -4,24 +4,60 @@ import { SyncConfig } from '../types';
 import { syncDataToGitHub } from './githubSync';
 
 const STORAGE_KEY = 'snacktorio_sandbox_blueprints_v1';
+const DELETED_KEY = 'snacktorio_sandbox_deleted_builtins_v1';
 
 class SandboxBlueprintService {
+  private getDeletedIds(): Set<string> {
+    try {
+      const saved = localStorage.getItem(DELETED_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return new Set(parsed);
+      }
+    } catch {}
+    return new Set();
+  }
+
+  private saveDeletedIds(ids: Set<string>) {
+    try {
+      localStorage.setItem(DELETED_KEY, JSON.stringify([...ids]));
+    } catch {}
+  }
+
   /**
-   * 取得所有儲存之產線專案 (優先讀取 localStorage，若無則回退預設資料庫)
+   * 取得所有儲存之產線專案 (自動合併官方全套食譜藍圖與使用者自訂/副本專案)
    */
   public getAllBlueprints(): SandboxBlueprint[] {
+    const builtInList = (initialBlueprints as unknown as SandboxBlueprint[]) || [];
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
+          const deletedIds = this.getDeletedIds();
+          const savedIds = new Set(parsed.map(bp => bp.id));
+
+          // 自動補入使用者本地尚未擁有的官方預設藍圖 (且未被使用者主動刪除)
+          const missingBuiltIns = builtInList.filter(
+            bp => !savedIds.has(bp.id) && !deletedIds.has(bp.id)
+          );
+
+          if (missingBuiltIns.length > 0) {
+            // 合併：保留使用者自訂/修改專案在前方，官方預設補在後方
+            const merged = [...parsed, ...missingBuiltIns];
+            this.saveList(merged);
+            return merged;
+          }
           return parsed;
         }
       }
     } catch (e) {
       console.error('無法讀取本機產線專案列表', e);
     }
-    return (initialBlueprints as unknown as SandboxBlueprint[]) || [];
+
+    // 初次載入或本地為空
+    this.saveList(builtInList);
+    return builtInList;
   }
 
   /**
@@ -157,16 +193,43 @@ class SandboxBlueprintService {
   }
 
   /**
-   * 刪除專案
+   * 刪除專案 (若為官方預設專案則記錄已刪除，避免自動復活)
    */
   public deleteBlueprint(id: string): boolean {
     const currentList = this.getAllBlueprints();
     const filtered = currentList.filter(bp => bp.id !== id);
     if (filtered.length !== currentList.length) {
+      const builtInList = (initialBlueprints as unknown as SandboxBlueprint[]) || [];
+      if (builtInList.some(bp => bp.id === id)) {
+        const deletedIds = this.getDeletedIds();
+        deletedIds.add(id);
+        this.saveDeletedIds(deletedIds);
+      }
       this.saveList(filtered);
       return true;
     }
     return false;
+  }
+
+  /**
+   * 重置並恢復所有官方食譜藍圖庫 (同時安全保留所有使用者自創專案與副本)
+   */
+  public restoreOfficialBlueprints(): SandboxBlueprint[] {
+    try {
+      localStorage.removeItem(DELETED_KEY);
+    } catch {}
+
+    const builtInList = (initialBlueprints as unknown as SandboxBlueprint[]) || [];
+    const currentList = this.getAllBlueprints();
+
+    // 找出使用者自訂/副本專案 (非官方 ID)
+    const builtInIds = new Set(builtInList.map(bp => bp.id));
+    const userCustomBlueprints = currentList.filter(bp => !builtInIds.has(bp.id));
+
+    // 合併：使用者專案在最前，官方全量食譜藍圖在後
+    const restored = [...userCustomBlueprints, ...builtInList];
+    this.saveList(restored);
+    return restored;
   }
 
   /**

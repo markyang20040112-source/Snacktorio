@@ -20,7 +20,8 @@ import {
   Sparkles,
   ExternalLink,
   X,
-  ArrowRight
+  ArrowRight,
+  RotateCcw
 } from 'lucide-react';
 
 interface SandboxBlueprintModalProps {
@@ -317,6 +318,21 @@ export const SandboxBlueprintModal: React.FC<SandboxBlueprintModalProps> = ({
               <Download className="w-3.5 h-3.5 text-emerald-400" />
               <span>匯出全庫</span>
             </button>
+
+            {/* 恢復/載入官方全量食譜 */}
+            <button
+              onClick={() => {
+                const restored = sandboxBlueprintService.restoreOfficialBlueprints();
+                setBlueprints(restored);
+                setSyncStatus({ success: true, message: `✅ 已成功重置並載入全套官方食譜藍圖庫（共 ${restored.length} 套專案）！` });
+                setTimeout(() => setSyncStatus(null), 4000);
+              }}
+              className="flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-purple-950/40 hover:bg-purple-900/60 text-purple-300 border border-purple-800/60 text-xs transition-colors"
+              title="載入全套 42 道官方食譜產線專案（安全保留您的自創專案）"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-purple-400" />
+              <span>載入官方食譜</span>
+            </button>
           </div>
         </div>
 
@@ -523,10 +539,23 @@ export const SandboxBlueprintModal: React.FC<SandboxBlueprintModalProps> = ({
                             </button>
                           </div>
                         ) : (
-                          <div className="flex items-center space-x-2">
+                          <div className="flex items-center space-x-2 flex-wrap gap-y-1">
                             <span className="font-bold text-sm text-slate-100 hover:text-cyan-300 transition-colors">
                               {bp.name}
                             </span>
+                            {bp.id.startsWith('bp_recipe_') ? (
+                              <span className="text-[10px] px-2 py-0.2 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-bold">
+                                官方食譜
+                              </span>
+                            ) : bp.id === 'bp_tutorial_power' ? (
+                              <span className="text-[10px] px-2 py-0.2 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/30 font-bold">
+                                官方教學
+                              </span>
+                            ) : (
+                              <span className="text-[10px] px-2 py-0.2 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-bold">
+                                自訂專案
+                              </span>
+                            )}
                             {isCurrent && (
                               <span className="text-[10px] px-2 py-0.2 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-bold flex items-center space-x-1">
                                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />

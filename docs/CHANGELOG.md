@@ -7,10 +7,17 @@
 
 ## 最新紀錄
 
-* **2026-10-06**：全遊戲 42 道食譜專案藍圖庫批次建置與 100% 滿載驗證（Full 42 Dish Production Line Blueprints & Zero-Deficit Verification）：
-  - **背景與目標**：
-    - 使用者提出「做現在每一種食譜的專案」之需求，期望在自由沙盒中能一鍵載入任何料理從「自然採集/原位礦床」到「發電熔爐 2:1 閉環電網」、「中間加工拓撲」、「環境池抽取」、「變質緩衝」至「終端自動廚師機」的完整上游全自動化產線。
-    - 依據 Zero-Surprise Protocol 取得使用者授權後，啟動批次生成與物理驗證流程。
+* **2026-10-06**：全遊戲 42 道食譜專案藍圖庫批次建置與 localStorage 自動合併機制修復（Full 42 Dish Blueprints & LocalStorage Auto-Merge Fix）：
+  - **背景與問題**：
+    - 在批次生成全遊戲 42 道食譜藍圖至 `src/data/sandboxBlueprints.json` 後，若使用者瀏覽器本機先前已儲存或複製過專案，`getAllBlueprints()` 原先因判斷 `localStorage.getItem` 存在且長度 > 0 便直接回傳本機舊陣列，導致使用者開啟「產線專案庫」時只看到先前的 1 套副本，而無法自動讀入全新的 42 道官方食譜藍圖。
+  - **架構與實裝成果**：
+    1. **雙向自動補齊與合併機制 (`sandboxBlueprintService.ts`)**：
+       - `getAllBlueprints()` 改為將內建官方藍圖與本地使用者儲存之藍圖動態比對。任何未出現在本地陣列且未被使用者主動刪除的官方藍圖，皆會在開啟專案庫時**自動合併並保存**，既保留使用者所有的自訂專案與副本，又能即時呈現全套官方食譜。
+       - 實裝 `deletedBuiltInIds` 記錄機制：若使用者在介面上手動刪除某套官方藍圖，將記錄其 ID，避免每次重整時被強制重新插入。
+       - 實裝 `restoreOfficialBlueprints()`：提供一鍵重置並補齊所有 42 套官方食譜專案，同時完整保留所有非官方 ID 的自創專案。
+    2. **介面互動與標籤升級 (`SandboxBlueprintModal.tsx`)**：
+       - 操作列新增「🔄 載入官方食譜」快捷按鈕，隨時可一鍵強制恢復全套 42 套食譜藍圖庫。
+       - 專案卡片標題右側新增專屬類別徽章（`官方食譜`、`官方教學`、`自訂專案`），清晰辨識產線來源。
   - **架構與實裝成果**：
     1. **解算器核心工序導出 (`src/services/solver.ts`)**：
        - 導出 `matchMaterial`、`getProcessOutputItem`、`getProcessInputItems` 工具函式，供全域藍圖建置腳本直接複用單一事實來源的工序原料關係。
