@@ -16,6 +16,7 @@ const ENV_FLUIDS = ['水', '油', '虛空'];
 
 interface Baseline {
   placeholders: string[];          // 刻意存在的佔位名稱（不需登錄於 items.json）
+  iconAliases?: string[];          // itemIcons 中供工序名稱找圖示的別名（不是物品，經使用者確認保留）
   knownDataIssues: string[];       // 既有、待使用者確認的資料問題：只警告；此清單只能縮減，不能用 baseline 新增
   reviewedSimilarNames: string[];  // 已確認確實是不同物品的「只差一字」名稱
   lineCounts: Record<string, number>;
@@ -87,18 +88,25 @@ for (const m of calc.materials || []) {
   ref(m.dish, `計算機參數庫 materials 的料理`);
   ref(m.material, `計算機參數庫 materials「${m.dish}」的材料`);
 }
-const iconPool = new Set([...itemNames, ...interNames, ...machineNames, ...placeholders]);
+// iconAliases：工序名稱去掉動作詞後用來找圖示的別名（例：「水煮通心粉」→「通心粉」），經使用者確認保留
+const iconPool = new Set([...itemNames, ...interNames, ...machineNames, ...placeholders, ...(baseline.iconAliases || [])]);
 for (const k of Object.keys(icons)) {
   if (recipeNames.has(k) && !itemNames.has(k)) failData(`itemIcons.json 收錄了終端料理「${k}」（圖片簡化原則禁止）`);
   else ref(k, 'itemIcons.json 的鍵', iconPool);
 }
 
-// 只差一個字的名稱（常見錯字來源，例：致命沙沙醬 / 致命莎莎醬）
+// 疑似錯字的名稱：(1) 只差一個字；(2) 把同音 / 形近字視為同一字後完全相同（例：致命沙沙醬 / 致命莎莎醬、刺波羅樹 / 刺菠蘿樹）
+const CONFUSABLE: Record<string, string> = {
+  莎: '沙', 菠: '波', 蘿: '羅', 糰: '團', 荳: '豆', 污: '汙', 面: '麵', 薑: '姜', 臺: '台', 裏: '裡', 着: '著', 乾: '干',
+};
+const norm = (s: string) => [...s].map(c => CONFUSABLE[c] || c).join('');
 const allNames = [...new Set([...itemNames, ...interNames, ...recipeNames, ...machineNames])].sort();
 const similarPairs: string[] = [];
 for (let i = 0; i < allNames.length; i++) for (let j = i + 1; j < allNames.length; j++) {
   const a = allNames[i], b = allNames[j];
-  if (a.length !== b.length || a.length < 3) continue;
+  if (a.length !== b.length) continue;
+  if (norm(a) === norm(b)) { similarPairs.push(`${a} ↔ ${b}`); continue; }
+  if (a.length < 3) continue;
   let d = 0;
   for (let k = 0; k < a.length && d < 2; k++) if (a[k] !== b[k]) d++;
   if (d === 1) similarPairs.push(`${a} ↔ ${b}`);
@@ -208,6 +216,7 @@ const warnText = warnings.length
 if (UPDATE) {
   const next: Baseline = {
     placeholders: baseline.placeholders,
+    iconAliases: baseline.iconAliases || [],
     knownDataIssues: (baseline.knownDataIssues || []).filter(m => seenKnownIssues.has(m)), // 已修正者自動移除
     reviewedSimilarNames: similarPairs,
     lineCounts,

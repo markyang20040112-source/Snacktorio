@@ -132,7 +132,7 @@
   {
     "island": "常規物資",
     "name": "沙塊",
-    "source": "地圖生成",
+    "source": "採掘機",
     "isPerishable": false,
     "spoilTime": null,
     "spoilProduct": "",
@@ -349,17 +349,6 @@
     "spoilProduct": "",
     "attributes": "",
     "notes": ""
-  },
-  {
-    "island": "常規物資",
-    "name": "沙塊",
-    "source": "地圖生成",
-    "isPerishable": false,
-    "spoilTime": null,
-    "spoilProduct": "",
-    "attributes": "",
-    "notes": "燃燒形成玻璃",
-    "isFluid": false
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -693,7 +682,7 @@
   },
   {
     "island": "克洛文納 (Clovina)",
-    "name": "刺波羅樹",
+    "name": "刺菠蘿樹",
     "source": "地圖生成",
     "isPerishable": false,
     "spoilTime": null,
@@ -1489,7 +1478,7 @@
   },
   {
     "island": "斯科瓦拉",
-    "name": "辛辣沙沙醬",
+    "name": "辛辣莎莎醬",
     "source": "混合機",
     "isPerishable": false,
     "spoilTime": null,
@@ -1560,16 +1549,6 @@
   },
   {
     "island": "斯科瓦拉",
-    "name": "致命沙沙醬",
-    "source": "攪拌機",
-    "isPerishable": false,
-    "spoilTime": null,
-    "spoilProduct": "-",
-    "attributes": "無",
-    "notes": ""
-  },
-  {
-    "island": "斯科瓦拉",
     "name": "終極炸彈",
     "source": "",
     "isPerishable": false,
@@ -1606,7 +1585,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "斯科瓦拉終端料理：爆烈雞肉飯。由打工小妖炒飯、生鷹身女妖肉、菠菜與辛辣沙沙醬組裝，通入炙烈紅油(1 fl/s)。"
+    "notes": "斯科瓦拉終端料理：爆烈雞肉飯。由打工小妖炒飯、生鷹身女妖肉、菠菜與辛辣莎莎醬組裝，通入炙烈紅油(1 fl/s)。"
   },
   {
     "island": "斯科瓦拉",

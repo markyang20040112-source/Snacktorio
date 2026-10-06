@@ -3,19 +3,15 @@
     "任意物品",
     "無(空載)"
   ],
+  "iconAliases": [
+    "鷹身女妖肉",
+    "粉塵底料",
+    "千層麵皮",
+    "通心粉",
+    "義大利麵"
+  ],
   "knownDataIssues": [
-    "items.json 名稱重複：「沙塊」",
-    "食材「冰塊」的腐壞產物 引用了不存在的名稱「糊糊」",
-    "itemIcons.json 的鍵 引用了不存在的名稱「熔爐」",
-    "itemIcons.json 的鍵 引用了不存在的名稱「刺波蘿」",
-    "itemIcons.json 的鍵 引用了不存在的名稱「辛辣莎莎醬」",
-    "itemIcons.json 的鍵 引用了不存在的名稱「鷹身女妖肉」",
-    "itemIcons.json 的鍵 引用了不存在的名稱「刺菠蘿樹」",
-    "itemIcons.json 的鍵 引用了不存在的名稱「粉塵底料」",
-    "itemIcons.json 的鍵 引用了不存在的名稱「千層麵皮」",
-    "itemIcons.json 的鍵 引用了不存在的名稱「生千層麵皮」",
-    "itemIcons.json 的鍵 引用了不存在的名稱「通心粉」",
-    "itemIcons.json 的鍵 引用了不存在的名稱「義大利麵」"
+    "食材「冰塊」的腐壞產物 引用了不存在的名稱「糊糊」"
   ],
   "reviewedSimilarNames": [
     "塔瑪茄泥 ↔ 塔瑪茄醬",
