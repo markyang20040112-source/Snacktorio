@@ -1,5 +1,5 @@
 import React from 'react';
-import { FolderKanban, Save, Cloud, Copy, Clipboard, BoxSelect } from 'lucide-react';
+import { FolderKanban, Save, Copy, Clipboard, BoxSelect } from 'lucide-react';
 
 interface SandboxToolbarProps {
   currentBlueprintName: string;
@@ -52,19 +52,10 @@ export const SandboxToolbar: React.FC<SandboxToolbarProps> = ({
       <button
         onClick={onOpenBlueprints}
         className="px-2.5 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-xl transition-colors flex items-center space-x-1 font-bold shadow-sm"
-        title="開啟產線專案庫 (無限儲存、複製副本、重新命名、匯入匯出)"
+        title="開啟產線專案庫 (無限儲存、複製副本、重新命名、匯入匯出、GitHub 同步)"
       >
         <FolderKanban className="w-3.5 h-3.5" />
         <span>專案庫 / 藍圖</span>
-      </button>
-
-      <button
-        onClick={onOpenBlueprints}
-        className="px-2.5 py-1.5 hover:bg-purple-950/40 text-purple-300 hover:text-purple-200 rounded-xl transition-colors flex items-center space-x-1 border border-purple-800/40"
-        title="一鍵同步至 GitHub 跨裝置帶著走"
-      >
-        <Cloud className="w-3.5 h-3.5" />
-        <span>同步 GIT</span>
       </button>
 
       {/* 剪貼簿 複製 / 貼上 按鈕 */}

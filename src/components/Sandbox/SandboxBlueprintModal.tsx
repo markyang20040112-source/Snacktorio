@@ -6,6 +6,7 @@ import {
   isOfficialTutorialBlueprint 
 } from '../../services/sandboxBlueprintService';
 import { SyncConfig } from '../../types';
+import { dataService } from '../../services/dataService';
 import {
   FolderKanban,
   Plus,
@@ -372,7 +373,7 @@ export const SandboxBlueprintModal: React.FC<SandboxBlueprintModalProps> = ({
                 setTimeout(() => setSyncStatus(null), 4000);
               }}
               className="flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-purple-950/40 hover:bg-purple-900/60 text-purple-300 border border-purple-800/60 text-xs transition-colors"
-              title="載入全套 42 道官方食譜產線專案（安全保留您的自創專案）"
+              title={`載入全套 ${dataService.getRecipes().length} 道官方食譜產線專案（安全保留您的自創專案）`}
             >
               <RotateCcw className="w-3.5 h-3.5 text-purple-400" />
               <span>載入官方食譜</span>
