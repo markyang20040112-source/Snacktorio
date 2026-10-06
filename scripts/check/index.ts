@@ -119,7 +119,7 @@ const walk = (dir: string): string[] => readdirSync(dir).flatMap(n => {
 const srcFiles = walk(join(ROOT, 'src')).map(p => relative(ROOT, p).replace(/\\/g, '/')).sort();
 
 const guardedNames = new Set([...itemNames, ...interNames, ...recipeNames].filter(n => !machineNames.has(n) && !ENV_FLUIDS.includes(n) && !placeholders.has(n)));
-const stripComments = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
+const stripComments = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, '')).replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
 const lineCounts: Record<string, number> = {};
 const hardcoded: Record<string, string[]> = {};
 
@@ -146,6 +146,13 @@ for (const f of srcFiles) {
   }
   if (added.size) fail(`[程式] ${f} 新增了硬編碼物品名稱：${[...added.keys()].map(n => `「${n}」`).join('、')}。` +
     `物品分類請由 src/data/*.json 推導（見 src/utils/itemTraits.ts），勿在程式寫死名稱`);
+
+  // 未指定語系的 localeCompare / toLocaleString 會依作業系統語言產生不同排序或格式（不同電腦、CI 結果不一致）
+  stripComments(text).split('\n').forEach((line, i) => {
+    if (/\.localeCompare\(\s*[^,()]*(\([^()]*\))?[^,()]*\)/.test(line) || /\.toLocale(String|DateString|TimeString)\(\s*\)/.test(line)) {
+      fail(`[程式] ${f}:${i + 1} 使用未指定語系的 localeCompare / toLocaleString，請明確指定（例：a.localeCompare(b, 'zh-Hant')）`);
+    }
+  });
 }
 
 // ───────────────────────── 3. 回歸指紋 ─────────────────────────

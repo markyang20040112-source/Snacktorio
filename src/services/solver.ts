@@ -1537,7 +1537,7 @@ function assembleResult(params: any): CalculationResult {
     遇熱凝固: 4,
     時效腐壞: 5
   };
-  biochemicalWarnings.sort((a, b) => (orderMap[a.type] || 99) - (orderMap[b.type] || 99) || a.item.localeCompare(b.item));
+  biochemicalWarnings.sort((a, b) => (orderMap[a.type] || 99) - (orderMap[b.type] || 99) || a.item.localeCompare(b.item, 'zh-Hant'));
 
   return {
     dishName,
