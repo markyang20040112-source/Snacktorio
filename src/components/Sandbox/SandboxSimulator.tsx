@@ -24,6 +24,7 @@ import { SandboxMetricsPanel } from './SandboxMetricsPanel';
 import { SandboxToolbar } from './SandboxToolbar';
 import { SandboxConnectionsLayer, ConnectingSource } from './SandboxConnectionsLayer';
 import { Compass } from 'lucide-react';
+import { buildFluidNameSet, isFluidName, rawSourceMachine } from '../../utils/itemTraits';
 
 interface SandboxSimulatorProps {
   machines: Machine[];
@@ -32,29 +33,15 @@ interface SandboxSimulatorProps {
   recipes: Recipe[];
 }
 
-// 全遊戲真正的連續管網流體 (fl/s) 精準集合
-const TRUE_FLUID_NAMES = new Set([
-  '水', '油', '虛空',
-  '塔瑪茄醬', '青醬', '麵糊', '白醬', '肉汁', '蟑螂奶', '蒜泥蛋醬',
-  '炙烈紅油', '醋', '致命莎莎醬'
-]);
-
-function isFluidItem(name: string, itemsList?: Item[]): boolean {
-  if (!name) return false;
-  if (TRUE_FLUID_NAMES.has(name)) return true;
-  if (itemsList) {
-    const item = itemsList.find(i => i.name === name);
-    if (item && item.isFluid !== undefined) return Boolean(item.isFluid);
-  }
-  return false;
-}
-
 export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
   machines,
   items,
   intermediate,
   recipes
 }) => {
+  // 連續管網流體集合：由食譜 fluidType 引用推導（資料驅動）
+  const fluidNames = useMemo(() => buildFluidNameSet(recipes, intermediate), [recipes, intermediate]);
+
   // 核心沙盒狀態
   const [nodes, setNodes] = useState<SandboxNodeData[]>(() => {
     const saved = localStorage.getItem('snacktorio_sandbox_nodes_v1');
@@ -66,7 +53,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
           ...calibrateNodeBaseRates(n, recipes, intermediate),
           outputs: n.outputs.map(p => ({
             ...p,
-            type: isFluidItem(p.name, items) || n.machineName === '注入機' ? 'fluid' : 'solid'
+            type: isFluidName(p.name, fluidNames, items) || n.machineName === '注入機' ? 'fluid' : 'solid'
           }))
         }));
       } catch (e) { /* ignore */ }
@@ -494,7 +481,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     // 解析輸出端口
     const outputs: SandboxNodeData['outputs'] = [];
     if (recipeOrInter) {
-      const isOutFluid = isFluidItem(recipeOrInter.name, items) || mach.name === '注入機';
+      const isOutFluid = isFluidName(recipeOrInter.name, fluidNames, items) || mach.name === '注入機';
       const rate = mach.name === '注入機'
         ? 999
         : isOutFluid
@@ -579,8 +566,9 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     let outCount = 1;
     let cycleTime = 5;
 
-    const isReconstructor = item.source === '物質操縱機' || ['泥沼蟑螂', '綠色史萊姆', '巫妖骸骨', '粉紅仙子', '鷹身女妖翅膀', '虛空汙泥'].includes(item.name);
-    const isMiner = item.source === '採掘機' || item.source === '採掘機直接開採' || ['煤炭', '鹽', '鐵礦石', '黏土', '豆肉蔻', '香豆蔻'].includes(item.name);
+    const rawMach = rawSourceMachine(item);
+    const isReconstructor = rawMach === '物質操縱機';
+    const isMiner = rawMach === '採掘機';
 
     if (isReconstructor) {
       machName = '物質操縱機';

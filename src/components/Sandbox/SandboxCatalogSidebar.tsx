@@ -3,6 +3,7 @@ import { Plus, Search, Sparkles, Layers, Flame, Pickaxe, GitFork, Hourglass, Dro
 import { Machine, Item, IntermediateRecipe, Recipe } from '../../types';
 import { isScorchingDish } from '../../services/solver';
 import { ItemIcon } from '../Common/ItemIcon';
+import { rawSourceMachine, perishableItems } from '../../utils/itemTraits';
 
 export type InfrastructureType = 'generator' | 'pump' | 'environment_pool' | 'splitter' | 'buffer_decay';
 
@@ -149,9 +150,9 @@ export const SandboxCatalogSidebar: React.FC<SandboxCatalogSidebarProps> = ({
             {/* 分頁 2: 基礎物資、採掘礦產與活體重構 */}
             {activeCatalogTab === 'items' && (() => {
               // 嚴格過濾原生開採物資：一律依 items.json 之 source 欄位判定（純資料庫驅動，新增食材免改程式）
-              const isReconItem = (i: Item) => i.source === '物質操縱機';
-              const isMinerItem = (i: Item) => i.source === '採掘機' || i.source === '採掘機直接開採';
-              const isHarvestItem = (i: Item) => !isReconItem(i) && !isMinerItem(i) && i.source === '收割機';
+              const isReconItem = (i: Item) => rawSourceMachine(i) === '物質操縱機';
+              const isMinerItem = (i: Item) => rawSourceMachine(i) === '採掘機';
+              const isHarvestItem = (i: Item) => i.source === '收割機';
 
               const filteredRawItems = items.filter(i => {
                 if (i.isFluid) return false;
@@ -374,15 +375,12 @@ export const SandboxCatalogSidebar: React.FC<SandboxCatalogSidebarProps> = ({
                   <Plus className="w-4 h-4 text-slate-500 group-hover:text-emerald-400" />
                 </div>
 
-                {/* 常用遊戲時序發酵快捷項 */}
-                {[
-                  { name: '麵包麵團', prod: '發酵麵糰', time: 15 },
-                  { name: '軟質奶酪', prod: '中等熟成奶酪', time: 20 },
-                  { name: '中等熟成奶酪', prod: '硬質奶酪', time: 30 },
-                  { name: '硬質奶酪', prod: '藍紋奶酪', time: 60 },
-                  { name: '蛇蛋', prod: '臭蛇蛋', time: 30 },
-                  { name: '蟑螂奶油', prod: '酸奶油', time: 30 }
-                ].map(ferment => (
+                {/* 時序發酵/變質快捷項：由 items.json 之 isPerishable + spoilProduct 動態生成 */}
+                {perishableItems(items).map(it => ({
+                  name: it.name,
+                  prod: it.spoilProduct as string,
+                  time: Number(it.spoilTime) || 15
+                })).map(ferment => (
                   <div 
                     key={ferment.name}
                     onClick={() => handleAddInfrastructure('buffer_decay', ferment.name)}

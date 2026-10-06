@@ -14,9 +14,7 @@ import {
   PortDefinition 
 } from '../components/Sandbox/sandboxTypes';
 import { Recipe, IntermediateRecipe, Machine, Item } from '../types';
-
-/** 由環境池 + 泵機供應之環境流體 */
-const ENV_FLUIDS = ['水', '油', '虛空'];
+import { ENV_FLUIDS, rawSourceMachine } from '../utils/itemTraits';
 
 /**
  * 為指定終端料理全自動推導並建置完整 100% 滿載且無虛假產能之真實沙盒產線藍圖
@@ -53,13 +51,10 @@ export function buildDishBlueprint(
     }
   });
 
-  /** 自癒補料：依物品來源判定原料機台 (物質操縱機 / 採掘機 / 收割機) */
+  /** 自癒補料：依 items.json 物品來源判定原料機台 (物質操縱機 / 採掘機 / 收割機) */
   const classifyRawSource = (name: string) => {
-    const itemDef = items.find(it => it.name === name);
-    const isRecon = itemDef?.source === '物質操縱機' || ['泥沼蟑螂', '綠色史萊姆', '巫妖骸骨', '粉紅仙子', '鷹身女妖翅膀', '虛空汙泥'].includes(name);
-    const isMineral = itemDef?.source?.includes('礦') || ['煤炭', '鹽', '石英', '方糖', '鐵礦石', '黏土', '豆肉蔻', '香豆蔻'].includes(name);
-    const machName = isRecon ? '物質操縱機' : (isMineral ? '採掘機' : '收割機');
-    return { isRecon, machName };
+    const machName = rawSourceMachine(items.find(it => it.name === name));
+    return { isRecon: machName === '物質操縱機', machName };
   };
 
   /** 物質操縱機之標準輸入端口 (虛空 + 重構底料) */
