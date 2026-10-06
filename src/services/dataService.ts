@@ -27,12 +27,17 @@ class DataService {
   private recipes: Recipe[] = [];
   private calcProcesses: CalculatorProcess[] = [];
   private calcMaterials: CalculatorMaterial[] = [];
+  /** 資料版本號：任何載入 / 儲存 / 匯入都會遞增，供衍生快取（如官方藍圖）判斷是否需重建 */
+  private revision = 0;
 
   constructor() {
     this.loadAll();
   }
 
+  public getRevision(): number { return this.revision; }
+
   public loadAll() {
+    this.revision++;
     try {
       const m = localStorage.getItem(STORAGE_KEYS.MACHINES);
       if (m) {
@@ -83,18 +88,8 @@ class DataService {
         );
         const existingIrNames = new Set(parsedIr.map((rec: any) => rec.name));
         const missingIr = (initialIntermediate as IntermediateRecipe[]).filter(rec => !existingIrNames.has(rec.name));
-        let changed = parsedIr.length !== originalIrLen;
-        this.intermediate = [...parsedIr, ...missingIr].map(rec => {
-          const init = (initialIntermediate as IntermediateRecipe[]).find(i => i.name === rec.name);
-          if (init) {
-            // 自動同步系統標準之連續流體產量 (例如炙烈紅油與醋為 5 秒 5 fl = 1.0 fl/s 專線供液)
-            if (init.outputCount && rec.outputCount !== init.outputCount && ['炙烈紅油', '醋'].includes(rec.name)) {
-              changed = true;
-              return { ...rec, outputCount: init.outputCount };
-            }
-          }
-          return rec;
-        });
+        const changed = parsedIr.length !== originalIrLen;
+        this.intermediate = [...parsedIr, ...missingIr];
         if (changed || missingIr.length > 0) {
           localStorage.setItem(STORAGE_KEYS.INTERMEDIATE, JSON.stringify(this.intermediate));
         }
@@ -170,24 +165,28 @@ class DataService {
   // Save methods
   public async saveMachines(machines: Machine[]) {
     this.machines = machines;
+    this.revision++;
     localStorage.setItem(STORAGE_KEYS.MACHINES, JSON.stringify(machines));
     await this.tryLocalDiskSave({ machines });
   }
 
   public async saveItems(items: Item[]) {
     this.items = items;
+    this.revision++;
     localStorage.setItem(STORAGE_KEYS.ITEMS, JSON.stringify(items));
     await this.tryLocalDiskSave({ items });
   }
 
   public async saveIntermediateRecipes(intermediate: IntermediateRecipe[]) {
     this.intermediate = intermediate;
+    this.revision++;
     localStorage.setItem(STORAGE_KEYS.INTERMEDIATE, JSON.stringify(intermediate));
     await this.tryLocalDiskSave({ intermediateRecipes: intermediate });
   }
 
   public async saveRecipes(recipes: Recipe[]) {
     this.recipes = recipes;
+    this.revision++;
     localStorage.setItem(STORAGE_KEYS.RECIPES, JSON.stringify(recipes));
     await this.tryLocalDiskSave({ recipes });
   }
@@ -195,6 +194,7 @@ class DataService {
   public async saveCalculatorDb(processes: CalculatorProcess[], materials: CalculatorMaterial[]) {
     this.calcProcesses = processes;
     this.calcMaterials = materials;
+    this.revision++;
     localStorage.setItem(STORAGE_KEYS.CALC_DB, JSON.stringify({ processes, materials }));
     await this.tryLocalDiskSave({ calculatorDb: { processes, materials } });
   }
@@ -233,6 +233,7 @@ class DataService {
   public importAllData(jsonStr: string): boolean {
     try {
       const data = JSON.parse(jsonStr);
+      this.revision++;
       if (data.machines) this.machines = data.machines;
       if (data.items) this.items = data.items;
       if (data.intermediateRecipes) this.intermediate = data.intermediateRecipes;

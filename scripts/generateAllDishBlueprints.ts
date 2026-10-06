@@ -1,11 +1,12 @@
 /**
- * 全料理沙盒藍圖批次產生器 (CLI)
- * 以 src/services/dishBlueprintGenerator 之 buildDishBlueprint 為唯一產線推導邏輯，
- * 依 recipes 順序 (index = 食譜索引) 重建全部料理藍圖，並保留既有之 'bp_starter_generator' 置於最前。
+ * 料理產線藍圖批次檢查 (CLI)
+ * 官方料理藍圖已改為「執行期由資料庫自動生成」(src/services/builtInBlueprints.ts)，
+ * 不再寫入 src/data/sandboxBlueprints.json（該檔只保存無法自動生成的自訂 / 修改專案）。
+ * 本腳本以 buildDishBlueprint 生成全部料理藍圖並逐道回報是否缺料，用於登錄新食譜後的驗證。
  *
  * 用法：
- *   npx tsx scripts/generateAllDishBlueprints.ts            # 覆寫 src/data/sandboxBlueprints.json
- *   npx tsx scripts/generateAllDishBlueprints.ts <out.json> # 輸出至指定路徑 (比對/預覽用)
+ *   npx tsx scripts/generateAllDishBlueprints.ts            # 僅檢查並列出結果
+ *   npx tsx scripts/generateAllDishBlueprints.ts <out.json> # 另將完整藍圖輸出至指定路徑 (檢視/比對用)
  */
 import * as fs from 'fs';
 import * as path from 'path';
@@ -13,17 +14,11 @@ import { buildDishBlueprint } from '../src/services/dishBlueprintGenerator';
 import { dataService } from '../src/services/dataService';
 import type { SandboxBlueprint } from '../src/components/Sandbox/sandboxTypes';
 
-const dataBpPath = path.resolve(process.cwd(), 'src/data/sandboxBlueprints.json');
-const outPath = process.argv[2] ? path.resolve(process.argv[2]) : dataBpPath;
+const outPath = process.argv[2] ? path.resolve(process.argv[2]) : null;
 const recipes = dataService.getRecipes();
 
 console.log(`Building all ${recipes.length} dish blueprints with auto-healed pipelines & zero-deficit verification...`);
 const allBlueprints: SandboxBlueprint[] = [];
-
-// Also preserve starter generator blueprint
-const existingBps: SandboxBlueprint[] = fs.existsSync(dataBpPath) ? JSON.parse(fs.readFileSync(dataBpPath, 'utf-8')) : [];
-const starterBp = existingBps.find(b => b.id === 'bp_starter_generator');
-if (starterBp) allBlueprints.push(starterBp);
 
 let deficitDishes = 0;
 recipes.forEach((dish, idx) => {
@@ -43,5 +38,7 @@ console.log(`-----------------------------------------------`);
 console.log(`Generated ${allBlueprints.length} blueprints total.`);
 console.log(`Deficit dishes count: ${deficitDishes} / ${recipes.length}`);
 
-fs.writeFileSync(outPath, JSON.stringify(allBlueprints, null, 2), 'utf-8');
-console.log(`Successfully written to ${outPath}!`);
+if (outPath) {
+  fs.writeFileSync(outPath, JSON.stringify(allBlueprints, null, 2), 'utf-8');
+  console.log(`Successfully written to ${outPath}!`);
+}

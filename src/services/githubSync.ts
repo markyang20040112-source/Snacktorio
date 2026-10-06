@@ -1,5 +1,6 @@
 import { SyncConfig } from '../types';
 import { dataService } from './dataService';
+import { stripRegenerableBlueprints } from './builtInBlueprints';
 
 /**
  * 將核心資料庫（5 份 + 沙盒藍圖庫）以「單一原子 Commit」推送至 GitHub（Git Data API：ref → tree → commit → 更新 ref）。
@@ -14,12 +15,13 @@ export async function syncDataToGitHub(
     return { success: false, message: '請先在設定中填寫 GitHub Token、使用者名稱與倉庫名稱。' };
   }
 
-  // 本機無藍圖紀錄（從未開啟沙盒/新裝置）時不推送 sandboxBlueprints.json，避免以 [] 覆蓋倉庫內的官方藍圖
+  // 本機無藍圖紀錄（從未開啟沙盒/新裝置）時不推送 sandboxBlueprints.json，避免以 [] 覆蓋倉庫內的藍圖
+  // 官方料理藍圖於執行期由資料庫生成，僅推送「自訂或使用者修改過」的專案
   let blueprintsContent: string | null = null;
   try {
     const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('snacktorio_sandbox_blueprints_v1') : null;
     if (raw) {
-      blueprintsContent = JSON.stringify(JSON.parse(raw), null, 2);
+      blueprintsContent = JSON.stringify(stripRegenerableBlueprints(JSON.parse(raw)), null, 2);
     }
   } catch {}
 

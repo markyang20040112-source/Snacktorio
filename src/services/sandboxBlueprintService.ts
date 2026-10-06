@@ -1,8 +1,8 @@
-import initialBlueprints from '../data/sandboxBlueprints.json';
 import { SandboxBlueprint, SandboxNodeData, SandboxConnection } from '../components/Sandbox/sandboxTypes';
 import { SyncConfig, Recipe } from '../types';
 import { syncDataToGitHub } from './githubSync';
 import { buildDishBlueprint } from './dishBlueprintGenerator';
+import { getBuiltInBlueprints } from './builtInBlueprints';
 import { dataService } from './dataService';
 
 const STORAGE_KEY = 'snacktorio_sandbox_blueprints_v1';
@@ -36,34 +36,10 @@ class SandboxBlueprintService {
   }
 
   /**
-   * 取得完整內建/官方料理藍圖清單 (含未來動態登錄之新料理自適應自動生成)
+   * 取得完整內建/官方料理藍圖清單 (依目前資料庫執行期自動生成，含未來新登錄之料理)
    */
   public getBuiltInAndDynamicBlueprints(): SandboxBlueprint[] {
-    const list = [...((initialBlueprints as unknown as SandboxBlueprint[]) || [])];
-    const existingDishNames = new Set<string>();
-    list.forEach(bp => {
-      (bp.stats?.mainDishes || []).forEach(d => existingDishNames.add(d));
-    });
-
-    // 動態自適應：若有新食譜尚無內建藍圖，即時自動推導產線並補齊
-    try {
-      const allRecipes = dataService.getRecipes();
-      allRecipes.forEach((dish, idx) => {
-        if (!existingDishNames.has(dish.name)) {
-          try {
-            const newBp = buildDishBlueprint(dish, idx);
-            list.push(newBp);
-            existingDishNames.add(dish.name);
-          } catch (err) {
-            console.warn(`自動為新食譜 ${dish.name} 生成產線專案失敗:`, err);
-          }
-        }
-      });
-    } catch (e) {
-      console.error('無法讀取食譜庫進行藍圖自適應檢查', e);
-    }
-
-    return list;
+    return getBuiltInBlueprints();
   }
 
   /**
@@ -259,7 +235,7 @@ class SandboxBlueprintService {
     const currentList = this.getAllBlueprints();
     const filtered = currentList.filter(bp => bp.id !== id);
     if (filtered.length !== currentList.length) {
-      const builtInList = (initialBlueprints as unknown as SandboxBlueprint[]) || [];
+      const builtInList = this.getBuiltInAndDynamicBlueprints();
       if (builtInList.some(bp => bp.id === id)) {
         const deletedIds = this.getDeletedIds();
         deletedIds.add(id);
