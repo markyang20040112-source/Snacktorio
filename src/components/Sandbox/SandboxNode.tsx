@@ -12,7 +12,7 @@ interface SandboxNodeProps {
   onToggleMock: (id: string) => void;
   onUpdateNode?: (id: string, updates: Partial<SandboxNodeData>) => void;
   onStartConnect: (nodeId: string, portId: string, portType: 'solid' | 'fluid', isOutput: boolean, e: React.MouseEvent) => void;
-  onEndConnect: (nodeId: string, portId: string, e: React.MouseEvent) => void;
+  onEndConnect: (nodeId: string, portId: string, isOutput: boolean, e: React.MouseEvent) => void;
 }
 
 export const SandboxNode: React.FC<SandboxNodeProps> = ({
@@ -307,7 +307,14 @@ export const SandboxNode: React.FC<SandboxNodeProps> = ({
               <div 
                 key={port.id} 
                 className="flex items-center space-x-1.5 group/port relative cursor-pointer"
-                onMouseUp={(e) => onEndConnect(node.id, port.id, e)}
+                onMouseDown={(e) => {
+                  e.stopPropagation();
+                  onStartConnect(node.id, port.id, port.type, false, e);
+                }}
+                onMouseUp={(e) => {
+                  e.stopPropagation();
+                  onEndConnect(node.id, port.id, false, e);
+                }}
               >
                 {/* 端口連接圓點 */}
                 <div 
@@ -316,7 +323,7 @@ export const SandboxNode: React.FC<SandboxNodeProps> = ({
                       ? 'bg-cyan-500 border-cyan-200 shadow-sm shadow-cyan-500/50'
                       : 'bg-amber-500 border-amber-200 shadow-sm shadow-amber-500/50'
                   }`}
-                  title={`輸入端口：${port.name} (${port.rateRequired || 0.2}/s)`}
+                  title={`輸入端口：${port.name} (${port.rateRequired || 0.2}/s) · 可拖曳拉線或作為連線終點`}
                 />
                 <span className="text-[10px] text-slate-300 truncate max-w-[85px]" title={port.name}>
                   {port.name}
@@ -341,6 +348,10 @@ export const SandboxNode: React.FC<SandboxNodeProps> = ({
                   e.stopPropagation();
                   onStartConnect(node.id, port.id, port.type, true, e);
                 }}
+                onMouseUp={(e) => {
+                  e.stopPropagation();
+                  onEndConnect(node.id, port.id, true, e);
+                }}
               >
                 {port.type === 'fluid' && <Droplets className="w-2.5 h-2.5 text-cyan-400 shrink-0" />}
                 <span className="text-[10px] text-slate-300 truncate max-w-[85px]" title={port.name}>
@@ -353,7 +364,7 @@ export const SandboxNode: React.FC<SandboxNodeProps> = ({
                       ? 'bg-cyan-400 border-cyan-100 shadow-sm shadow-cyan-400/50'
                       : 'bg-emerald-400 border-emerald-100 shadow-sm shadow-emerald-400/50'
                   }`}
-                  title={`輸出端口：按住拖曳連線 (${port.rateProvided || 0}/s)`}
+                  title={`輸出端口：${port.name} (${port.rateProvided || 0}/s) · 可拖曳拉線或作為連線終點`}
                 />
               </div>
             ))

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { 
   SandboxNodeData, 
   SandboxConnection,
@@ -151,16 +151,91 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
   const dragStartRef = useRef<{ mouseX: number; mouseY: number; initialX: number; initialY: number }>({ mouseX: 0, mouseY: 0, initialX: 0, initialY: 0 });
   const canvasRef = useRef<HTMLDivElement>(null);
 
-  // 拉線中狀態
+  // 拉線中狀態 (支援自輸出端口或自輸入端口雙向拉出)
   const [connectingSource, setConnectingSource] = useState<{
     nodeId: string;
     portId: string;
     portType: 'solid' | 'fluid';
+    isOutput: boolean;
     startX: number;
     startY: number;
     currentX: number;
     currentY: number;
   } | null>(null);
+
+  // 邊緣自動推鏡頭 (Auto-Pan) 與即時座標同步 Ref
+  const panRef = useRef(pan);
+  panRef.current = pan;
+  const zoomRef = useRef(zoom);
+  zoomRef.current = zoom;
+  const connectingSourceRef = useRef(connectingSource);
+  connectingSourceRef.current = connectingSource;
+  const draggingNodeIdRef = useRef(draggingNodeId);
+  draggingNodeIdRef.current = draggingNodeId;
+
+  const autoPanVelocityRef = useRef<{ vx: number; vy: number }>({ vx: 0, vy: 0 });
+  const autoPanAnimationRef = useRef<number | null>(null);
+  const lastMousePosRef = useRef<{ clientX: number; clientY: number }>({ clientX: 0, clientY: 0 });
+
+  const stopAutoPan = useCallback(() => {
+    if (autoPanAnimationRef.current) {
+      cancelAnimationFrame(autoPanAnimationRef.current);
+      autoPanAnimationRef.current = null;
+    }
+    autoPanVelocityRef.current = { vx: 0, vy: 0 };
+  }, []);
+
+  const startAutoPan = useCallback(() => {
+    if (autoPanAnimationRef.current) return;
+
+    const loop = () => {
+      const { vx, vy } = autoPanVelocityRef.current;
+      if (vx === 0 && vy === 0) {
+        autoPanAnimationRef.current = null;
+        return;
+      }
+
+      setPan(prev => {
+        const nextX = prev.x + vx;
+        const nextY = prev.y + vy;
+        panRef.current = { x: nextX, y: nextY };
+
+        // 同步刷新拉線頂端座標，確保拉線末端精準跟隨滑鼠游標
+        if (connectingSourceRef.current && canvasRef.current) {
+          const rect = canvasRef.current.getBoundingClientRect();
+          const { clientX, clientY } = lastMousePosRef.current;
+          const curX = (clientX - rect.left - nextX) / zoomRef.current;
+          const curY = (clientY - rect.top - nextY) / zoomRef.current;
+          setConnectingSource(prevSrc => prevSrc ? {
+            ...prevSrc,
+            currentX: curX,
+            currentY: curY
+          } : null);
+        }
+
+        return { x: nextX, y: nextY };
+      });
+
+      autoPanAnimationRef.current = requestAnimationFrame(loop);
+    };
+
+    autoPanAnimationRef.current = requestAnimationFrame(loop);
+  }, []);
+
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      stopAutoPan();
+      setIsPanning(false);
+      setDraggingNodeId(null);
+    };
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+    window.addEventListener('blur', stopAutoPan);
+    return () => {
+      window.removeEventListener('mouseup', handleGlobalMouseUp);
+      window.removeEventListener('blur', stopAutoPan);
+      stopAutoPan();
+    };
+  }, [stopAutoPan]);
 
   // ==========================================
   // 即時物理演算 (動態自適應更新)
@@ -496,7 +571,8 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
   // 滑鼠互動：拖曳、平移與縮放
   // ==========================================
   const handleCanvasMouseDown = (e: React.MouseEvent) => {
-    if (e.target === canvasRef.current || (e.target as HTMLElement).tagName === 'svg') {
+    // 支援中鍵 (button === 1)、右鍵 (button === 2) 或左鍵點擊背景平移畫布
+    if (e.button === 1 || e.button === 2 || e.target === canvasRef.current || (e.target as HTMLElement).tagName === 'svg') {
       setIsPanning(true);
       dragStartRef.current = {
         mouseX: e.clientX,
@@ -504,11 +580,36 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         initialX: pan.x,
         initialY: pan.y
       };
-      setSelectedNodeId(null);
+      if (e.button === 0) {
+        setSelectedNodeId(null);
+      }
     }
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
+    lastMousePosRef.current = { clientX: e.clientX, clientY: e.clientY };
+
+    // 支援中鍵 (buttons & 4) 或右鍵 (buttons & 2) 隨時拖曳平移 (即便正在拉線或拖曳)
+    if ((e.buttons & 4) || (e.buttons & 2)) {
+      setPan(prev => {
+        const nextX = prev.x + e.movementX;
+        const nextY = prev.y + e.movementY;
+        panRef.current = { x: nextX, y: nextY };
+        return { x: nextX, y: nextY };
+      });
+      if (connectingSource) {
+        const rect = canvasRef.current?.getBoundingClientRect();
+        if (rect) {
+          setConnectingSource(prev => prev ? {
+            ...prev,
+            currentX: (e.clientX - rect.left - (pan.x + e.movementX)) / zoom,
+            currentY: (e.clientY - rect.top - (pan.y + e.movementY)) / zoom
+          } : null);
+        }
+      }
+      return;
+    }
+
     if (isPanning) {
       const dx = e.clientX - dragStartRef.current.mouseX;
       const dy = e.clientY - dragStartRef.current.mouseY;
@@ -516,6 +617,10 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         x: dragStartRef.current.initialX + dx,
         y: dragStartRef.current.initialY + dy
       });
+      panRef.current = {
+        x: dragStartRef.current.initialX + dx,
+        y: dragStartRef.current.initialY + dy
+      };
     } else if (draggingNodeId) {
       const dx = (e.clientX - dragStartRef.current.mouseX) / zoom;
       const dy = (e.clientY - dragStartRef.current.mouseY) / zoom;
@@ -539,18 +644,86 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         } : null);
       }
     }
+
+    // 邊緣自動推鏡頭 (Auto-Pan)：拉線或拖曳節點時游標靠近邊界 80px 自動平移
+    if (connectingSource || draggingNodeId) {
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (rect) {
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        const margin = 80;
+        const maxSpeed = 15;
+
+        let vx = 0;
+        let vy = 0;
+
+        if (mouseX >= 0 && mouseX < margin) {
+          vx = maxSpeed * Math.pow((margin - mouseX) / margin, 1.2);
+        } else if (mouseX <= rect.width && mouseX > rect.width - margin) {
+          vx = -maxSpeed * Math.pow((margin - (rect.width - mouseX)) / margin, 1.2);
+        }
+
+        if (mouseY >= 0 && mouseY < margin) {
+          vy = maxSpeed * Math.pow((margin - mouseY) / margin, 1.2);
+        } else if (mouseY <= rect.height && mouseY > rect.height - margin) {
+          vy = -maxSpeed * Math.pow((margin - (rect.height - mouseY)) / margin, 1.2);
+        }
+
+        autoPanVelocityRef.current = { vx, vy };
+
+        if ((vx !== 0 || vy !== 0) && !autoPanAnimationRef.current) {
+          startAutoPan();
+        } else if (vx === 0 && vy === 0 && autoPanAnimationRef.current) {
+          stopAutoPan();
+        }
+      }
+    }
   };
 
   const handleMouseUp = () => {
     setIsPanning(false);
     setDraggingNodeId(null);
     setConnectingSource(null);
+    stopAutoPan();
   };
 
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    // Shift + 滾輪：水平平移畫布
+    if (e.shiftKey) {
+      setPan(prev => {
+        const next = { x: prev.x - e.deltaY, y: prev.y };
+        panRef.current = next;
+        return next;
+      });
+      return;
+    }
+
+    // 以滑鼠游標為錨點縮放 (Zoom toward mouse pointer)
     const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-    setZoom(prev => Math.min(2.0, Math.max(0.4, prev * zoomFactor)));
+    const newZoom = Math.min(2.0, Math.max(0.4, zoom * zoomFactor));
+
+    const mouseCanvasX = (e.clientX - rect.left - pan.x) / zoom;
+    const mouseCanvasY = (e.clientY - rect.top - pan.y) / zoom;
+
+    const newPanX = e.clientX - rect.left - mouseCanvasX * newZoom;
+    const newPanY = e.clientY - rect.top - mouseCanvasY * newZoom;
+
+    setZoom(newZoom);
+    zoomRef.current = newZoom;
+    setPan({ x: newPanX, y: newPanY });
+    panRef.current = { x: newPanX, y: newPanY };
+
+    if (connectingSource) {
+      setConnectingSource(prev => prev ? {
+        ...prev,
+        currentX: mouseCanvasX,
+        currentY: mouseCanvasY
+      } : null);
+    }
   };
 
   const handleNodeSelect = (nodeId: string, e: React.MouseEvent) => {
@@ -591,52 +764,88 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     }));
   };
 
-  // 連線起點拉出
+  // 連線起點拉出 (支援自輸出端口或自輸入端口雙向拉出)
   const handleStartConnect = (
     nodeId: string, 
     portId: string, 
     portType: 'solid' | 'fluid', 
-    _isOutput: boolean, 
+    isOutput: boolean, 
     e: React.MouseEvent
   ) => {
+    const coords = getPortCoordinates(nodeId, portId, isOutput);
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
-    const startX = (e.clientX - rect.left - pan.x) / zoom;
-    const startY = (e.clientY - rect.top - pan.y) / zoom;
+    const currentX = (e.clientX - rect.left - pan.x) / zoom;
+    const currentY = (e.clientY - rect.top - pan.y) / zoom;
 
     setConnectingSource({
       nodeId,
       portId,
       portType,
-      startX,
-      startY,
-      currentX: startX,
-      currentY: startY
+      isOutput,
+      startX: coords.x,
+      startY: coords.y,
+      currentX,
+      currentY
     });
   };
 
-  // 連線終點放開
-  const handleEndConnect = (toNodeId: string, toPortId: string) => {
+  // 連線終點放開 (雙向對接：無論先拉輸出端或先拉輸入端，皆可自動接合)
+  const handleEndConnect = (
+    targetNodeId: string, 
+    targetPortId: string, 
+    targetIsOutput: boolean
+  ) => {
     if (!connectingSource) return;
-    if (connectingSource.nodeId === toNodeId) return; // 避免自連
+    stopAutoPan();
 
-    const fromNode = nodes.find(n => n.id === connectingSource.nodeId);
+    if (connectingSource.nodeId === targetNodeId) {
+      setConnectingSource(null);
+      return; // 避免自連
+    }
+
+    // 檢查方向：不能輸出接輸出、輸入接輸入
+    if (connectingSource.isOutput === targetIsOutput) {
+      alert(
+        connectingSource.isOutput
+          ? '⚠️ 端口連接錯誤：不能將「輸出端口」連接至另一個「輸出端口」！請連接至目標機台的「輸入端」。'
+          : '⚠️ 端口連接錯誤：不能將「輸入端口」連接至另一個「輸入端口」！請連接至來源機台的「輸出端」。'
+      );
+      setConnectingSource(null);
+      return;
+    }
+
+    // 辨別實體供需方向：無論先拉哪端，統一規整為 from (輸出端) -> to (輸入端)
+    const fromNodeId = connectingSource.isOutput ? connectingSource.nodeId : targetNodeId;
+    const fromPortId = connectingSource.isOutput ? connectingSource.portId : targetPortId;
+    const toNodeId = connectingSource.isOutput ? targetNodeId : connectingSource.nodeId;
+    const toPortId = connectingSource.isOutput ? targetPortId : connectingSource.portId;
+
+    const fromNode = nodes.find(n => n.id === fromNodeId);
     const toNode = nodes.find(n => n.id === toNodeId);
-    if (!fromNode || !toNode) return;
+    if (!fromNode || !toNode) {
+      setConnectingSource(null);
+      return;
+    }
 
-    const outPort = fromNode.outputs.find(p => p.id === connectingSource.portId);
+    const outPort = fromNode.outputs.find(p => p.id === fromPortId);
     const inPort = toNode.inputs.find(p => p.id === toPortId);
-    if (!outPort || !inPort) return;
+    if (!outPort || !inPort) {
+      setConnectingSource(null);
+      return;
+    }
 
     // 檢查類型相容性 (solid 連 solid, fluid 連 fluid)
     if (outPort.type !== inPort.type) {
       alert(`⚠️ 端口類型不相容：無法將 ${outPort.type === 'fluid' ? '流體' : '固體'} 連接至 ${inPort.type === 'fluid' ? '流體' : '固體'} 端口！`);
+      setConnectingSource(null);
       return;
     }
 
     // 注入機輸出防呆：注入機為原位轉化設備，輸出液體必須先接至泵機，再由泵機供入目標設備
     if (fromNode.machineName === '注入機' && toNode.type !== 'pump') {
       alert('⚠️ 注入機屬於「原位轉化」環境設備，原位轉化液無法直接拉管接至加工機台！\n請先將注入機輸出端接至「抽取泵機」，再由泵機抽取輸送至目標設備。');
+      setConnectingSource(null);
       return;
     }
 
@@ -644,7 +853,10 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     const exists = connections.some(
       c => c.fromNodeId === fromNode.id && c.fromPortId === outPort.id && c.toNodeId === toNode.id && c.toPortId === inPort.id
     );
-    if (exists) return;
+    if (exists) {
+      setConnectingSource(null);
+      return;
+    }
 
     const newConnection: SandboxConnection = {
       id: `conn-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
@@ -1114,6 +1326,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onWheel={handleWheel}
+        onContextMenu={(e) => e.preventDefault()}
       >
         {/* 背景網格點 */}
         <div 
@@ -1188,15 +1401,34 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
               );
             })}
 
-            {/* 正在拉線中的臨時虛線 */}
+            {/* 正在拉線中的臨時虛線 (支援雙向貝茲曲線與動態指示) */}
             {connectingSource && (
-              <path
-                d={`M ${connectingSource.startX} ${connectingSource.startY} C ${connectingSource.startX + 50} ${connectingSource.startY}, ${connectingSource.currentX - 50} ${connectingSource.currentY}, ${connectingSource.currentX} ${connectingSource.currentY}`}
-                fill="none"
-                stroke="#f59e0b"
-                strokeWidth={2.5}
-                strokeDasharray="4,4"
-              />
+              <g>
+                <path
+                  d={connectingSource.isOutput
+                    ? `M ${connectingSource.startX} ${connectingSource.startY} C ${connectingSource.startX + 60} ${connectingSource.startY}, ${connectingSource.currentX - 60} ${connectingSource.currentY}, ${connectingSource.currentX} ${connectingSource.currentY}`
+                    : `M ${connectingSource.startX} ${connectingSource.startY} C ${connectingSource.startX - 60} ${connectingSource.startY}, ${connectingSource.currentX + 60} ${connectingSource.currentY}, ${connectingSource.currentX} ${connectingSource.currentY}`
+                  }
+                  fill="none"
+                  stroke={connectingSource.portType === 'fluid' ? '#06b6d4' : '#f59e0b'}
+                  strokeWidth={2.5}
+                  strokeDasharray="5,4"
+                  className="animate-pulse"
+                />
+                <circle
+                  cx={connectingSource.currentX}
+                  cy={connectingSource.currentY}
+                  r={5}
+                  fill={connectingSource.portType === 'fluid' ? '#06b6d4' : '#f59e0b'}
+                  className="animate-ping opacity-75"
+                />
+                <circle
+                  cx={connectingSource.currentX}
+                  cy={connectingSource.currentY}
+                  r={4}
+                  fill={connectingSource.portType === 'fluid' ? '#22d3ee' : '#fbbf24'}
+                />
+              </g>
             )}
           </svg>
 
