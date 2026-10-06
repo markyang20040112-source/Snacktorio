@@ -14,6 +14,12 @@ const STORAGE_KEYS = {
   SYNC_CONFIG: 'snacktorio_sync_config_v1'
 };
 
+const PURGED_TERRAIN_NAMES = new Set([
+  '鹽(礦石方塊)', '煤炭(礦石方塊)', '豆肉蔻(礦石方塊)', '香豆蔻(香料方塊)',
+  '日桂葉植株', '塔瑪茄植株', '洋蔥蔥植株', '·椒植株', '歐琴植株',
+  '小蒜植株', '水稻植株', '菠菜植株', '油荳蔻植株', '辣椒植株'
+]);
+
 class DataService {
   private machines: Machine[] = [];
   private items: Item[] = [];
@@ -40,7 +46,10 @@ class DataService {
 
       const it = localStorage.getItem(STORAGE_KEYS.ITEMS);
       if (it) {
-        const parsedIt: Item[] = JSON.parse(it);
+        let parsedIt: Item[] = JSON.parse(it);
+        const originalLen = parsedIt.length;
+        // 自動剔除地圖地塊虛擬殘留項
+        parsedIt = parsedIt.filter(i => !PURGED_TERRAIN_NAMES.has(i.name));
         const existingItemNames = new Set(parsedIt.map(i => i.name));
         const missingItems = (initialItems as Item[]).filter(i => !existingItemNames.has(i.name));
         this.items = [...parsedIt, ...missingItems].map(item => {
@@ -55,16 +64,26 @@ class DataService {
           }
           return item;
         });
+        if (parsedIt.length !== originalLen || missingItems.length > 0) {
+          localStorage.setItem(STORAGE_KEYS.ITEMS, JSON.stringify(this.items));
+        }
       } else {
         this.items = initialItems;
       }
 
       const ir = localStorage.getItem(STORAGE_KEYS.INTERMEDIATE);
       if (ir) {
-        const parsedIr: IntermediateRecipe[] = JSON.parse(ir);
+        let parsedIr: IntermediateRecipe[] = JSON.parse(ir);
+        const originalIrLen = parsedIr.length;
+        // 自動剔除過時的地圖開採/收割偽配方，確保自然採集為單一事實來源
+        parsedIr = parsedIr.filter(rec => 
+          !PURGED_TERRAIN_NAMES.has(rec.name) && 
+          rec.machine !== '採掘機' && 
+          rec.machine !== '收割機'
+        );
         const existingIrNames = new Set(parsedIr.map((rec: any) => rec.name));
         const missingIr = (initialIntermediate as IntermediateRecipe[]).filter(rec => !existingIrNames.has(rec.name));
-        let changed = false;
+        let changed = parsedIr.length !== originalIrLen;
         this.intermediate = [...parsedIr, ...missingIr].map(rec => {
           const init = (initialIntermediate as IntermediateRecipe[]).find(i => i.name === rec.name);
           if (init) {

@@ -1027,6 +1027,9 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
 
                 const filteredRawItems = items.filter(i => {
                   if (i.isFluid) return false;
+                  // 防禦性過濾：自動排除地圖地塊與殘留虛擬項目
+                  if (i.name.includes('植株') || i.name.includes('(礦石方塊)') || i.name.includes('(香料方塊)')) return false;
+
                   // 必須屬於三種合法基礎來源之一
                   const matchType = isReconItem(i) || isMinerItem(i) || isHarvestItem(i);
                   if (!matchType) return false;
