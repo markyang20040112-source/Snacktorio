@@ -7,8 +7,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "燃燒發電",
-    "isFluid": false
+    "notes": "燃燒發電"
   },
   {
     "island": "常規物資",
@@ -18,8 +17,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "用於傳輸物品",
-    "isFluid": false
+    "notes": "用於傳輸物品"
   },
   {
     "island": "常規物資",
@@ -29,8 +27,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "用於傳輸液體",
-    "isFluid": false
+    "notes": "用於傳輸液體"
   },
   {
     "island": "常規物資",
@@ -40,8 +37,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "用於傳輸電力",
-    "isFluid": false
+    "notes": "用於傳輸電力"
   },
   {
     "island": "常規物資",
@@ -51,8 +47,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "用於攀爬",
-    "isFluid": false
+    "notes": "用於攀爬"
   },
   {
     "island": "常規物資",
@@ -62,8 +57,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "作為實體方塊使用；可放置於液體表面",
-    "isFluid": false
+    "notes": "作為實體方塊使用；可放置於液體表面"
   },
   {
     "island": "常規物資",
@@ -73,8 +67,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "可從頂部往下穿的實體(按方向鍵即可穿透)；可放置於液體表面",
-    "isFluid": false
+    "notes": "可從頂部往下穿的實體(按方向鍵即可穿透)；可放置於液體表面"
   },
   {
     "island": "常規物資",
@@ -84,8 +77,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "生長於石頭",
-    "isFluid": false
+    "notes": "生長於石頭"
   },
   {
     "island": "常規物資",
@@ -95,8 +87,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "合成打工小妖精材料",
-    "isFluid": false
+    "notes": "合成打工小妖精材料"
   },
   {
     "island": "常規物資",
@@ -106,8 +97,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "輸送物品/食材",
-    "isFluid": false
+    "notes": "輸送物品/食材"
   },
   {
     "island": "常規物資",
@@ -117,8 +107,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "使角色彈跳更高",
-    "isFluid": false
+    "notes": "使角色彈跳更高"
   },
   {
     "island": "常規物資",
@@ -128,8 +117,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "建造機器用",
-    "isFluid": false
+    "notes": "建造機器用"
   },
   {
     "island": "常規物資",
@@ -139,8 +127,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "合成用",
-    "isFluid": false
+    "notes": "合成用"
   },
   {
     "island": "常規物資",
@@ -150,8 +137,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "燃燒形成玻璃",
-    "isFluid": false
+    "notes": "燃燒形成玻璃"
   },
   {
     "island": "常規物資",
@@ -161,8 +147,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "合成用",
-    "isFluid": false
+    "notes": "合成用"
   },
   {
     "island": "常規物資",
@@ -172,8 +157,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "無法破壞",
-    "isFluid": false
+    "notes": "無法破壞"
   },
   {
     "island": "常規物資",
@@ -183,8 +167,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "燃燒形成橡膠",
-    "isFluid": false
+    "notes": "燃燒形成橡膠"
   },
   {
     "island": "常規物資",
@@ -194,8 +177,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "生長於草地",
-    "isFluid": false
+    "notes": "生長於草地"
   },
   {
     "island": "常規物資",
@@ -205,8 +187,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "合成用",
-    "isFluid": false
+    "notes": "合成用"
   },
   {
     "island": "常規物資",
@@ -216,8 +197,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "常規物資",
@@ -227,8 +207,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "食物中毒",
-    "notes": "烤箱放入不支持物品時產生",
-    "isFluid": false
+    "notes": "烤箱放入不支持物品時產生"
   },
   {
     "island": "常規物資",
@@ -238,8 +217,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "將無法燒的物品放入烤箱形成",
-    "isFluid": false
+    "notes": "將無法燒的物品放入烤箱形成"
   },
   {
     "island": "常規物資",
@@ -249,8 +227,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "將除巫妖骸骨外的物品放入研磨機形成，用於合成麵團",
-    "isFluid": false
+    "notes": "將除巫妖骸骨外的物品放入研磨機形成，用於合成麵團"
   },
   {
     "island": "常規物資",
@@ -260,8 +237,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "氣味刺鼻",
-    "notes": "物質操縱機通電通虛空但未輸入物品或未設定產物時產出；可作為虛空泵機超頻燃料（每5秒消耗1個，流量提速至8 fl/s）。",
-    "isFluid": false
+    "notes": "物質操縱機通電通虛空但未輸入物品或未設定產物時產出；可作為虛空泵機超頻燃料（每5秒消耗1個，流量提速至8 fl/s）。"
   },
   {
     "island": "常規物資",
@@ -271,8 +247,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": true
+    "notes": ""
   },
   {
     "island": "常規物資",
@@ -282,8 +257,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": true
+    "notes": ""
   },
   {
     "island": "常規物資",
@@ -293,8 +267,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "可用於敲起植物進行移植",
-    "notes": "拆除放置建物、管道等等",
-    "isFluid": false
+    "notes": "拆除放置建物、管道等等"
   },
   {
     "island": "常規物資",
@@ -304,8 +277,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "改變物品管道內物品走向、機器輸入/出口設定",
-    "isFluid": false
+    "notes": "改變物品管道內物品走向、機器輸入/出口設定"
   },
   {
     "island": "常規物資",
@@ -315,8 +287,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "常規物資",
@@ -326,8 +297,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -337,8 +307,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "種植植物；不同草地效果皆相通",
-    "isFluid": false
+    "notes": "種植植物；不同草地效果皆相通"
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -348,8 +317,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -359,8 +327,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "種植植物；不同石頭效果皆相通",
-    "isFluid": false
+    "notes": "種植植物；不同石頭效果皆相通"
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -370,8 +337,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -381,8 +347,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -392,8 +357,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -403,8 +367,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -414,8 +377,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -425,8 +387,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -436,8 +397,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -447,8 +407,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -458,8 +417,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -469,8 +427,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -480,8 +437,7 @@
     "spoilTime": 15,
     "spoilProduct": "發酵麵糰",
     "attributes": "發酵膨脹",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -491,8 +447,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -502,8 +457,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -513,8 +467,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -524,8 +477,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -535,8 +487,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -546,8 +497,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -557,8 +507,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -568,8 +517,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -579,8 +527,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -590,8 +537,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -601,8 +547,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -612,8 +557,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": true
+    "notes": ""
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -623,8 +567,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": true
+    "notes": ""
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -634,8 +577,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": true
+    "notes": ""
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -645,8 +587,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": true
+    "notes": ""
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -656,8 +597,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -667,8 +607,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -678,8 +617,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -689,8 +627,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -700,8 +637,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -711,8 +647,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "氣味刺鼻",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -722,8 +657,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -733,8 +667,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "生長於草地",
-    "isFluid": false
+    "notes": "生長於草地"
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -744,8 +677,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -755,8 +687,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "氣味刺鼻",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -766,8 +697,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "生長於沙塊",
-    "isFluid": false
+    "notes": "生長於沙塊"
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -777,8 +707,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "食物中毒, 有毒/危險菇類",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -788,8 +717,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "生長於草地",
-    "isFluid": false
+    "notes": "生長於草地"
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -799,8 +727,7 @@
     "spoilTime": 30,
     "spoilProduct": "臭蛇蛋",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -810,8 +737,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -821,8 +747,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -909,8 +834,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": true
+    "notes": ""
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -931,8 +855,7 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "",
-    "isFluid": true
+    "notes": ""
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -953,8 +876,7 @@
     "spoilTime": null,
     "spoilProduct": "無",
     "attributes": "無",
-    "notes": "巫妖骸骨經研磨機磨成，每次產出2個，用於合成義大利麵團。",
-    "isFluid": false
+    "notes": "巫妖骸骨經研磨機磨成，每次產出2個，用於合成義大利麵團。"
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -964,8 +886,7 @@
     "spoilTime": null,
     "spoilProduct": "無",
     "attributes": "無",
-    "notes": "綠色史萊姆經研磨機絞碎產出（每次2個），用於製作惡鬼千層面。",
-    "isFluid": false
+    "notes": "綠色史萊姆經研磨機絞碎產出（每次2個），用於製作惡鬼千層面。"
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -987,8 +908,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "由綠色史萊姆與豆肉蔻混和製成，用於油炸。",
-    "isFluid": false
+    "notes": "由綠色史萊姆與豆肉蔻混和製成，用於油炸。"
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -998,8 +918,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "由生史萊姆肉丸經油炸鍋炸成，用於組裝哀嚎肉丸。",
-    "isFluid": false
+    "notes": "由生史萊姆肉丸經油炸鍋炸成，用於組裝哀嚎肉丸。"
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -1009,8 +928,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "波莫拉終端料理：哀嚎肉丸。",
-    "isFluid": false
+    "notes": "波莫拉終端料理：哀嚎肉丸。"
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -1020,8 +938,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "由蜘蛛蛋與鹽於混合機混和製成，用於組裝塔瑪茄炒蛋。",
-    "isFluid": false
+    "notes": "由蜘蛛蛋與鹽於混合機混和製成，用於組裝塔瑪茄炒蛋。"
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -1031,8 +948,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "波莫拉終端料理：塔瑪茄炒蛋。",
-    "isFluid": false
+    "notes": "波莫拉終端料理：塔瑪茄炒蛋。"
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -1042,8 +958,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "波莫拉終端料理：瘟疫青醬麵。",
-    "isFluid": false
+    "notes": "波莫拉終端料理：瘟疫青醬麵。"
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -1053,8 +968,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "由蜘蛛蛋經油炸鍋炸成，用於組裝煉獄魔蛋。",
-    "isFluid": false
+    "notes": "由蜘蛛蛋經油炸鍋炸成，用於組裝煉獄魔蛋。"
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -1076,8 +990,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "由塔瑪茄與豆肉蔻於混合機製成，用於組裝驚魂北非蛋。",
-    "isFluid": false
+    "notes": "由塔瑪茄與豆肉蔻於混合機製成，用於組裝驚魂北非蛋。"
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -1099,8 +1012,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "由骨粉與油於混合機製成，用於烘烤玉米餅。",
-    "isFluid": false
+    "notes": "由骨粉與油於混合機製成，用於烘烤玉米餅。"
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -1110,8 +1022,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "波莫拉終端料理：撕裂脆片蘸醬。",
-    "isFluid": false
+    "notes": "波莫拉終端料理：撕裂脆片蘸醬。"
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -1121,8 +1032,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "波莫拉終端料理：惡臭農場蛋。",
-    "isFluid": false
+    "notes": "波莫拉終端料理：惡臭農場蛋。"
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -1132,8 +1042,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "波莫拉終端料理：致命玉米片。",
-    "isFluid": false
+    "notes": "波莫拉終端料理：致命玉米片。"
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -1143,8 +1052,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "波莫拉終端料理：食屍鬼鮮莎莎。",
-    "isFluid": false
+    "notes": "波莫拉終端料理：食屍鬼鮮莎莎。"
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -1154,8 +1062,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "波莫拉終端料理：幽靈洋蔥湯。",
-    "isFluid": false
+    "notes": "波莫拉終端料理：幽靈洋蔥湯。"
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -1165,8 +1072,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "波莫拉終端料理：驚嚇炸洋蔥。",
-    "isFluid": false
+    "notes": "波莫拉終端料理：驚嚇炸洋蔥。"
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -1176,8 +1082,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "波莫拉終端料理：暗淡洋蔥花。",
-    "isFluid": false
+    "notes": "波莫拉終端料理：暗淡洋蔥花。"
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -1187,8 +1092,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "氣味刺鼻",
-    "notes": "克洛文納終端料理：末日麵團。含有小蒜（氣味刺鼻）。",
-    "isFluid": false
+    "notes": "克洛文納終端料理：末日麵團。含有小蒜（氣味刺鼻）。"
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -1198,8 +1102,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "克洛文納終端料理：咒語餃子。",
-    "isFluid": false
+    "notes": "克洛文納終端料理：咒語餃子。"
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -1209,8 +1112,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "克洛文納終端料理：墳墓茄包。",
-    "isFluid": false
+    "notes": "克洛文納終端料理：墳墓茄包。"
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -1232,8 +1134,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "克洛文納終端料理：爛蛋約翰。",
-    "isFluid": false
+    "notes": "克洛文納終端料理：爛蛋約翰。"
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -1243,8 +1144,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "克洛文納終端料理：怪物庫克先生。",
-    "isFluid": false
+    "notes": "克洛文納終端料理：怪物庫克先生。"
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -1278,8 +1178,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "克洛文納終端料理：奶酪飛濺盤。需精確規劃軟質、中等與藍紋奶酪三階時序熟成傳送帶。",
-    "isFluid": false
+    "notes": "克洛文納終端料理：奶酪飛濺盤。需精確規劃軟質、中等與藍紋奶酪三階時序熟成傳送帶。"
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -1289,8 +1188,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "氣味刺鼻",
-    "notes": "由小蒜經油炸鍋炸成，用於組裝恐慌帕尼爾。",
-    "isFluid": false
+    "notes": "由小蒜經油炸鍋炸成，用於組裝恐慌帕尼爾。"
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -1300,8 +1198,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "克洛文納終端料理：恐慌帕尼爾。由軟質奶酪、炸小蒜、蟑螂奶油與歐琴組裝而成。",
-    "isFluid": false
+    "notes": "克洛文納終端料理：恐慌帕尼爾。由軟質奶酪、炸小蒜、蟑螂奶油與歐琴組裝而成。"
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -1311,8 +1208,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "克洛文納終端料理：殺戮芝士麵。由硬質奶酪、煮熟的通心粉、蟑螂黃油與歐琴組裝而成。",
-    "isFluid": false
+    "notes": "克洛文納終端料理：殺戮芝士麵。由硬質奶酪、煮熟的通心粉、蟑螂黃油與歐琴組裝而成。"
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -1322,8 +1218,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "由麵包經研磨機磨成，用於恐懼炸芝士",
-    "isFluid": false
+    "notes": "由麵包經研磨機磨成，用於恐懼炸芝士"
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -1333,8 +1228,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "克洛文納終端料理：恐懼炸芝士。由中等熟成奶酪、麵糊與麵包糠組裝而成。",
-    "isFluid": false
+    "notes": "克洛文納終端料理：恐懼炸芝士。由中等熟成奶酪、麵糊與麵包糠組裝而成。"
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -1344,8 +1238,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "食物中毒",
-    "notes": "克洛文納終端料理：毒蘑菇·肉。由綠色史萊姆、致命傘菇、酸奶油、香豆蔻組裝而成，並通入肉汁(1 fl/s)；具食物中毒屬性。",
-    "isFluid": false
+    "notes": "克洛文納終端料理：毒蘑菇·肉。由綠色史萊姆、致命傘菇、酸奶油、香豆蔻組裝而成，並通入肉汁(1 fl/s)；具食物中毒屬性。"
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -1355,8 +1248,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "水稻經油炸鍋在油中炒製而成，用於組裝罪人炒飯。",
-    "isFluid": false
+    "notes": "水稻經油炸鍋在油中炒製而成，用於組裝罪人炒飯。"
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -1366,8 +1258,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "克洛文納終端料理：罪人炒飯。由打工小妖炒飯、炸小蒜與香豆蔻組裝而成。",
-    "isFluid": false
+    "notes": "克洛文納終端料理：罪人炒飯。由打工小妖炒飯、炸小蒜與香豆蔻組裝而成。"
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -1377,8 +1268,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "克洛文納終端料理：骨味炸米團。由軟質奶酪、水稻、麵包糠組裝，並通入麵糊(1 fl/s)。",
-    "isFluid": false
+    "notes": "克洛文納終端料理：骨味炸米團。由軟質奶酪、水稻、麵包糠組裝，並通入麵糊(1 fl/s)。"
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -1388,8 +1278,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "克洛文納終端料理：撒旦紅燴飯。由硬質奶酪、蟑螂黃油、水稻與·椒組裝，通入塔瑪茄醬(1 fl/s)。",
-    "isFluid": false
+    "notes": "克洛文納終端料理：撒旦紅燴飯。由硬質奶酪、蟑螂黃油、水稻與·椒組裝，通入塔瑪茄醬(1 fl/s)。"
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -1399,8 +1288,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "",
-    "notes": "土豆與鹽經擠出機成型",
-    "isFluid": false
+    "notes": "土豆與鹽經擠出機成型"
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -1410,8 +1298,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "",
-    "notes": "生薯條經油炸鍋炸成",
-    "isFluid": false
+    "notes": "生薯條經油炸鍋炸成"
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -1444,8 +1331,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "克洛文納終端料理：痛擊漢堡。由史萊姆肉餡、麵包、芝士碎與薯條組裝而成。",
-    "isFluid": false
+    "notes": "克洛文納終端料理：痛擊漢堡。由史萊姆肉餡、麵包、芝士碎與薯條組裝而成。"
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -1455,8 +1341,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "氣味刺鼻",
-    "notes": "克洛文納終端料理：刺菠蘿披薩。由麵包、芝士碎、刺菠蘿與薯條組裝而成，通入塔瑪茄醬(1 fl/s)；含有刺菠蘿(氣味刺鼻)。",
-    "isFluid": false
+    "notes": "克洛文納終端料理：刺菠蘿披薩。由麵包、芝士碎、刺菠蘿與薯條組裝而成，通入塔瑪茄醬(1 fl/s)；含有刺菠蘿(氣味刺鼻)。"
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -1466,8 +1351,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "克洛文納終端料理：殺手薄餅。由玉米餅、史萊姆肉餡、芝士碎與酸奶油組裝而成，通入塔瑪茄醬(1 fl/s)。",
-    "isFluid": false
+    "notes": "克洛文納終端料理：殺手薄餅。由玉米餅、史萊姆肉餡、芝士碎與酸奶油組裝而成，通入塔瑪茄醬(1 fl/s)。"
   },
   {
     "island": "克洛文納 (Clovina)",
@@ -1477,8 +1361,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "克洛文納終端料理：混亂日式炒飯。由打工小妖炒飯、臭蛇蛋、香豆蔻與小蒜組裝，通入油(1 fl/s)。",
-    "isFluid": false
+    "notes": "克洛文納終端料理：混亂日式炒飯。由打工小妖炒飯、臭蛇蛋、香豆蔻與小蒜組裝，通入油(1 fl/s)。"
   },
   {
     "island": "斯科瓦拉",
@@ -1488,8 +1371,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "斯科瓦拉",
@@ -1499,8 +1381,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "斯科瓦拉",
@@ -1510,8 +1391,7 @@
     "spoilTime": 1,
     "spoilProduct": "糊糊",
     "attributes": "無",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "斯科瓦拉",
@@ -1521,8 +1401,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "斯科瓦拉",
@@ -1532,8 +1411,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "氣味刺鼻",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "斯科瓦拉",
@@ -1543,8 +1421,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "含有堅果",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "斯科瓦拉",
@@ -1554,8 +1431,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "斯科瓦拉",
@@ -1565,8 +1441,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "斯科瓦拉",
@@ -1576,8 +1451,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "斯科瓦拉",
@@ -1587,8 +1461,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "斯科瓦拉",
@@ -1620,8 +1493,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "由洋蔥蔥、塔瑪茄與炙烈紅油於混合機混和製成，每次產出2個",
-    "isFluid": false
+    "notes": "由洋蔥蔥、塔瑪茄與炙烈紅油於混合機混和製成，每次產出2個"
   },
   {
     "island": "斯科瓦拉",
@@ -1631,8 +1503,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "食物中毒",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "斯科瓦拉",
@@ -1642,8 +1513,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "斯科瓦拉",
@@ -1664,8 +1534,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "任何熾熱菜餚必須搭配胃復慘一起上菜，否則巨獸會消化不良；每次組裝產出 10 份",
-    "isFluid": false
+    "notes": "任何熾熱菜餚必須搭配胃復慘一起上菜，否則巨獸會消化不良；每次組裝產出 10 份"
   },
   {
     "island": "斯科瓦拉",
@@ -1675,8 +1544,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "熾熱、氣味刺鼻",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "斯科瓦拉",
@@ -1686,8 +1554,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "將注入機置於油池輸入辣椒原位轉化而成之持續流體",
-    "isFluid": true
+    "notes": "將注入機置於油池輸入辣椒原位轉化而成之持續流體"
   },
   {
     "island": "斯科瓦拉",
@@ -1697,8 +1564,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "斯科瓦拉",
@@ -1708,8 +1574,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "",
-    "isFluid": false
+    "notes": ""
   },
   {
     "island": "斯科瓦拉",
@@ -1719,8 +1584,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "甘酒通過注入機注入水中原位轉化而成之調味液體。",
-    "isFluid": true
+    "notes": "甘酒通過注入機注入水中原位轉化而成之調味液體。"
   },
   {
     "island": "斯科瓦拉",
@@ -1730,8 +1594,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "食物中毒",
-    "notes": "鷹身女妖翅膀經擠出機剝皮製成，具食物中毒屬性",
-    "isFluid": false
+    "notes": "鷹身女妖翅膀經擠出機剝皮製成，具食物中毒屬性"
   },
   {
     "island": "斯科瓦拉",
@@ -1741,8 +1604,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "斯科瓦拉終端料理：爆烈雞肉飯。由打工小妖炒飯、生鷹身女妖肉、菠菜與辛辣沙沙醬組裝，通入炙烈紅油(1 fl/s)。",
-    "isFluid": false
+    "notes": "斯科瓦拉終端料理：爆烈雞肉飯。由打工小妖炒飯、生鷹身女妖肉、菠菜與辛辣沙沙醬組裝，通入炙烈紅油(1 fl/s)。"
   },
   {
     "island": "斯科瓦拉",
@@ -1752,8 +1614,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "水稻於發酵罐在水中發酵而成的中間產物。",
-    "isFluid": false
+    "notes": "水稻於發酵罐在水中發酵而成的中間產物。"
   },
   {
     "island": "斯科瓦拉",
@@ -1763,8 +1624,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "物質操縱機消耗虛空(1 fl/s)等價重構之稀有食材，速率5秒1個。",
-    "isFluid": false
+    "notes": "物質操縱機消耗虛空(1 fl/s)等價重構之稀有食材，速率5秒1個。"
   },
   {
     "island": "斯科瓦拉",
@@ -1774,8 +1634,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "氣味刺鼻",
-    "notes": "由粉紅仙子於研磨機研磨而成之粉末(每次2個)，具氣味刺鼻屬性。",
-    "isFluid": false
+    "notes": "由粉紅仙子於研磨機研磨而成之粉末(每次2個)，具氣味刺鼻屬性。"
   },
   {
     "island": "斯科瓦拉",
@@ -1785,8 +1644,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "氣味刺鼻",
-    "notes": "斯科瓦拉終端配菜：由醋、姜姜與E127於自動廚師機組裝而成；E127具氣味刺鼻屬性。",
-    "isFluid": false
+    "notes": "斯科瓦拉終端配菜：由醋、姜姜與E127於自動廚師機組裝而成；E127具氣味刺鼻屬性。"
   },
   {
     "island": "斯科瓦拉",
