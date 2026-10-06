@@ -7,6 +7,23 @@
 
 ## 最新紀錄
 
+* **2026-10-06｜沙盒程式瘦身重構第二輪（零功能變更）+ 3 項缺陷修正**：
+  - **新增沙盒回歸快照** `scripts/regression/sandboxSnapshot.ts`：42 道藍圖 × 9 情境（原藍圖、斷線、2:1/1:1:1 分流、緩衝、無中生有、24 份/分、無汙泥、半數原料）共 378 案例，搭配既有 1008 案例 solver 快照，重構前後皆 `IDENTICAL`。
+  - **SandboxSimulator.tsx 2419 → 1435 行**：
+    - 抽出 `sandboxNodeUtils.ts`（`makeNode` 節點工廠、`calibrateNodeBaseRates` 四處重複校準合一、`cloneSubgraph` 貼上/追加共用、`sameNodesIgnoringPosition`、`saveCanvasToLocal`、`configureDishNodeRates`）。
+    - 原樣搬出 4 個顯示元件：`SandboxCatalogSidebar`、`SandboxMetricsPanel`、`SandboxToolbar`、`SandboxConnectionsLayer`。
+    - 分流器/泵機上下游衝突檢查合併為 `hasDownstreamConflict`（提示文字不變）；`getPortCoordinates` 改用 `nodeById` Map。
+  - **sandboxPhysics.ts 938 → 797 行**：迭代迴圈與最終結算重複的流量分配、機台飽和度評估抽為 `distributeConnectionFlows` / `evaluateInputPorts` / `evaluateMachineNode`（以旗標保留兩處原差異），進料連線預先分組。
+  - **dishBlueprintGenerator.ts 880 → 787 行**：改用 `makeNode`、`ENV_FLUIDS`、`classifyRawSource`、`makePoolNode`、連線 Set 查詢。`makeNode` 鍵序固定，重新產生之藍圖與現有 `sandboxBlueprints.json` 逐位元組一致（42/42）。
+  - **scripts/generateAllDishBlueprints.ts 860 → 47 行**：原為已過時的分歧副本，改為直接呼叫前端 `buildDishBlueprint` 的 CLI 包裝（可選第 2 參數指定輸出路徑）。
+  - **刪除 `requirements.txt`**（僅含已退役的 Excel/Word 套件；`github_push.py` 只用標準函式庫）。
+  - **缺陷修正（B 組）**：
+    1. **GitHub 同步誤清空藍圖庫**：新裝置/從未開啟沙盒時 localStorage 無藍圖，舊版會以 `[]` 覆蓋倉庫的 `sandboxBlueprints.json`；現改為無本機紀錄時不推送該檔（使用者主動刪光仍會推送 `[]`）。
+    2. **拖曳卡頓**：拖曳節點每一幀都重跑全廠物理與寫入 localStorage；現物理計算僅在非座標欄位變動時重算，自動存檔改 300ms 防抖（關閉頁面/卸載時立即寫入）。
+    3. **提示訊息互相覆蓋**：8 組 `setTimeout` 改為共用 `flashFeedback`，新訊息會取消舊計時器，不再被前一則的計時器提早清除。
+  - 建置體積 1414 → 1406 KB；`tsc` 0 錯誤。
+  - **待使用者決定（C 組，涉及資料/行為）**：C1 藍圖改執行期生成（可減約 47% 打包體積）、C2 `items.json` 加 `isFluid` 取代流體白名單、C3 統一 SIM/GEN 原料規則、C4 發酵卡資料驅動、C5 移除一次性遷移碼、C6 合併重複同步按鈕與「42 道」硬編碼。
+
 * **2026-10-06**：日桂葉產能異常與虛假倍率根除、廚師機產能切換斷線修復、專案庫新增空白專案與區域框選局部複製貼上（Physical Rates Enforcement, Port ID Preservation Fix, Blank Project Button & Marquee Selection）：
   - **背景與問題排查**：
     1. **日桂葉 0.40/s 虛假產能剖析**：先前批次藍圖生成演算法（第 6 步防衰減校準）將多重連線出料端口之 `baseOutputCount` 乘以下游連線數，導致單台收割機虛擬放大為 0.40/s。經全庫盤點，共有 186 台設備含有虛擬倍率。
