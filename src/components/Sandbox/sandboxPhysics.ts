@@ -5,6 +5,111 @@ import {
 } from './sandboxTypes';
 
 /**
+ * 泵機節點專屬物理更新邏輯 (嚴格物料守恆與降載模型)
+ * 1. 虛空汙泥超頻判定與降載：額定需求 0.20/s。若供泥不足，依比例降載 (sludgeSat = sludgeRate / 0.20)。
+ * 2. 通用泵機液源判定與降載：環境池/注入機依來源稼動率供液；若為其他來源依實質進液量滿足率。
+ * 3. 輸出產率嚴格守恆：actualRate = nominalRate * sludgeSat * fluidSat。
+ */
+function updatePumpNode(
+  node: SandboxNodeData,
+  connList: SandboxConnection[],
+  nodeMap: Map<string, SandboxNodeData>
+): void {
+  const sludgeConns = connList.filter(c => c.toNodeId === node.id && (c.toPortId === 'in-sludge' || c.toPortId.includes('sludge')));
+  const sludgeRate = sludgeConns.reduce((sum, c) => sum + c.actualFlowRate, 0);
+
+  // 只要有接虛空汙泥連線且有流量，即啟用超頻模式（若供泥不足則降載超頻）
+  const hasSludgeSupply = sludgeConns.length > 0 && sludgeRate > 0;
+  const isOverclocked = hasSludgeSupply;
+
+  // 虛空汙泥滿足率 (額定需量 0.20/s，容許 0.005 浮點微差)
+  const sludgeSat = isOverclocked ? Math.min(1.0, sludgeRate >= 0.195 ? 1.0 : sludgeRate / 0.20) : 1.0;
+  const nominalRate = isOverclocked ? 8.0 : 2.0;
+
+  node.powerMode = isOverclocked ? 'overclock' : 'regular';
+  node.basePowerConsumption = isOverclocked ? 2.0 : 1.0;
+  node.actualPower = Number((node.basePowerConsumption * (isOverclocked ? sludgeSat : 1.0)).toFixed(2));
+  node.baseGoblins = isOverclocked ? 2 : 1;
+  node.actualGoblins = node.baseGoblins;
+
+  // 檢核輸入端原位液/環境池 (針對通用抽取泵機)
+  const fluidInPort = node.inputs.find(p => p.type === 'fluid');
+  let fluidSat = 1.0;
+  let fluidName = node.outputs[0]?.name || '流體';
+
+  if (fluidInPort) {
+    const incomingConns = connList.filter(c => c.toNodeId === node.id && c.toPortId === fluidInPort.id);
+    const incomingFluidRate = incomingConns.reduce((sum, c) => sum + c.actualFlowRate, 0);
+
+    if (incomingConns.length > 0) {
+      const firstConn = incomingConns[0];
+      const fromNode = nodeMap.get(firstConn.fromNodeId);
+      const fromPort = fromNode?.outputs.find(p => p.id === firstConn.fromPortId);
+      fluidName = fromPort?.name || firstConn.itemOrFluidName || '流體';
+
+      if (fromNode && (fromNode.type === 'environment_pool' || fromNode.machineName === '注入機')) {
+        fluidSat = fromNode.efficiency;
+      } else {
+        fluidSat = nominalRate > 0 ? Math.min(1.0, incomingFluidRate / nominalRate) : 0;
+      }
+
+      if (fluidSat === 0) {
+        node.efficiency = 0;
+        node.title = `${fluidName}抽取泵機 (待液源運轉)`;
+        node.statusNote = fromNode?.efficiency === 0 ? `❌ 上游「${fromNode.title}」停機斷供` : '❌ 輸入端液體流量為 0';
+        node.outputs.forEach(p => {
+          p.name = fluidName;
+          p.rateProvided = 0;
+        });
+        node.fluidSaturation = 0;
+        node.solidSaturation = Number(sludgeSat.toFixed(3));
+        return;
+      }
+    } else {
+      // 未連接液源
+      node.efficiency = 0;
+      node.title = '通用抽取泵機 (待接液源)';
+      node.statusNote = '❌ 未連接原位轉化液或環境池';
+      node.outputs.forEach(p => {
+        p.rateProvided = 0;
+      });
+      node.fluidSaturation = 0;
+      node.solidSaturation = 0;
+      return;
+    }
+  }
+
+  // 泵機綜合稼動率與實際產率
+  const eff = isOverclocked ? sludgeSat * fluidSat : fluidSat;
+  const actualOutRate = Number((nominalRate * eff).toFixed(3));
+
+  node.efficiency = Number(eff.toFixed(3));
+  node.fluidSaturation = Number(fluidSat.toFixed(3));
+  node.solidSaturation = Number(sludgeSat.toFixed(3));
+
+  // 標題與狀態備註
+  const modeLabel = isOverclocked 
+    ? (sludgeSat >= 1.0 ? '⚡超頻 8 fl/s' : `⚡超頻降載 ${(sludgeSat * 100).toFixed(0)}%`) 
+    : '常規 2 fl/s';
+  node.title = `${fluidName}抽取泵機 (${modeLabel})`;
+
+  if (isOverclocked && sludgeSat < 1.0) {
+    node.statusNote = `⚠️ 虛空汙泥不足 (${(sludgeSat * 100).toFixed(0)}%)：產能降載至 ${actualOutRate} fl/s (⚡超頻降載)`;
+  } else if (fluidSat < 1.0) {
+    node.statusNote = `⚠️ 進液不足 (${(fluidSat * 100).toFixed(0)}%)：產能降載至 ${actualOutRate} fl/s`;
+  } else if (isOverclocked) {
+    node.statusNote = `⚡ 超頻滿載運轉中 (${actualOutRate} fl/s)`;
+  } else {
+    node.statusNote = `正常運轉中 (${actualOutRate} fl/s)`;
+  }
+
+  node.outputs.forEach(p => {
+    p.name = fluidName;
+    p.rateProvided = actualOutRate;
+  });
+}
+
+/**
  * 自由沙盒即時物理引擎 (Sandbox Physics Engine)
  * 核心機制：
  * 1. 連續流體無上限與強制絕對均分定律 (Equal Fluid Sharing)
@@ -69,7 +174,9 @@ export function simulateSandboxPhysics(
           if (toNode?.type === 'pump') {
             demand = toNode.powerMode === 'overclock' ? 8.0 : 2.0;
           }
-          c.actualFlowRate = Number(demand.toFixed(2));
+          // 環境池為無限源 (efficiency = 1.0)；注入機若欠壓則依 efficiency 降載供液
+          const availableRate = demand * fromNode.efficiency;
+          c.actualFlowRate = Number(availableRate.toFixed(2));
         });
         return;
       }
@@ -112,60 +219,9 @@ export function simulateSandboxPhysics(
         return;
       }
 
-      // 泵機節點專屬物理：支援水/油/虛空與通用抽取泵機，輸入虛空汙泥自動超頻至 8.0 fl/s
+      // 泵機節點專屬物理：支援水/油/虛空與通用抽取泵機，輸入虛空汙泥自動超頻至 8.0 fl/s (嚴格守恆降載)
       if (node.type === 'pump') {
-        const sludgeConns = connList.filter(c => c.toNodeId === node.id && (c.toPortId === 'in-sludge' || c.toPortId.includes('sludge')));
-        const sludgeRate = sludgeConns.reduce((sum, c) => sum + c.actualFlowRate, 0);
-        // 只要有連線供入虛空汙泥且有流率 (> 0)，即自動觸發超頻
-        const isOverclocked = sludgeConns.length > 0 && sludgeRate > 0;
-
-        node.powerMode = isOverclocked ? 'overclock' : 'regular';
-        node.basePowerConsumption = isOverclocked ? 2.0 : 1.0;
-        node.actualPower = node.basePowerConsumption;
-        node.baseGoblins = isOverclocked ? 2 : 1;
-        node.actualGoblins = node.baseGoblins;
-
-        const targetRate = isOverclocked ? 8.0 : 2.0;
-
-        // 通用泵機：檢核輸入端原位液/環境池
-        const fluidInPort = node.inputs.find(p => p.type === 'fluid');
-        if (fluidInPort) {
-          const incomingConns = connList.filter(c => c.toNodeId === node.id && c.toPortId === fluidInPort.id);
-          const incomingFluidRate = incomingConns.reduce((sum, c) => sum + c.actualFlowRate, 0);
-          if (incomingConns.length > 0 && incomingFluidRate > 0) {
-            const firstConn = incomingConns[0];
-            const fromNode = nodeMap.get(firstConn.fromNodeId);
-            const fromPort = fromNode?.outputs.find(p => p.id === firstConn.fromPortId);
-            const fluidName = fromPort?.name || firstConn.itemOrFluidName || '流體';
-
-            node.title = `${fluidName}抽取泵機 (${isOverclocked ? '⚡超頻 8 fl/s' : '常規 2 fl/s'})`;
-            node.efficiency = 1.0;
-            node.statusNote = isOverclocked ? `⚡ 超頻運轉中：輸出 ${fluidName} 8.0 fl/s` : `正常運轉中：輸出 ${fluidName} 2.0 fl/s`;
-            node.outputs.forEach(p => {
-              p.name = fluidName;
-              p.rateProvided = targetRate;
-            });
-          } else {
-            node.efficiency = 0;
-            node.title = '通用抽取泵機 (待接液源)';
-            node.statusNote = '❌ 未連接原位轉化液或環境池';
-            node.outputs.forEach(p => {
-              p.rateProvided = 0;
-            });
-          }
-        } else {
-          // 專屬流體泵機 (水, 油, 虛空)
-          node.efficiency = 1.0;
-          const fluidName = node.outputs[0]?.name || '流體';
-          node.title = `${fluidName}抽取泵機 (${isOverclocked ? '⚡超頻 8 fl/s' : '常規 2 fl/s'})`;
-          node.statusNote = isOverclocked ? '⚡ 超頻運轉中 (8.0 fl/s)' : '正常運轉中 (常規 2.0 fl/s)';
-          node.outputs.forEach(p => {
-            p.rateProvided = targetRate;
-          });
-        }
-
-        node.fluidSaturation = 1.0;
-        node.solidSaturation = 1.0;
+        updatePumpNode(node, connList, nodeMap);
         return;
       }
 
@@ -217,7 +273,7 @@ export function simulateSandboxPhysics(
           const sat = reqRate > 0 ? Math.min(1.0, receivedRate / reqRate) : 1.0;
           if (sat < minSolidSat) {
             minSolidSat = sat;
-            if (sat === 0) missingSolidName = p.name;
+            missingSolidName = p.name;
           }
         });
         node.solidSaturation = Number(minSolidSat.toFixed(3));
@@ -239,11 +295,12 @@ export function simulateSandboxPhysics(
         const dilatedCycle = node.baseCycleTime / minFluidSat;
         node.actualCycleTime = Number(dilatedCycle.toFixed(2));
         node.efficiency = Number((minFluidSat * minSolidSat).toFixed(3));
-        node.statusNote = `⚠️ 流體欠壓 ${(minFluidSat * 100).toFixed(0)}%：週期自 ${node.baseCycleTime}s 拉長至 ${node.actualCycleTime}s`;
+        const solidNote = minSolidSat < 1.0 ? `，且 ${missingSolidName} 不足 (${(minSolidSat * 100).toFixed(0)}%)` : '';
+        node.statusNote = `⚠️ 流體欠壓 ${(minFluidSat * 100).toFixed(0)}%：週期自 ${node.baseCycleTime}s 拉長至 ${node.actualCycleTime}s${solidNote}`;
       } else if (minSolidSat < 1.0) {
         node.actualCycleTime = node.baseCycleTime;
         node.efficiency = Number(minSolidSat.toFixed(3));
-        node.statusNote = `⚠️ 固體物料不足 (${(minSolidSat * 100).toFixed(0)}%)`;
+        node.statusNote = `⚠️ ${missingSolidName || '固體原料'}不足 (${(minSolidSat * 100).toFixed(0)}%)：產能降載至 ${(node.efficiency * 100).toFixed(0)}%`;
       } else {
         node.actualCycleTime = node.baseCycleTime;
         node.efficiency = 1.0;
@@ -303,7 +360,9 @@ export function simulateSandboxPhysics(
         if (toNode?.type === 'pump') {
           demand = toNode.powerMode === 'overclock' ? 8.0 : 2.0;
         }
-        c.actualFlowRate = Number(demand.toFixed(2));
+        // 環境池為無限源 (efficiency = 1.0)；注入機若欠壓則依 efficiency 降載供液
+        const availableRate = demand * fromNode.efficiency;
+        c.actualFlowRate = Number(availableRate.toFixed(2));
       });
       return;
     }
@@ -321,55 +380,10 @@ export function simulateSandboxPhysics(
     });
   });
 
-  // 連線流量最終確定後，對所有泵機進行最終超頻狀態結算
+  // 連線流量最終確定後，對所有泵機進行最終超頻狀態結算 (嚴格守恆降載)
   nodeMap.forEach(node => {
     if (node.type === 'pump') {
-      const sludgeConns = connList.filter(c => c.toNodeId === node.id && (c.toPortId === 'in-sludge' || c.toPortId.includes('sludge')));
-      const sludgeRate = sludgeConns.reduce((sum, c) => sum + c.actualFlowRate, 0);
-      const isOverclocked = sludgeConns.length > 0 && sludgeRate > 0;
-
-      node.powerMode = isOverclocked ? 'overclock' : 'regular';
-      node.basePowerConsumption = isOverclocked ? 2.0 : 1.0;
-      node.actualPower = node.basePowerConsumption;
-      node.baseGoblins = isOverclocked ? 2 : 1;
-      node.actualGoblins = node.baseGoblins;
-
-      const targetRate = isOverclocked ? 8.0 : 2.0;
-
-      const fluidInPort = node.inputs.find(p => p.type === 'fluid');
-      if (fluidInPort) {
-        const incomingConns = connList.filter(c => c.toNodeId === node.id && c.toPortId === fluidInPort.id);
-        const incomingFluidRate = incomingConns.reduce((sum, c) => sum + c.actualFlowRate, 0);
-        if (incomingConns.length > 0 && incomingFluidRate > 0) {
-          const firstConn = incomingConns[0];
-          const fromNode = nodeMap.get(firstConn.fromNodeId);
-          const fromPort = fromNode?.outputs.find(p => p.id === firstConn.fromPortId);
-          const fluidName = fromPort?.name || firstConn.itemOrFluidName || '流體';
-
-          node.title = `${fluidName}抽取泵機 (${isOverclocked ? '⚡超頻 8 fl/s' : '常規 2 fl/s'})`;
-          node.efficiency = 1.0;
-          node.statusNote = isOverclocked ? `⚡ 超頻運轉中：輸出 ${fluidName} 8.0 fl/s` : `正常運轉中：輸出 ${fluidName} 2.0 fl/s`;
-          node.outputs.forEach(p => {
-            p.name = fluidName;
-            p.rateProvided = targetRate;
-          });
-        } else {
-          node.efficiency = 0;
-          node.title = '通用抽取泵機 (待接液源)';
-          node.statusNote = '❌ 未連接原位轉化液或環境池';
-          node.outputs.forEach(p => {
-            p.rateProvided = 0;
-          });
-        }
-      } else {
-        node.efficiency = 1.0;
-        const fluidName = node.outputs[0]?.name || '流體';
-        node.title = `${fluidName}抽取泵機 (${isOverclocked ? '⚡超頻 8 fl/s' : '常規 2 fl/s'})`;
-        node.statusNote = isOverclocked ? '⚡ 超頻運轉中 (8.0 fl/s)' : '正常運轉中 (常規 2.0 fl/s)';
-        node.outputs.forEach(p => {
-          p.rateProvided = targetRate;
-        });
-      }
+      updatePumpNode(node, connList, nodeMap);
     }
   });
 
