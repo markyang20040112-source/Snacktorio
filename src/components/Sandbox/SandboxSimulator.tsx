@@ -2,10 +2,13 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { 
   SandboxNodeData, 
   SandboxConnection,
-  PortDefinition
+  PortDefinition,
+  SandboxBlueprint
 } from './sandboxTypes';
 import { simulateSandboxPhysics } from './sandboxPhysics';
 import { SandboxNode } from './SandboxNode';
+import { SandboxBlueprintModal } from './SandboxBlueprintModal';
+import { sandboxBlueprintService } from '../../services/sandboxBlueprintService';
 import { Machine, Item, IntermediateRecipe, Recipe } from '../../types';
 import { isScorchingDish } from '../../services/solver';
 import { ItemIcon } from '../Common/ItemIcon';
@@ -21,7 +24,10 @@ import {
   Flame,
   Pickaxe,
   GitFork,
-  Hourglass
+  Hourglass,
+  FolderKanban,
+  Save,
+  Cloud
 } from 'lucide-react';
 
 interface SandboxSimulatorProps {
@@ -147,6 +153,26 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [defaultDishRateMin, setDefaultDishRateMin] = useState<number>(12);
 
+  // 產線專案 (Blueprint) 狀態
+  const [currentBlueprintId, setCurrentBlueprintId] = useState<string | null>(() => {
+    return typeof localStorage !== 'undefined' ? localStorage.getItem('snacktorio_current_blueprint_id_v1') || null : null;
+  });
+  const [currentBlueprintName, setCurrentBlueprintName] = useState<string>(() => {
+    return typeof localStorage !== 'undefined' ? localStorage.getItem('snacktorio_current_blueprint_name_v1') || '未命名產線' : '未命名產線';
+  });
+  const [isBlueprintModalOpen, setIsBlueprintModalOpen] = useState(false);
+  const [quickSaveFeedback, setQuickSaveFeedback] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof localStorage === 'undefined') return;
+    if (currentBlueprintId) {
+      localStorage.setItem('snacktorio_current_blueprint_id_v1', currentBlueprintId);
+    } else {
+      localStorage.removeItem('snacktorio_current_blueprint_id_v1');
+    }
+    localStorage.setItem('snacktorio_current_blueprint_name_v1', currentBlueprintName);
+  }, [currentBlueprintId, currentBlueprintName]);
+
   // 滑鼠互動狀態 (拖曳節點、拖曳畫布、拉線)
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
   const [isPanning, setIsPanning] = useState(false);
@@ -251,6 +277,56 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     localStorage.setItem('snacktorio_sandbox_nodes_v1', JSON.stringify(nodes));
     localStorage.setItem('snacktorio_sandbox_conns_v1', JSON.stringify(connections));
   }, [nodes, connections]);
+
+  // 快速存檔 (覆寫當前專案或若無則開啟專案庫儲存)
+  const handleQuickSave = useCallback(() => {
+    if (currentBlueprintId) {
+      const updated = sandboxBlueprintService.saveBlueprint({
+        name: currentBlueprintName,
+        nodes,
+        connections,
+        pan,
+        zoom,
+        existingId: currentBlueprintId
+      });
+      setQuickSaveFeedback(`已儲存「${updated.name}」！`);
+      setTimeout(() => setQuickSaveFeedback(null), 3000);
+    } else {
+      setIsBlueprintModalOpen(true);
+    }
+  }, [currentBlueprintId, currentBlueprintName, nodes, connections, pan, zoom]);
+
+  // 鍵盤 Ctrl+S / Cmd+S 快速存檔監聽
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        handleQuickSave();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleQuickSave]);
+
+  // 載入專案
+  const handleLoadBlueprint = useCallback((bp: SandboxBlueprint) => {
+    setNodes(bp.nodes);
+    setConnections(bp.connections);
+    if (bp.pan) setPan(bp.pan);
+    if (bp.zoom) setZoom(bp.zoom);
+    setCurrentBlueprintId(bp.id);
+    setCurrentBlueprintName(bp.name);
+    setQuickSaveFeedback(`已載入「${bp.name}」！`);
+    setTimeout(() => setQuickSaveFeedback(null), 3000);
+  }, []);
+
+  // 另存/儲存成功回調
+  const handleSaveCurrentSuccess = useCallback((bp: SandboxBlueprint) => {
+    setCurrentBlueprintId(bp.id);
+    setCurrentBlueprintName(bp.name);
+    setQuickSaveFeedback(`已成功儲存「${bp.name}」！`);
+    setTimeout(() => setQuickSaveFeedback(null), 3000);
+  }, []);
 
   // ==========================================
   // 終端料理產能換算與炙熱菜餚連動引擎
@@ -641,7 +717,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         splitterMode: 'equal',
         splitterRatios: [1, 1],
         inputs: [
-          { id: 'in-item', name: '待分流物料', type: 'solid', rateRequired: 0.2 }
+          { id: 'in-item', name: '待分流物料', type: 'solid' }
         ],
         outputs: [
           { id: 'out-item-1', name: '分流A (50%)', type: 'solid', rateProvided: 0 },
@@ -1548,6 +1624,55 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         onWheel={handleWheel}
         onContextMenu={(e) => e.preventDefault()}
       >
+        {/* 畫布左上角浮動專案控制列 (產線專案/藍圖管理) */}
+        <div className="absolute top-3.5 left-3.5 z-20 flex items-center space-x-2 bg-[#091217]/90 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-[#1e3340] text-xs text-slate-300 shadow-2xl">
+          <div className="flex items-center space-x-2 pr-2 border-r border-[#1e3340]">
+            <FolderKanban className="w-4 h-4 text-amber-400 shrink-0" />
+            <div className="flex flex-col">
+              <span className="text-[10px] text-slate-400 font-medium">當前產線專案</span>
+              <span className="font-bold text-slate-100 max-w-[140px] truncate" title={currentBlueprintName}>
+                {currentBlueprintName}
+              </span>
+            </div>
+            {currentBlueprintId && (
+              <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" title="已關聯專案" />
+            )}
+          </div>
+
+          <button
+            onClick={handleQuickSave}
+            className="px-2.5 py-1.5 hover:bg-slate-800 hover:text-amber-300 rounded-xl transition-colors flex items-center space-x-1 text-slate-300"
+            title="儲存變更 (Ctrl+S / 點擊快速覆寫)"
+          >
+            <Save className="w-3.5 h-3.5" />
+            <span>儲存</span>
+          </button>
+
+          <button
+            onClick={() => setIsBlueprintModalOpen(true)}
+            className="px-2.5 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-xl transition-colors flex items-center space-x-1 font-bold shadow-sm"
+            title="開啟產線專案庫 (無限儲存、複製副本、重新命名、匯入匯出)"
+          >
+            <FolderKanban className="w-3.5 h-3.5" />
+            <span>專案庫 / 藍圖</span>
+          </button>
+
+          <button
+            onClick={() => setIsBlueprintModalOpen(true)}
+            className="px-2.5 py-1.5 hover:bg-purple-950/40 text-purple-300 hover:text-purple-200 rounded-xl transition-colors flex items-center space-x-1 border border-purple-800/40"
+            title="一鍵同步至 GitHub 跨裝置帶著走"
+          >
+            <Cloud className="w-3.5 h-3.5" />
+            <span>同步 GIT</span>
+          </button>
+
+          {quickSaveFeedback && (
+            <div className="px-2 py-1 bg-emerald-950/80 border border-emerald-500/60 text-emerald-300 text-[11px] rounded-lg animate-fadeIn font-bold">
+              {quickSaveFeedback}
+            </div>
+          )}
+        </div>
+
         {/* 背景網格點 */}
         <div 
           className="absolute inset-0 opacity-20 pointer-events-none"
@@ -1842,6 +1967,19 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
 
         </div>
       </div>
+
+      {/* 產線專案庫管理彈窗 */}
+      <SandboxBlueprintModal
+        isOpen={isBlueprintModalOpen}
+        onClose={() => setIsBlueprintModalOpen(false)}
+        currentNodes={nodes}
+        currentConnections={connections}
+        currentPan={pan}
+        currentZoom={zoom}
+        currentBlueprintId={currentBlueprintId}
+        onLoadBlueprint={handleLoadBlueprint}
+        onSaveCurrentSuccess={handleSaveCurrentSuccess}
+      />
 
     </div>
   );

@@ -243,12 +243,21 @@ export function simulateSandboxPhysics(
           const firstConn = incomingConns[0];
           const fromNode = nodeMap.get(firstConn.fromNodeId);
           const fromPort = fromNode?.outputs.find(p => p.id === firstConn.fromPortId);
-          const itemName = fromPort?.name || firstConn.itemOrFluidName || '物品';
+          const rawItemName = fromPort?.name || firstConn.itemOrFluidName || '物品';
+          const itemName = rawItemName.replace(/\s*\([A-Z]:\s*\d+%\)$/, '').trim() || rawItemName;
 
           node.efficiency = 1.0;
           node.solidSaturation = 1.0;
           node.fluidSaturation = 1.0;
           node.title = `分流器 (${itemName}) · ${outCount}出`;
+
+          const inPort = node.inputs[0];
+          if (inPort) {
+            inPort.name = itemName;
+            inPort.rateReceived = Number(inRate.toFixed(2));
+            inPort.isDeficit = false;
+            delete inPort.rateRequired;
+          }
 
           if (node.splitterMode === 'custom') {
             // 自訂輸出比例模式 (Ratio-based)：依各出口設定之權重比例分流 (如 2:1 或 1:2:1)
@@ -290,6 +299,13 @@ export function simulateSandboxPhysics(
           node.fluidSaturation = 0;
           node.title = `物品分流器 (${outCount}出)`;
           node.statusNote = incomingConns.length === 0 ? '⚠️ 未連接輸入物料' : '❌ 輸入流量為 0';
+          const inPort = node.inputs[0];
+          if (inPort) {
+            inPort.name = '待分流物料';
+            inPort.rateReceived = 0;
+            inPort.isDeficit = false;
+            delete inPort.rateRequired;
+          }
           node.outputs.forEach(p => {
             p.name = '分流物品';
             p.rateProvided = 0;

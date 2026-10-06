@@ -448,15 +448,24 @@ export const SandboxNode: React.FC<SandboxNodeProps> = ({
                       ? 'bg-rose-500 border-rose-200 shadow-sm shadow-rose-500/80 animate-pulse'
                       : port.type === 'fluid'
                         ? 'bg-cyan-500 border-cyan-200 shadow-sm shadow-cyan-500/50'
-                        : 'bg-amber-500 border-amber-200 shadow-sm shadow-amber-500/50'
+                        : isSplitter
+                          ? 'bg-amber-400 border-amber-100 shadow-sm shadow-amber-400/50'
+                          : 'bg-amber-500 border-amber-200 shadow-sm shadow-amber-500/50'
                   }`}
-                  title={`輸入端口：${port.name} (${port.rateRequired || 0.2}/s) · 可拖曳拉線或作為連線終點`}
+                  title={`輸入端口：${port.name} (${isSplitter ? `${port.rateReceived ?? 0}/s` : `${port.rateRequired || 0.2}/s`}) · 可拖曳拉線或作為連線終點`}
                 />
                 <div className="flex items-center space-x-1 min-w-0">
                   <span className="text-[10px] text-slate-300 truncate max-w-[65px]" title={port.name}>
                     {port.name}
                   </span>
-                  {port.rateRequired !== undefined && (
+                  {isSplitter ? (
+                    <span 
+                      className="text-[9px] font-mono px-1 rounded text-cyan-300 bg-cyan-950/60 border border-cyan-800/60 font-bold"
+                      title={`實時輸入流量：${port.rateReceived ?? 0}/s`}
+                    >
+                      {port.rateReceived !== undefined ? `${port.rateReceived.toFixed(2)}/s` : '0.00/s'}
+                    </span>
+                  ) : port.rateRequired !== undefined ? (
                     <span 
                       className={`text-[9px] font-mono px-1 rounded transition-colors ${
                         port.isDeficit 
@@ -467,7 +476,7 @@ export const SandboxNode: React.FC<SandboxNodeProps> = ({
                     >
                       {port.rateReceived !== undefined ? `${port.rateReceived.toFixed(2)}/` : ''}{port.rateRequired}{port.type === 'fluid' ? 'fl' : ''}/s
                     </span>
-                  )}
+                  ) : null}
                 </div>
                 {port.type === 'fluid' && <Droplets className="w-2.5 h-2.5 text-cyan-400 shrink-0" />}
               </div>

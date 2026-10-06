@@ -96,3 +96,24 @@ export interface SandboxMetrics {
     efficiency: number;
   }[];
 }
+
+/**
+ * 沙盒產線專案 / 藍圖 (Sandbox Blueprint)
+ * 支援任意命名、無限儲存、複製副本、匯入匯出與 GitHub API 雲端跨裝置同步
+ */
+export interface SandboxBlueprint {
+  id: string;               // 唯一專案 ID (如 bp_1728212345678)
+  name: string;             // 專案名稱 (如 "反胃辣芝士 36份/分 發電閉環")
+  description?: string;     // 備註說明
+  createdAt: string;        // 建立時間 (ISO)
+  updatedAt: string;        // 最後修改時間 (ISO)
+  nodes: SandboxNodeData[]; // 畫布節點清單
+  connections: SandboxConnection[]; // 畫布連線拓撲
+  pan?: { x: number; y: number };
+  zoom?: number;
+  stats?: {
+    machineCount: number;
+    powerLoad: number;
+    mainDishes: string[];   // 自動提取之終端料理名稱，方便清單快速辨識
+  };
+}

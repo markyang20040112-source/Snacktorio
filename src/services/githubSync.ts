@@ -14,12 +14,21 @@ export async function syncDataToGitHub(
     return { success: false, message: '請先在設定中填寫 GitHub Token、使用者名稱與倉庫名稱。' };
   }
 
+  let blueprintsContent = '[]';
+  try {
+    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('snacktorio_sandbox_blueprints_v1') : null;
+    if (raw) {
+      blueprintsContent = JSON.stringify(JSON.parse(raw), null, 2);
+    }
+  } catch {}
+
   const filesToCommit = [
     { path: 'src/data/machines.json', content: JSON.stringify(dataService.getMachines(), null, 2) },
     { path: 'src/data/items.json', content: JSON.stringify(dataService.getItems(), null, 2) },
     { path: 'src/data/intermediateRecipes.json', content: JSON.stringify(dataService.getIntermediateRecipes(), null, 2) },
     { path: 'src/data/recipes.json', content: JSON.stringify(dataService.getRecipes(), null, 2) },
     { path: 'src/data/calculatorDb.json', content: JSON.stringify(dataService.getCalculatorDb(), null, 2) },
+    { path: 'src/data/sandboxBlueprints.json', content: blueprintsContent },
   ];
 
   const api = `https://api.github.com/repos/${repoOwner}/${repoName}/git`;

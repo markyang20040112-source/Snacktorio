@@ -1,0 +1,71 @@
+[
+  {
+    "id": "bp_starter_generator",
+    "name": "新手入門：基礎發電與採煤循環",
+    "description": "經典 2:1 平衡基礎：1台採掘機提供煤炭直供虛空發電熔爐，產出 4 FV/s 連續電力",
+    "createdAt": "2026-10-06T00:00:00.000Z",
+    "updatedAt": "2026-10-06T00:00:00.000Z",
+    "pan": { "x": 0, "y": 0 },
+    "zoom": 1,
+    "stats": {
+      "machineCount": 2,
+      "powerLoad": 1.0,
+      "mainDishes": []
+    },
+    "nodes": [
+      {
+        "id": "gen-1",
+        "type": "generator",
+        "title": "虛空熔爐 (常規發電)",
+        "machineName": "虛空熔爐",
+        "powerMode": "regular",
+        "x": 80,
+        "y": 100,
+        "baseCycleTime": 10,
+        "baseOutputCount": 1,
+        "basePowerConsumption": 4.0,
+        "baseGoblins": 1,
+        "actualCycleTime": 10,
+        "efficiency": 1.0,
+        "actualPower": 4.0,
+        "actualGoblins": 1,
+        "fluidSaturation": 1.0,
+        "solidSaturation": 1.0,
+        "inputs": [{ "id": "in-coal", "name": "煤炭", "type": "solid", "rateRequired": 0.1 }],
+        "outputs": []
+      },
+      {
+        "id": "miner-1",
+        "type": "machine",
+        "title": "採煤機 (供煤)",
+        "machineName": "採掘機",
+        "x": 80,
+        "y": 320,
+        "baseCycleTime": 5,
+        "baseOutputCount": 1,
+        "basePowerConsumption": 1.0,
+        "baseGoblins": 1,
+        "actualCycleTime": 5,
+        "efficiency": 1.0,
+        "actualPower": 1.0,
+        "actualGoblins": 1,
+        "fluidSaturation": 1.0,
+        "solidSaturation": 1.0,
+        "inputs": [],
+        "outputs": [{ "id": "out-coal", "name": "煤炭", "type": "solid", "rateProvided": 0.2 }]
+      }
+    ],
+    "connections": [
+      {
+        "id": "c-init-1",
+        "fromNodeId": "miner-1",
+        "fromPortId": "out-coal",
+        "toNodeId": "gen-1",
+        "toPortId": "in-coal",
+        "itemOrFluidName": "煤炭",
+        "type": "solid",
+        "actualFlowRate": 0.1
+      }
+    ]
+  }
+]
