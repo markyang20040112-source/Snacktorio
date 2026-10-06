@@ -2,8 +2,8 @@ import { SyncConfig } from '../types';
 import { dataService } from './dataService';
 
 /**
- * 將 5 份核心資料庫以「單一原子 Commit」推送至 GitHub（Git Data API：ref → tree → commit → 更新 ref）。
- * 舊版逐檔 PUT /contents 會為每次存檔產生 5 筆 commit；此版本一次存檔僅 1 筆，且內容未變時不產生空 commit。
+ * 將核心資料庫（5 份 + 沙盒藍圖庫）以「單一原子 Commit」推送至 GitHub（Git Data API：ref → tree → commit → 更新 ref）。
+ * 舊版逐檔 PUT /contents 會為每次存檔產生多筆 commit；此版本一次存檔僅 1 筆，且內容未變時不產生空 commit。
  */
 export async function syncDataToGitHub(
   config: SyncConfig,
@@ -14,7 +14,8 @@ export async function syncDataToGitHub(
     return { success: false, message: '請先在設定中填寫 GitHub Token、使用者名稱與倉庫名稱。' };
   }
 
-  let blueprintsContent = '[]';
+  // 本機無藍圖紀錄（從未開啟沙盒/新裝置）時不推送 sandboxBlueprints.json，避免以 [] 覆蓋倉庫內的官方藍圖
+  let blueprintsContent: string | null = null;
   try {
     const raw = typeof localStorage !== 'undefined' ? localStorage.getItem('snacktorio_sandbox_blueprints_v1') : null;
     if (raw) {
@@ -28,7 +29,7 @@ export async function syncDataToGitHub(
     { path: 'src/data/intermediateRecipes.json', content: JSON.stringify(dataService.getIntermediateRecipes(), null, 2) },
     { path: 'src/data/recipes.json', content: JSON.stringify(dataService.getRecipes(), null, 2) },
     { path: 'src/data/calculatorDb.json', content: JSON.stringify(dataService.getCalculatorDb(), null, 2) },
-    { path: 'src/data/sandboxBlueprints.json', content: blueprintsContent },
+    ...(blueprintsContent !== null ? [{ path: 'src/data/sandboxBlueprints.json', content: blueprintsContent }] : []),
   ];
 
   const api = `https://api.github.com/repos/${repoOwner}/${repoName}/git`;
@@ -55,7 +56,7 @@ export async function syncDataToGitHub(
     const parentSha: string = ref.object.sha;
     const parentCommit = await request(`/commits/${parentSha}`);
 
-    // 2. 以 base_tree 疊加 5 份檔案建立新 tree（content 直接帶 UTF-8 字串）
+    // 2. 以 base_tree 疊加待推送檔案建立新 tree（content 直接帶 UTF-8 字串）
     const tree = await request('/trees', 'POST', {
       base_tree: parentCommit.tree.sha,
       tree: filesToCommit.map(f => ({ path: f.path, mode: '100644', type: 'blob', content: f.content }))
