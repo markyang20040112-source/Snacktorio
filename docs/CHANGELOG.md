@@ -7,7 +7,26 @@
 
 ## 最新紀錄
 
-* **2026-10-06**：官方專案標籤修復、跨頁面/畫布產線複製貼上與追加、以及未來新食譜自動生成產線專案系統（Official Badge Fix, Cross-Canvas Copy-Paste & Append, and Auto-Blueprint Generation for New Recipes）：
+* **2026-10-06**：日桂葉產能異常與虛假倍率根除、廚師機產能切換斷線修復、專案庫新增空白專案與區域框選局部複製貼上（Physical Rates Enforcement, Port ID Preservation Fix, Blank Project Button & Marquee Selection）：
+  - **背景與問題排查**：
+    1. **日桂葉 0.40/s 虛假產能剖析**：先前批次藍圖生成演算法（第 6 步防衰減校準）將多重連線出料端口之 `baseOutputCount` 乘以下游連線數，導致單台收割機虛擬放大為 0.40/s。經全庫盤點，共有 186 台設備含有虛擬倍率。
+    2. **廚師機 24 ➔ 12 切換斷線**：`configureDishNodeRates` 重新計算產能時重構端口 ID 為 `in-${idx}-${inp.name}`，造成既有連線 `toPortId` 失效而全面斷開缺料。
+    3. **使用者新功能需求**：專案頁面需提供「➕ 新增空白專案」按鍵；畫布需支援按住鍵滑鼠拖曳之「區域框選」與「局部複製貼上」。
+  - **架構與實裝成果**：
+    1. **真實實體機台 1:1 分離與 42 道藍圖全面物理驗證**：
+       - 重構 `buildDishBlueprint` 樹狀展開邏輯，廢除第 6 步虛假產能倍率。當下游有多台設備需求同一原料時（如鮮紅濃湯之日桂葉），嚴格實體配置對應台數之獨立收割機（每台 0.20/s）進行 1:1 獨立直供。
+       - 物質操縱機底料專供實體化：若配方無天然底料供給者，配置實體收割機（0.20/s）直供。
+       - 在 `sandboxPhysics.ts` 中確保物質操縱機之重構底料端口接受任意固體食材。
+       - 執行 Zero-Surprise Protocol 取得使用者明確授權後，全面覆寫更新 `src/data/sandboxBlueprints.json`。經回歸物理驗證：**42 道專案全部達到 0 Phantom Rates、0 Deficits（100% 滿載）**！
+    2. **廚師機動態調速端口保留**：
+       - `configureDishNodeRates` 保留既有端口 ID，連線不中斷；`sandboxPhysics.ts` 提供雙層容錯匹配。
+    3. **專案庫「➕ 新增空白專案」按鈕 (`SandboxBlueprintModal.tsx`)**：
+       - 頂部與底部新增獨立按鈕，一鍵建立純淨空白專案並載入畫布，保留既有專案存檔。
+    4. **區域框選與局部複製貼上 (`SandboxSimulator.tsx`)**：
+       - 實裝 Marquee 拖曳選取機制：按住 `Shift` 拖曳滑鼠或點擊頂部「框選工具 (Shift)」拉出半透明藍色虛線選取框。
+       - 支援多機台整組拖曳移動、整組刪除、以及 **Ctrl+C / Ctrl+V** 局部複製貼上（連同內部所有連線完整保留並平移生成全新唯一 ID）。
+
+
   - **背景與三大需求**：
     1. **標籤誤判修正**：先前因藍圖 ID 命名為 `bp_dish_*` 與 `bp_starter_generator`，導致前端判斷條件未對齊，所有專案皆誤顯示為「自訂專案」。
     2. **產線複製貼上與拼裝產線**：使用者期望能將設計好的產線複製貼上到空白或已經有其他設備編輯過的頁面中。

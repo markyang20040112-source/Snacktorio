@@ -25,7 +25,8 @@ import {
   ExternalLink,
   X,
   ArrowRight,
-  RotateCcw
+  RotateCcw,
+  FilePlus
 } from 'lucide-react';
 
 interface SandboxBlueprintModalProps {
@@ -268,6 +269,35 @@ export const SandboxBlueprintModal: React.FC<SandboxBlueprintModalProps> = ({
         {/* 2. 操作功能區塊 (存新專案、同步GIT、匯入匯出) */}
         <div className="px-6 py-3.5 border-b border-[#1c2e38] bg-[#0a1217] flex flex-wrap items-center justify-between gap-3 shrink-0">
           <div className="flex items-center space-x-2">
+            {/* 新增空白專案按鈕 */}
+            <button
+              onClick={() => {
+                if (currentNodes.length > 0 && !window.confirm('確定要建立全新空白專案嗎？當前畫布未儲存的變更將被清空。')) {
+                  return;
+                }
+                const blankBp: SandboxBlueprint = {
+                  id: `bp_custom_${Date.now()}`,
+                  name: `未命名空白專案 ${customCount + 1}`,
+                  description: '空白畫布，自由發揮設計',
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                  pan: { x: 100, y: 100 },
+                  zoom: 1,
+                  stats: { machineCount: 0, powerLoad: 0, mainDishes: [] },
+                  nodes: [],
+                  connections: []
+                };
+                const saved = sandboxBlueprintService.saveBlueprint(blankBp);
+                onLoadBlueprint(saved);
+                onClose();
+              }}
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold transition-all shadow-sm shadow-cyan-500/10"
+              title="建立一個全新的空白專案並載入至畫布"
+            >
+              <FilePlus className="w-4 h-4 text-cyan-400" />
+              <span>➕ 新增空白專案</span>
+            </button>
+
             {/* 另存為新專案按鈕 */}
             <button
               onClick={() => {

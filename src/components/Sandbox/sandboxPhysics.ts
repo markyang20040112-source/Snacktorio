@@ -40,8 +40,14 @@ export function isItemMatch(
 
   // 2. 特殊設備或通用端口邏輯
   if (targetNode) {
+    // 物質操縱機重構底料端口：接受任意固體食材/物品
+    if (targetNode.machineName === '物質操縱機' && (targetPortId === 'in-base' || cleanTarget === '重構底料' || cleanTarget === '任意物品')) {
+      return true;
+    }
+
     // 分流器：單一端口為通用接收（多筆輸入是否混流由 incomingItemNames.length 判定）
     if (targetNode.type === 'splitter') {
+
       return true;
     }
 
@@ -484,7 +490,12 @@ export function simulateSandboxPhysics(
       let fluidMismatchDetail = '';
       if (fluidInputs.length > 0) {
         fluidInputs.forEach(p => {
-          const incomingConns = connList.filter(c => c.toNodeId === node.id && c.toPortId === p.id);
+          const incomingConns = connList.filter(c => 
+            c.toNodeId === node.id && (
+              c.toPortId === p.id || 
+              (c.itemOrFluidName === p.name && (c.toPortId.endsWith(`-${p.name}`) || c.toPortId === `in-${p.name}` || c.toPortId === `in-fluid-${p.name}`))
+            )
+          );
           const validConns = incomingConns.filter(c => isItemMatch(c.itemOrFluidName, p.name, node, p.id));
           const invalidConns = incomingConns.filter(c => !isItemMatch(c.itemOrFluidName, p.name, node, p.id));
 
@@ -520,7 +531,12 @@ export function simulateSandboxPhysics(
       let solidMismatchDetail = '';
       if (solidInputs.length > 0) {
         solidInputs.forEach(p => {
-          const incomingConns = connList.filter(c => c.toNodeId === node.id && c.toPortId === p.id);
+          const incomingConns = connList.filter(c => 
+            c.toNodeId === node.id && (
+              c.toPortId === p.id || 
+              (c.itemOrFluidName === p.name && (c.toPortId.endsWith(`-${p.name}`) || c.toPortId === `in-${p.name}`))
+            )
+          );
           const validConns = incomingConns.filter(c => isItemMatch(c.itemOrFluidName, p.name, node, p.id));
           const invalidConns = incomingConns.filter(c => !isItemMatch(c.itemOrFluidName, p.name, node, p.id));
 

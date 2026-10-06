@@ -29,7 +29,8 @@ import {
   Save,
   Cloud,
   Copy,
-  Clipboard
+  Clipboard,
+  BoxSelect
 } from 'lucide-react';
 
 interface SandboxSimulatorProps {
@@ -147,6 +148,15 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
   const [pan, setPan] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [zoom, setZoom] = useState<number>(1);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
+  const [isMarqueeMode, setIsMarqueeMode] = useState<boolean>(false);
+  const [selectionBox, setSelectionBox] = useState<{
+    startX: number;
+    startY: number;
+    currentX: number;
+    currentY: number;
+  } | null>(null);
+  const dragNodesStartPositionsRef = useRef<Record<string, { x: number; y: number }>>({});
 
   // 側邊與抽屜選單狀態
   const [activeCatalogTab, setActiveCatalogTab] = useState<'machines' | 'fluids' | 'items' | 'recipes'>('machines');
@@ -304,12 +314,12 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     connections: SandboxConnection[];
   } | null>(null);
 
-  // 複製選中或全廠產線
+  // 複製選中（局部多選）或全廠產線
   const handleCopy = useCallback(() => {
     let nodesToCopy: SandboxNodeData[] = [];
-    if (selectedNodeId) {
-      const selectedNode = nodes.find(n => n.id === selectedNodeId);
-      if (selectedNode) nodesToCopy = [selectedNode];
+    const activeSelectedIds = selectedNodeIds.length > 0 ? selectedNodeIds : (selectedNodeId ? [selectedNodeId] : []);
+    if (activeSelectedIds.length > 0) {
+      nodesToCopy = nodes.filter(n => activeSelectedIds.includes(n.id));
     }
     // 若未選取特定節點，則預設複製當前整廠產線
     if (nodesToCopy.length === 0) {
@@ -321,14 +331,14 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     const connsToCopy = connections.filter(c => nodeIds.has(c.fromNodeId) && nodeIds.has(c.toNodeId));
 
     setClipboardData({ nodes: nodesToCopy, connections: connsToCopy });
-    setQuickSaveFeedback(`已複製 ${nodesToCopy.length} 台設備至剪貼簿！(按 Ctrl+V 貼上)`);
+    setQuickSaveFeedback(`已複製 ${nodesToCopy.length} 台機台與 ${connsToCopy.length} 條內部管線至剪貼簿！(按 Ctrl+V 貼上)`);
     setTimeout(() => setQuickSaveFeedback(null), 3000);
-  }, [selectedNodeId, nodes, connections]);
+  }, [selectedNodeIds, selectedNodeId, nodes, connections]);
 
   // 貼上產線 (在當前視野中央附近產生副本)
   const handlePaste = useCallback(() => {
     if (!clipboardData || clipboardData.nodes.length === 0) {
-      setQuickSaveFeedback('剪貼簿為空！請先選取機台或按 Ctrl+C 複製');
+      setQuickSaveFeedback('剪貼簿為空！請先框選/點選機台按 Ctrl+C 複製');
       setTimeout(() => setQuickSaveFeedback(null), 2500);
       return;
     }
@@ -364,7 +374,9 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
 
     setNodes(prev => [...prev, ...newNodes]);
     setConnections(prev => [...prev, ...newConns]);
-    if (newNodes.length === 1) setSelectedNodeId(newNodes[0].id);
+    const pastedIds = newNodes.map(n => n.id);
+    setSelectedNodeIds(pastedIds);
+    setSelectedNodeId(pastedIds[0] || null);
 
     setQuickSaveFeedback(`已貼上 ${newNodes.length} 台設備與 ${newConns.length} 條管線！`);
     setTimeout(() => setQuickSaveFeedback(null), 3000);
@@ -468,13 +480,16 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     const targetPerSec = targetRatePerMin / 60; // 目標產率 (份/秒)
     const machineMultiplier = targetPerSec / singleRate;
 
-    // 固體輸入端口需求換算
+    // 固體輸入端口需求換算 (嚴格保留既有 port.id，防止管線中斷跳掉)
     const inputs: SandboxNodeData['inputs'] = [];
     (recipe.inputs || []).forEach((inp, idx) => {
       if (inp.name && !inp.name.startsWith('無') && inp.count > 0) {
         const rateReq = Number(((inp.count / outputCount) * targetPerSec).toFixed(3));
+        const existingPort = node.inputs?.find(p => p.name === inp.name && p.type === 'solid') 
+          || node.inputs?.[idx];
+        const portId = existingPort?.id || `in-${inp.name}`;
         inputs.push({
-          id: `in-${idx}-${inp.name}`,
+          id: portId,
           name: inp.name,
           type: 'solid',
           rateRequired: rateReq
@@ -482,20 +497,22 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
       }
     });
 
-    // 連續流體需求換算
+    // 連續流體需求換算 (嚴格保留既有流體端口 id)
     if (recipe.fluidType && recipe.fluidType !== '無') {
       const fluidReq = Number(((recipe.fluidRate || 1.0) * machineMultiplier).toFixed(3));
+      const existingFluid = node.inputs?.find(p => p.type === 'fluid');
       inputs.push({
-        id: `in-fluid-${recipe.fluidType}`,
+        id: existingFluid?.id || `in-fluid-${recipe.fluidType}`,
         name: recipe.fluidType,
         type: 'fluid',
         rateRequired: fluidReq
       });
     }
 
-    // 終端輸出端口產率
+    // 終端輸出端口產率 (保留既有輸出端口 id)
+    const existingOut = node.outputs?.[0];
     const outputs: SandboxNodeData['outputs'] = [{
-      id: `out-${recipe.name}`,
+      id: existingOut?.id || `out-${recipe.name}`,
       name: recipe.name,
       type: 'solid',
       rateProvided: Number(targetPerSec.toFixed(3))
@@ -914,6 +931,24 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
   // 滑鼠互動：拖曳、平移與縮放
   // ==========================================
   const handleCanvasMouseDown = (e: React.MouseEvent) => {
+    // 支援 Shift+左鍵 或 框選模式：啟動矩形框選
+    if (e.button === 0 && (e.shiftKey || isMarqueeMode)) {
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (rect) {
+        const worldX = (e.clientX - rect.left - pan.x) / zoom;
+        const worldY = (e.clientY - rect.top - pan.y) / zoom;
+        setSelectionBox({
+          startX: worldX,
+          startY: worldY,
+          currentX: worldX,
+          currentY: worldY
+        });
+        setSelectedNodeIds([]);
+        setSelectedNodeId(null);
+      }
+      return;
+    }
+
     // 支援中鍵 (button === 1)、右鍵 (button === 2) 或左鍵點擊背景平移畫布
     if (e.button === 1 || e.button === 2 || e.target === canvasRef.current || (e.target as HTMLElement).tagName === 'svg') {
       setIsPanning(true);
@@ -925,12 +960,38 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
       };
       if (e.button === 0) {
         setSelectedNodeId(null);
+        setSelectedNodeIds([]);
       }
     }
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
     lastMousePosRef.current = { clientX: e.clientX, clientY: e.clientY };
+
+    // 矩形框選拖曳中
+    if (selectionBox) {
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (rect) {
+        const worldX = (e.clientX - rect.left - pan.x) / zoom;
+        const worldY = (e.clientY - rect.top - pan.y) / zoom;
+        setSelectionBox(prev => prev ? { ...prev, currentX: worldX, currentY: worldY } : null);
+
+        const minX = Math.min(selectionBox.startX, worldX);
+        const maxX = Math.max(selectionBox.startX, worldX);
+        const minY = Math.min(selectionBox.startY, worldY);
+        const maxY = Math.max(selectionBox.startY, worldY);
+
+        const insideIds = nodes.filter(n => {
+          const w = 260;
+          const h = 180;
+          return n.x + w >= minX && n.x <= maxX && n.y + h >= minY && n.y <= maxY;
+        }).map(n => n.id);
+
+        setSelectedNodeIds(insideIds);
+        setSelectedNodeId(insideIds[insideIds.length - 1] || null);
+      }
+      return;
+    }
 
     // 支援中鍵 (buttons & 4) 或右鍵 (buttons & 2) 隨時拖曳平移 (即便正在拉線或拖曳)
     if ((e.buttons & 4) || (e.buttons & 2)) {
@@ -967,12 +1028,20 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     } else if (draggingNodeId) {
       const dx = (e.clientX - dragStartRef.current.mouseX) / zoom;
       const dy = (e.clientY - dragStartRef.current.mouseY) / zoom;
+      const posMap = dragNodesStartPositionsRef.current;
+
       setNodes(prev => prev.map(n => {
-        if (n.id === draggingNodeId) {
+        if (posMap && posMap[n.id]) {
           return {
             ...n,
-            x: dragStartRef.current.initialX + dx,
-            y: dragStartRef.current.initialY + dy
+            x: posMap[n.id].x + dx,
+            y: posMap[n.id].y + dy
+          };
+        } else if (n.id === draggingNodeId) {
+          return {
+            ...n,
+            x: (dragStartRef.current.initialX || n.x) + dx,
+            y: (dragStartRef.current.initialY || n.y) + dy
           };
         }
         return n;
@@ -1024,6 +1093,13 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
   };
 
   const handleMouseUp = () => {
+    if (selectionBox) {
+      if (selectedNodeIds.length > 0) {
+        setQuickSaveFeedback(`已框選 ${selectedNodeIds.length} 台機台！(可按 Ctrl+C 複製)`);
+        setTimeout(() => setQuickSaveFeedback(null), 3000);
+      }
+      setSelectionBox(null);
+    }
     setIsPanning(false);
     setDraggingNodeId(null);
     setConnectingSource(null);
@@ -1070,8 +1146,30 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
   };
 
   const handleNodeSelect = (nodeId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (e.shiftKey || e.ctrlKey) {
+      setSelectedNodeIds(prev => {
+        const next = prev.includes(nodeId) ? prev.filter(id => id !== nodeId) : [...prev, nodeId];
+        setSelectedNodeId(next[next.length - 1] || null);
+        return next;
+      });
+      return;
+    }
+
+    const currentMulti = selectedNodeIds.includes(nodeId) ? selectedNodeIds : [nodeId];
+    setSelectedNodeIds(currentMulti);
     setSelectedNodeId(nodeId);
     setDraggingNodeId(nodeId);
+
+    // 記錄群組拖曳起始位置
+    const posMap: Record<string, { x: number; y: number }> = {};
+    nodes.forEach(n => {
+      if (currentMulti.includes(n.id)) {
+        posMap[n.id] = { x: n.x, y: n.y };
+      }
+    });
+    dragNodesStartPositionsRef.current = posMap;
+
     const targetNode = nodes.find(n => n.id === nodeId);
     if (targetNode) {
       dragStartRef.current = {
@@ -1084,12 +1182,17 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
   };
 
   const handleDeleteNode = (id: string) => {
+    const idsToDelete = (selectedNodeIds.includes(id) && selectedNodeIds.length > 1) 
+      ? selectedNodeIds 
+      : [id];
+
     setNodes(prev => {
-      const remaining = prev.filter(n => n.id !== id);
+      const remaining = prev.filter(n => !idsToDelete.includes(n.id));
       return syncAutoPeptoNodes(remaining);
     });
-    setConnections(prev => prev.filter(c => c.fromNodeId !== id && c.toNodeId !== id));
-    if (selectedNodeId === id) setSelectedNodeId(null);
+    setConnections(prev => prev.filter(c => !idsToDelete.includes(c.fromNodeId) && !idsToDelete.includes(c.toNodeId)));
+    setSelectedNodeIds(prev => prev.filter(i => !idsToDelete.includes(i)));
+    if (selectedNodeId && idsToDelete.includes(selectedNodeId)) setSelectedNodeId(null);
   };
 
   const handleUpdateDishTargetRate = useCallback((nodeId: string, rateMin: number) => {
@@ -1870,6 +1973,18 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
               <Clipboard className="w-3.5 h-3.5 text-emerald-400" />
               <span>貼上</span>
             </button>
+            <button
+              onClick={() => setIsMarqueeMode(!isMarqueeMode)}
+              className={`px-2 py-1.5 rounded-xl transition-colors flex items-center space-x-1 ${
+                isMarqueeMode 
+                  ? 'bg-cyan-500/30 text-cyan-200 border border-cyan-400 font-bold' 
+                  : 'hover:bg-slate-800 text-slate-300'
+              }`}
+              title={isMarqueeMode ? "點擊退出框選模式" : "點擊切換框選工具（亦可直接在畫布按住 Shift 鍵拖曳框選）"}
+            >
+              <BoxSelect className="w-3.5 h-3.5 text-cyan-400" />
+              <span>{isMarqueeMode ? '框選中' : '框選 (Shift)'}</span>
+            </button>
           </div>
 
           {quickSaveFeedback && (
@@ -1897,6 +2012,19 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
           }}
           className="absolute inset-0 pointer-events-none"
         >
+          {/* 矩形框選拖曳視覺指示框 */}
+          {selectionBox && (
+            <div 
+              className="absolute border-2 border-dashed border-cyan-400 bg-cyan-500/15 rounded-xl pointer-events-none z-30 transition-none shadow-lg shadow-cyan-500/10"
+              style={{
+                left: Math.min(selectionBox.startX, selectionBox.currentX),
+                top: Math.min(selectionBox.startY, selectionBox.currentY),
+                width: Math.abs(selectionBox.currentX - selectionBox.startX),
+                height: Math.abs(selectionBox.currentY - selectionBox.startY)
+              }}
+            />
+          )}
+
           {/* SVG 連線層 */}
           <svg className="absolute inset-0 w-[5000px] h-[5000px] overflow-visible pointer-events-none">
             <defs>
@@ -1989,7 +2117,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
               <SandboxNode
                 key={node.id}
                 node={node}
-                isSelected={selectedNodeId === node.id}
+                isSelected={selectedNodeIds.includes(node.id) || selectedNodeId === node.id}
                 onSelect={handleNodeSelect}
                 onDelete={handleDeleteNode}
                 onToggleMock={handleToggleMock}
