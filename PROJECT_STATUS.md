@@ -29,7 +29,7 @@
   | `recipes.json` | 終端料理食譜 | 42 |
   | `calculatorDb.json` | 工序 409 / 流體需量 251 | — |
   | `itemIcons.json` | 圖標對照（不含終端菜餚） | 156 |
-  | `sandboxBlueprints.json` | 沙盒預設產線專案庫 | 43 |
+  | `sandboxBlueprints.json` | 沙盒自訂 / 修改專案（官方料理藍圖改為執行期自動生成，不存檔） | 0 |
 
 * **Python（選用）**：僅 `scripts/github_push.py` 使用，且只用標準函式庫，**不需建立 `.venv`**；Web 應用只需要 Node.js。
 
@@ -41,16 +41,18 @@
 | `src/services/solver.ts` | 核心解算引擎：配方樹展開、`calculateSingleDish`、`sizeAutonomousPump`、`settlePlantInfrastructure`（泵機階梯 + 虛空閉環 + 電網，單一實作供單料理與並聯共用） |
 | `src/services/parallelPlanner.ts` | 多料理並聯純運算層（無 React）：`runParallelPlan`、`consolidatePlan` |
 | `src/services/dataService.ts` | JSON 載入 / localStorage 快取 / 匯出 |
-| `src/services/githubSync.ts` | Git Data API 單一原子 Commit 同步 5 份資料檔 + 沙盒藍圖庫（本機無藍圖時不推送該檔；無變更則略過） |
+| `src/services/githubSync.ts` | Git Data API 單一原子 Commit 同步 5 份資料檔 + 沙盒藍圖庫（只推送自訂/修改過的藍圖；本機無藍圖時不推送該檔；無變更則略過） |
 | `src/services/dishBlueprintGenerator.ts` | `buildDishBlueprint`：由資料庫自動推導任一食譜之完整沙盒產線（新食譜自動適配） |
-| `src/services/sandboxBlueprintService.ts` | 沙盒專案庫存取（官方藍圖與本機自訂專案合併） |
+| `src/services/builtInBlueprints.ts` | 官方料理藍圖執行期生成（依 `dataService.getRevision()` 快取）＋同步時剔除可重建藍圖 |
+| `src/services/sandboxBlueprintService.ts` | 沙盒專案庫存取（官方藍圖與本機自訂專案合併、刪除/恢復/匯入匯出） |
 | `src/components/ParallelPlanner/` | `ParallelPlanner.tsx`（控制台）+ `FluidStation` / `PowerStation` / `ProcessTable` / `KpiSummary` 顯示元件 |
 | `src/components/Sandbox/` | `SandboxSimulator.tsx`（畫布狀態與互動）、`sandboxPhysics.ts`（物理引擎）、`sandboxNodeUtils.ts`（`makeNode` 節點工廠、校準、子圖複製、存檔）、`SandboxNode.tsx`、`SandboxBlueprintModal.tsx`（專案庫）、顯示元件 `SandboxCatalogSidebar` / `SandboxMetricsPanel` / `SandboxToolbar` / `SandboxConnectionsLayer`、`sandboxTypes.ts` |
 | `src/components/DataManager/` | 資料工作台各管理分頁與同步設定 |
+| `src/utils/itemTraits.ts` | 物品特性資料驅動判定：流體（食譜 `fluidType` 引用推導）、原料機台（`source`）、可發酵物品（`isPerishable`） |
 | `src/utils/actionVerbs.ts` | 工序動作動詞共用正則（solver 與 iconHelper 共用） |
 | `src/utils/` 其他 | `math.ts`（GCD/精度）、`iconHelper.ts`、`imageBeautifier.ts`、`machineBadge.ts` |
 | `scripts/regression/` | 黃金快照回歸測試：`snapshot.ts`（solver 1008 案例）、`sandboxSnapshot.ts`（沙盒物理 378 案例）、`compare.mjs` |
-| `scripts/generateAllDishBlueprints.ts` | 以 `buildDishBlueprint` 批次重建 `sandboxBlueprints.json`（會覆寫資料檔，執行前須依 Zero-Surprise 取得同意） |
+| `scripts/generateAllDishBlueprints.ts` | 以 `buildDishBlueprint` 生成全部料理藍圖並逐道回報缺料（預設只檢查，不寫入資料檔） |
 | `docs/` | 知識庫（README、01 物理、02 公式、03 登錄 SOP、CHANGELOG 決策日誌） |
 
 ---
@@ -67,9 +69,11 @@
 7. **生化警示**：完全由 `items.json` 屬性驅動；「遇熱凝固」僅在產線存在熾熱物品時顯示；生熟物料嚴格隔離。
 8. **底料供給策略**：專屬直供 / 智慧循環（祖源防護 + Round-Robin 個連一個配對）。
 9. **圖示**：終端菜餚不建立圖示，一律以自動廚師機圖示或精簡徽章呈現。
-10. **沙盒物理**：欠壓週期稀釋（週期等比拉長，不重複懲罰）、汙泥連線即超頻（供泥不足等比降載 sludgeSat = sludgeRate / 0.20）、注入機→抽取泵機原位規則、虛空汙泥空載凝結免底料、停機設備零產出強約束、四階段 DAG 拓撲結算；原料分類純由 `items.json` 的 `source` 判定。
+10. **沙盒物理**：欠壓週期稀釋（週期等比拉長，不重複懲罰）、汙泥連線即超頻（供泥不足等比降載 sludgeSat = sludgeRate / 0.20）、注入機→抽取泵機原位規則、虛空汙泥空載凝結免底料、停機設備零產出強約束、四階段 DAG 拓撲結算。
 11. **資料權威性**：`calculatorDb.json` 為工序/流體需量權威來源，配方樹生成器僅作後備（實測移除後 42 道中 35 道結果改變，不可刪）。
 12. **浮點精度**：1/3、1/6、1/11、2/11 等循環小數以精準浮點 + GCD 處理。
+13. **物品分類一律資料驅動（`utils/itemTraits.ts`，嚴禁 AI 推測或寫死名單）**：流體 = 水/油/虛空 + 被任何食譜引用為 `fluidType` 者；原料機台 = `items.json` 的 `source`；可發酵 = `isPerishable` 且有 `spoilProduct`。分類有誤時請修正資料，而非改程式。
+14. **官方料理藍圖執行期生成**：不存檔於 `sandboxBlueprints.json`（該檔只存自訂/修改專案）；資料庫變動時自動重建；GitHub 同步只推送與自動生成版本不同的藍圖。
 
 ---
 
@@ -93,14 +97,16 @@
 - [x] 程式瘦身重構（並聯規劃拆分、基建結算單一化、黃金快照回歸測試）
 - [x] 沙盒 `isFluidItem` 名稱後綴推測改為資料庫驅動判定（13 種真實流體白名單、156 項物品校準）
 - [x] 沙盒程式瘦身重構第二輪（SandboxSimulator 2419 → 1435 行、沙盒 378 案例回歸快照）
+- [x] C 組：官方藍圖執行期生成（打包 1406 → 727 KB）、物品分類全面資料驅動、移除覆寫使用者資料之遷移碼、合併重複按鈕
 - [ ] 依遊戲推進持續登錄後半段新島嶼與高階配方
-- [ ] **待使用者決定（涉及資料/行為，見 CHANGELOG 2026-10-06 瘦身第二輪）**：C1 藍圖改執行期生成（打包體積約 −47%）、C2 `items.json` 加 `isFluid` 取代流體白名單、C3 統一沙盒/生成器原料規則、C4 發酵卡資料驅動、C5 移除一次性遷移碼（含 dataService 覆寫炙烈紅油/醋產量）、C6 合併重複同步按鈕與「42 道」硬編碼
+- [ ] 資料缺口待確認：【致命莎莎醬】被食譜引用為液體但 `items.json` 無此物品；【冰塊 → 糊糊 1 秒】是否符合遊戲
 
 ---
 
 ## 7. 近期決策摘要 (Recent Decisions)
 > 完整原文見 [`docs/CHANGELOG.md`](docs/CHANGELOG.md)。新紀錄請先追加詳細內容至 CHANGELOG 頂端，再於此更新摘要（保留最近約 10 筆）。
 
+* **2026-10-06｜C 組（使用者核准）**：官方料理藍圖改為執行期生成（`sandboxBlueprints.json` 1.1 MB → `[]`，與舊檔 42/42 逐位元組一致，打包 −48%，同步只推送自訂/修改專案）；流體、原料機台、發酵卡改由資料欄位推導（新舊結果逐項比對：流體 13/13 相同、原料僅【沙塊】改正為採掘機、發酵卡 +冰塊 +蟑螂酸奶），未修改 `items.json`；移除每次載入強制覆寫炙烈紅油/醋產量；移除重複「同步 GIT」按鈕。1008 + 378 案例 IDENTICAL。
 * **2026-10-06｜沙盒瘦身第二輪（零功能變更）+ 3 項修正**：SandboxSimulator 2419 → 1435 行（抽出 `sandboxNodeUtils` 與 4 個顯示元件）、sandboxPhysics 938 → 797、dishBlueprintGenerator 880 → 787、批次腳本 860 → 47；新增沙盒 378 案例快照，solver 1008 + 沙盒 378 全 `IDENTICAL`，重新產生藍圖與現有資料逐位元組一致；刪除 `requirements.txt`。修正：GitHub 同步不再以 `[]` 覆蓋藍圖庫、拖曳不再每幀重算物理與存檔、提示訊息計時器不再互相覆蓋。
 * **2026-10-06**：日桂葉產能異常與虛假倍率根除、廚師機產能切換斷線修復、專案庫新增空白專案與區域框選局部複製貼上（排查並根除 42 套藍圖中 186 台設備虛假產能倍率，全面改為實體 1:1 分離獨立機台直供，42 套藍圖 100% 滿載且 0 虛假產能驗證；修復廚師機 24 ➔ 12 切換端口斷線；專案庫實裝「➕ 新增空白專案」；實裝 Shift+拖曳區域框選、多選整組移動與 Ctrl+C/Ctrl+V 局部複製貼上拓撲）。
 * **2026-10-06**：官方專案標籤修復、跨頁面/畫布產線複製貼上與追加、以及未來新食譜自動生成產線專案系統（校準官方食譜/教學/自訂專案識別邏輯與分類 Tab 篩選；專案庫支援「➕ 追加至畫布」自動計算邊界平移拼裝產線不覆寫既有機台；實裝 Ctrl+C/Ctrl+V 剪貼簿複製貼上機台拓撲；封裝前端原生 `buildDishBlueprint`，未來在資料工作台每登錄一筆新食譜，沙盒專案庫全自動即時推導並出現該食譜之完整自動化產線）。
@@ -110,4 +116,3 @@
 * **2026-10-06**：沙盒物品分流器升級為「輸出比例權重」模式與高精度平衡（徹底解決 1/3, 2/3, 1/6, 3:2, 2:1 等除不盡循環小數之精度痛點；支援比例預設快捷鍵、各路百分比與實際流率即時反饋、進料變動自適應等比縮放、4 位高精度計算與 $0.005$ 容差防禦）。
 * **2026-10-06**：沙盒終端料理產能設定（X 份/分）、供料不足即時警告與炙熱菜餚自動配餐【胃復慘】動態連動（支援 12/24/36 份/分等比縮放、端口實供/需量即時比對與缺料警示；點擊炙熱菜餚自動生成【胃復慘】且產能恆等於全廠炙熱料理總和）。
 * **2026-10-06**：基礎材料收集矛盾徹底修復與地圖虛擬方塊清理（移除 `intermediateRecipes.json` 5 筆採收偽配方與 `items.json` 14 項地圖地塊虛擬物品；「自然採集」確立為單一事實來源，全廠 1008 測試案例 0 KPI 差異）。
-* **2026-10-06**：沙盒拓撲動態自適應收斂演算重構（廢除死板 10 輪常數，改為動態偵測全廠流率與稼動率收斂差量；簡單拓撲提早中斷，深層長拓撲依全廠規模自適應延伸深度，未來任何極限配方永不匱乏）。
