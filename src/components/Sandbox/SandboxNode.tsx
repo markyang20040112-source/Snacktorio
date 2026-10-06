@@ -221,7 +221,7 @@ export const SandboxNode: React.FC<SandboxNodeProps> = ({
           </div>
         )}
 
-        {/* 分流器專屬互動配置面板 (一進二出 / 一進三出、均分 / 自訂流量) */}
+        {/* 分流器專屬互動配置面板 (一進二出 / 一進三出、均分 / 自訂比例) */}
         {isSplitter && onUpdateNode && (
           <div className="p-2 rounded-xl bg-slate-900/90 border border-blue-900/50 space-y-2 mt-1">
             <div className="flex items-center justify-between">
@@ -235,8 +235,8 @@ export const SandboxNode: React.FC<SandboxNodeProps> = ({
                       { id: 'out-item-1', name: node.outputs[0]?.name || '分流A', type: 'solid', rateProvided: 0 },
                       { id: 'out-item-2', name: node.outputs[1]?.name || '分流B', type: 'solid', rateProvided: 0 }
                     ];
-                    const custom = node.splitterCustomRates?.slice(0, 2) || [0.1, 0.1];
-                    onUpdateNode(node.id, { outputs: newOutputs, splitterCustomRates: custom });
+                    const ratios = (node.splitterRatios?.slice(0, 2)) || [1, 1];
+                    onUpdateNode(node.id, { outputs: newOutputs, splitterRatios: ratios });
                   }}
                   className={`px-1.5 py-0.5 rounded text-[9px] font-mono transition-colors ${
                     node.outputs.length === 2 
@@ -255,8 +255,8 @@ export const SandboxNode: React.FC<SandboxNodeProps> = ({
                       { id: 'out-item-2', name: node.outputs[1]?.name || '分流B', type: 'solid', rateProvided: 0 },
                       { id: 'out-item-3', name: node.outputs[2]?.name || '分流C', type: 'solid', rateProvided: 0 }
                     ];
-                    const custom = node.splitterCustomRates ? [...node.splitterCustomRates, 0.1].slice(0, 3) : [0.1, 0.1, 0.1];
-                    onUpdateNode(node.id, { outputs: newOutputs, splitterCustomRates: custom });
+                    const ratios = node.splitterRatios ? [...node.splitterRatios, 1].slice(0, 3) : [1, 1, 1];
+                    onUpdateNode(node.id, { outputs: newOutputs, splitterRatios: ratios });
                   }}
                   className={`px-1.5 py-0.5 rounded text-[9px] font-mono transition-colors ${
                     node.outputs.length === 3 
@@ -270,7 +270,7 @@ export const SandboxNode: React.FC<SandboxNodeProps> = ({
               </div>
             </div>
 
-            {/* 均分 vs 自訂流量切換 */}
+            {/* 均分 vs 自訂比例切換 */}
             <div className="flex items-center space-x-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
               <button
                 onClick={(e) => {
@@ -288,8 +288,8 @@ export const SandboxNode: React.FC<SandboxNodeProps> = ({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  const defaults = node.outputs.map((_, idx) => node.splitterCustomRates?.[idx] ?? 0.1);
-                  onUpdateNode(node.id, { splitterMode: 'custom', splitterCustomRates: defaults });
+                  const defaults = node.outputs.map((_, idx) => node.splitterRatios?.[idx] ?? 1);
+                  onUpdateNode(node.id, { splitterMode: 'custom', splitterRatios: defaults });
                 }}
                 className={`flex-1 py-0.5 rounded text-[9px] transition-colors ${
                   node.splitterMode === 'custom' 
@@ -297,46 +297,103 @@ export const SandboxNode: React.FC<SandboxNodeProps> = ({
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                ⚙️ 自訂流量
+                📐 自訂比例
               </button>
             </div>
 
-            {/* 自訂各端口限流數值輸入 */}
-            {node.splitterMode === 'custom' && (
-              <div className="space-y-1 pt-1">
-                <div className="text-[9px] text-slate-400 flex justify-between">
-                  <span>各端口限流 (個/秒)</span>
-                  <span className="text-blue-400 font-mono">
-                    合: {(node.splitterCustomRates?.reduce((a, b) => a + b, 0) || 0).toFixed(2)}/s
-                  </span>
-                </div>
-                <div className={`grid gap-1 ${node.outputs.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
-                  {node.outputs.map((_, idx) => {
-                    const currentVal = node.splitterCustomRates?.[idx] ?? 0.1;
-                    return (
-                      <div key={idx} className="flex items-center space-x-1 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">
-                        <span className="text-[9px] text-slate-500 font-mono">{String.fromCharCode(65 + idx)}:</span>
-                        <input
-                          type="number"
-                          step="0.05"
-                          min="0"
-                          value={currentVal}
-                          onClick={(e) => e.stopPropagation()}
-                          onChange={(e) => {
+            {/* 自訂各端口輸出比例 (Ratio-based) */}
+            {node.splitterMode === 'custom' && (() => {
+              const currentRatios = node.splitterRatios && node.splitterRatios.length === node.outputs.length
+                ? node.splitterRatios
+                : (node.splitterCustomRates && node.splitterCustomRates.length === node.outputs.length
+                    ? node.splitterCustomRates
+                    : node.outputs.map(() => 1));
+              const sum = currentRatios.reduce((a, b) => a + (b > 0 ? b : 0), 0);
+              const ratioPresets = node.outputs.length === 2
+                ? [
+                    { label: '1:1', val: [1, 1] },
+                    { label: '2:1', val: [2, 1] },
+                    { label: '1:2', val: [1, 2] },
+                    { label: '3:1', val: [3, 1] },
+                    { label: '3:2', val: [3, 2] }
+                  ]
+                : [
+                    { label: '1:1:1', val: [1, 1, 1] },
+                    { label: '2:1:1', val: [2, 1, 1] },
+                    { label: '1:2:1', val: [1, 2, 1] },
+                    { label: '1:1:2', val: [1, 1, 2] }
+                  ];
+
+              return (
+                <div className="space-y-1.5 pt-0.5">
+                  <div className="text-[9px] text-slate-400 flex items-center justify-between">
+                    <span>輸出比例權重</span>
+                    <span className="text-cyan-400 font-mono text-[9px]">
+                      {currentRatios.map(r => Number(r.toFixed(2))).join(' : ')}
+                      {' '}({currentRatios.map(r => sum > 0 ? `${((r / sum) * 100).toFixed(0)}%` : `${(100 / node.outputs.length).toFixed(0)}%`).join(' : ')})
+                    </span>
+                  </div>
+
+                  {/* 快速預設比例按鈕 */}
+                  <div className="flex items-center space-x-1">
+                    <span className="text-[8px] text-slate-500">預設:</span>
+                    {ratioPresets.map((preset, pIdx) => {
+                      const isActive = currentRatios.length === preset.val.length && currentRatios.every((v, i) => v === preset.val[i]);
+                      return (
+                        <button
+                          key={pIdx}
+                          onClick={(e) => {
                             e.stopPropagation();
-                            const val = parseFloat(e.target.value) || 0;
-                            const newRates = [...(node.splitterCustomRates || node.outputs.map(() => 0.1))];
-                            newRates[idx] = Math.max(0, val);
-                            onUpdateNode(node.id, { splitterCustomRates: newRates });
+                            onUpdateNode(node.id, { splitterRatios: [...preset.val] });
                           }}
-                          className="w-full bg-transparent text-[10px] font-mono text-slate-200 focus:outline-none"
-                        />
-                      </div>
-                    );
-                  })}
+                          className={`px-1.5 py-0.2 rounded text-[8px] font-mono transition-colors ${
+                            isActive
+                              ? 'bg-cyan-500/30 text-cyan-300 border border-cyan-500/50 font-bold'
+                              : 'bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800'
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* 各出口比例權重輸入 */}
+                  <div className={`grid gap-1.5 ${node.outputs.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                    {node.outputs.map((outPort, idx) => {
+                      const weight = currentRatios[idx] ?? 1;
+                      const percent = sum > 0 ? ((weight / sum) * 100).toFixed(1) : (100 / node.outputs.length).toFixed(1);
+                      return (
+                        <div key={idx} className="bg-slate-950 px-1.5 py-1 rounded border border-slate-800 flex flex-col justify-between">
+                          <div className="flex items-center space-x-1">
+                            <span className="text-[9px] text-slate-400 font-mono font-bold">{String.fromCharCode(65 + idx)}:</span>
+                            <input
+                              type="number"
+                              step="0.5"
+                              min="0"
+                              value={weight}
+                              onClick={(e) => e.stopPropagation()}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                const val = parseFloat(e.target.value);
+                                const newRatios = [...currentRatios];
+                                newRatios[idx] = isNaN(val) ? 0 : Math.max(0, val);
+                                onUpdateNode(node.id, { splitterRatios: newRatios });
+                              }}
+                              className="w-full bg-transparent text-[10px] font-mono text-cyan-200 focus:outline-none text-right font-bold"
+                            />
+                          </div>
+                          <div className="text-[8px] font-mono text-slate-400 flex items-center justify-between pt-0.5 border-t border-slate-900 mt-0.5">
+                            <span className="text-cyan-400/80">{percent}%</span>
+                            <span className="text-emerald-400/90">{outPort.rateProvided ?? 0}/s</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         )}
 

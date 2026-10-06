@@ -199,7 +199,7 @@ export function simulateSandboxPhysics(
       // 均分定律：若輸出端口連至多台下游設備，流率被連線均等分流
       const splitRate = conns.length > 0 ? totalRate / conns.length : 0;
       conns.forEach(c => {
-        c.actualFlowRate = Number(splitRate.toFixed(3));
+        c.actualFlowRate = Number(splitRate.toFixed(4));
       });
     });
 
@@ -250,27 +250,36 @@ export function simulateSandboxPhysics(
           node.fluidSaturation = 1.0;
           node.title = `分流器 (${itemName}) · ${outCount}出`;
 
-          if (node.splitterMode === 'custom' && node.splitterCustomRates && node.splitterCustomRates.length === outCount) {
-            // 自訂指定流量模式：按自訂限流輸出，超出進料總量則等比降載守恆
-            const sumCustom = node.splitterCustomRates.reduce((s, r) => s + r, 0);
-            const scale = sumCustom > inRate && sumCustom > 0 ? inRate / sumCustom : 1.0;
+          if (node.splitterMode === 'custom') {
+            // 自訂輸出比例模式 (Ratio-based)：依各出口設定之權重比例分流 (如 2:1 或 1:2:1)
+            const rawRatios = (node.splitterRatios && node.splitterRatios.length === outCount)
+              ? node.splitterRatios
+              : (node.splitterCustomRates && node.splitterCustomRates.length === outCount
+                  ? node.splitterCustomRates
+                  : node.outputs.map(() => 1));
+
+            const sumRatios = rawRatios.reduce((s, r) => s + (r > 0 ? r : 0), 0);
             
             node.outputs.forEach((p, idx) => {
-              p.name = itemName;
-              const target = node.splitterCustomRates![idx] || 0;
-              p.rateProvided = Number((target * scale).toFixed(3));
+              const weight = rawRatios[idx] > 0 ? rawRatios[idx] : 0;
+              const frac = sumRatios > 0 ? weight / sumRatios : (1 / outCount);
+              const percent = (frac * 100).toFixed(0);
+              const label = String.fromCharCode(65 + idx);
+              p.name = `${itemName} (${label}: ${percent}%)`;
+              p.rateProvided = Number((inRate * frac).toFixed(4));
             });
 
-            if (scale < 1.0) {
-              node.statusNote = `⚠️ 自訂需求 (${sumCustom.toFixed(2)}/s) 超出進料 (${inRate.toFixed(2)}/s)：已等比降載`;
-            } else {
-              node.statusNote = `🎯 自訂限流中：進 ${inRate.toFixed(2)}/s，各路 [${node.outputs.map(p => p.rateProvided).join(', ')}]/s`;
-            }
+            const ratioStr = rawRatios.map(r => Number(r.toFixed(2))).join(' : ');
+            const percentStr = rawRatios.map(r => sumRatios > 0 ? `${((r / sumRatios) * 100).toFixed(1)}%` : `${(100 / outCount).toFixed(1)}%`).join(' : ');
+            node.statusNote = `📐 比例分流 (${ratioStr} ➔ ${percentStr})：進 ${inRate.toFixed(2)}/s，各路 [${node.outputs.map(p => p.rateProvided).join(', ')}]/s`;
           } else {
             // 均分模式：1:1(:1) 均等分流
-            const outPerPort = Number((inRate / outCount).toFixed(3));
-            node.outputs.forEach(p => {
-              p.name = itemName;
+            const frac = 1 / outCount;
+            const percent = (frac * 100).toFixed(0);
+            const outPerPort = Number((inRate * frac).toFixed(4));
+            node.outputs.forEach((p, idx) => {
+              const label = String.fromCharCode(65 + idx);
+              p.name = `${itemName} (${label}: ${percent}%)`;
               p.rateProvided = outPerPort;
             });
             node.statusNote = `⚡ 均等分流中 (${outCount}出)：進 ${inRate.toFixed(2)}/s，各路 ${outPerPort}/s`;
@@ -352,7 +361,7 @@ export function simulateSandboxPhysics(
           const reqRate = p.rateRequired !== undefined ? p.rateRequired : 1.0;
           p.rateReceived = Number(receivedRate.toFixed(2));
           p.isDeficit = reqRate > 0 && receivedRate < reqRate - 0.005;
-          const sat = reqRate > 0 ? Math.min(1.0, receivedRate / reqRate) : 1.0;
+          const sat = reqRate > 0 ? (receivedRate >= reqRate - 0.005 ? 1.0 : Math.min(1.0, receivedRate / reqRate)) : 1.0;
           if (sat < minFluidSat) {
             minFluidSat = sat;
             missingFluidName = p.name;
@@ -378,7 +387,7 @@ export function simulateSandboxPhysics(
           const reqRate = p.rateRequired !== undefined ? p.rateRequired : defaultReq;
           p.rateReceived = Number(receivedRate.toFixed(2));
           p.isDeficit = reqRate > 0 && receivedRate < reqRate - 0.005;
-          const sat = reqRate > 0 ? Math.min(1.0, receivedRate / reqRate) : 1.0;
+          const sat = reqRate > 0 ? (receivedRate >= reqRate - 0.005 ? 1.0 : Math.min(1.0, receivedRate / reqRate)) : 1.0;
           if (sat < minSolidSat) {
             minSolidSat = sat;
             missingSolidName = p.name;
@@ -536,7 +545,7 @@ export function simulateSandboxPhysics(
         const reqRate = p.rateRequired !== undefined ? p.rateRequired : 1.0;
         p.rateReceived = Number(receivedRate.toFixed(2));
         p.isDeficit = reqRate > 0 && receivedRate < reqRate - 0.005;
-        const sat = reqRate > 0 ? Math.min(1.0, receivedRate / reqRate) : 1.0;
+        const sat = reqRate > 0 ? (receivedRate >= reqRate - 0.005 ? 1.0 : Math.min(1.0, receivedRate / reqRate)) : 1.0;
         if (sat < minFluidSat) {
           minFluidSat = sat;
           missingFluidName = p.name;
@@ -559,7 +568,7 @@ export function simulateSandboxPhysics(
         const reqRate = p.rateRequired !== undefined ? p.rateRequired : defaultReq;
         p.rateReceived = Number(receivedRate.toFixed(2));
         p.isDeficit = reqRate > 0 && receivedRate < reqRate - 0.005;
-        const sat = reqRate > 0 ? Math.min(1.0, receivedRate / reqRate) : 1.0;
+        const sat = reqRate > 0 ? (receivedRate >= reqRate - 0.005 ? 1.0 : Math.min(1.0, receivedRate / reqRate)) : 1.0;
         if (sat < minSolidSat) {
           minSolidSat = sat;
           missingSolidName = p.name;

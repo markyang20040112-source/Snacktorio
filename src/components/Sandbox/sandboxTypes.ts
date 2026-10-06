@@ -33,8 +33,9 @@ export interface SandboxNodeData {
   powerMode?: 'regular' | 'overclock'; // 用於發電熔爐或泵機
   isMockInfiniteSupply?: boolean;      // 無中生有：原料無限供應
   overclockPercent?: number;          // 超頻百分比 (預設 100%)
-  splitterMode?: 'equal' | 'custom';  // 分流器模式：均分 或 自訂指定流量
-  splitterCustomRates?: number[];     // 自訂各端口輸出限流 (個/秒)
+  splitterMode?: 'equal' | 'custom';  // 分流器模式：均分 或 自訂比例
+  splitterCustomRates?: number[];     // 自訂各端口輸出限流 (個/秒，相容性保留)
+  splitterRatios?: number[];          // 自訂各出口輸出比例權重 (如 [2, 1] 表示 2:1，[3, 2] 表示 3:2)
   targetRatePerMin?: number;          // 終端料理目標產能 (份/分，如 12, 24, 36)
   isAutoPepto?: boolean;              // 隨炙熱菜餚自動配餐之胃復慘節點
   autoPeptoTrackingRate?: number;     // 當前追蹤之全廠炙熱菜餚總和產能 (份/分)

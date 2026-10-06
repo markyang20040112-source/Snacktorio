@@ -638,6 +638,8 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         fluidSaturation: 1.0,
         solidSaturation: 1.0,
         statusNote: '⚠️ 待連接輸入物料',
+        splitterMode: 'equal',
+        splitterRatios: [1, 1],
         inputs: [
           { id: 'in-item', name: '待分流物料', type: 'solid', rateRequired: 0.2 }
         ],
@@ -1048,7 +1050,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     const headerHeight = 44;
     // 分流器內部含有配置面板，卡片高度相應增加以精準貼齊底部端口
     const bodyHeight = node.type === 'splitter'
-      ? (node.splitterMode === 'custom' ? 200 : 170)
+      ? (node.splitterMode === 'custom' ? 240 : 170)
       : 110;
     const portStartY = headerHeight + bodyHeight + 25;
 
