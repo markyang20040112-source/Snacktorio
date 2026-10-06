@@ -18,6 +18,9 @@
        - 物質操縱機底料專供實體化：若配方無天然底料供給者，配置實體收割機（0.20/s）直供。
        - 在 `sandboxPhysics.ts` 中確保物質操縱機之重構底料端口接受任意固體食材。
        - 執行 Zero-Surprise Protocol 取得使用者明確授權後，全面覆寫更新 `src/data/sandboxBlueprints.json`。經回歸物理驗證：**42 道專案全部達到 0 Phantom Rates、0 Deficits（100% 滿載）**！
+       - **瀏覽器 localStorage 快取自動升級與三重防禦校準**：
+         1. 引入 `BUILTIN_VERSION = '20261006_v3_pure_physical'`：`getAllBlueprints` 自動比對版本，若使用者本地快取仍為舊版藍圖，自動將全套 42 套官方藍圖無感熱更新為實體雙機台（2 台收割機各 0.20/s 直供），同時 100% 保留使用者的自創/副本專案。
+         2. 畫布節點初始化、載入、追加與貼上自動校準：在 `SandboxSimulator.tsx` 的節點載入、`handlePaste`、`handleLoadBlueprint`、`handleAppendBlueprint` 實裝自動校準，強制校正所有收割機/採掘機之 `baseOutputCount = 1` 與 `baseCycleTime = 5`，即使使用者從舊快取畫布複製機台，貼上時亦自動消除歷史 0.40/s 倍率並重置為真實 0.20/s。
     2. **廚師機動態調速端口保留**：
        - `configureDishNodeRates` 保留既有端口 ID，連線不中斷；`sandboxPhysics.ts` 提供雙層容錯匹配。
     3. **專案庫「➕ 新增空白專案」按鈕 (`SandboxBlueprintModal.tsx`)**：
@@ -25,6 +28,7 @@
     4. **區域框選與局部複製貼上 (`SandboxSimulator.tsx`)**：
        - 實裝 Marquee 拖曳選取機制：按住 `Shift` 拖曳滑鼠或點擊頂部「框選工具 (Shift)」拉出半透明藍色虛線選取框。
        - 支援多機台整組拖曳移動、整組刪除、以及 **Ctrl+C / Ctrl+V** 局部複製貼上（連同內部所有連線完整保留並平移生成全新唯一 ID）。
+
 
 
   - **背景與三大需求**：

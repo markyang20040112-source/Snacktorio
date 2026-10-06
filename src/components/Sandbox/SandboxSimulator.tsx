@@ -69,15 +69,40 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     if (saved) {
       try {
         const parsed: SandboxNodeData[] = JSON.parse(saved);
-        // 自動校準既有節點的端口型別 (防止舊版快取將固體標記為 fluid)
-        return parsed.map(n => ({
-          ...n,
-          outputs: n.outputs.map(p => ({
-            ...p,
-            type: isFluidItem(p.name, items) || n.machineName === '注入機' ? 'fluid' : 'solid'
-          }))
-        }));
+        // 自動校準既有節點的端口型別與物理基準產能 (防止舊版快取殘留膨脹產能或將固體標記為 fluid)
+        return parsed.map(n => {
+          let correctedBaseOutputCount = n.baseOutputCount;
+          let correctedBaseCycleTime = n.baseCycleTime;
+
+          if (n.type === 'machine') {
+            if (n.machineName === '收割機' || n.machineName === '採掘機') {
+              correctedBaseOutputCount = 1;
+              correctedBaseCycleTime = 5;
+            } else if (n.recipeName) {
+              const rec = recipes.find(r => r.name === n.recipeName);
+              const inter = intermediate.find(r => r.name === n.recipeName);
+              if (rec) {
+                correctedBaseOutputCount = rec.outputCount || 1;
+                correctedBaseCycleTime = rec.cycleTime || 5;
+              } else if (inter) {
+                correctedBaseOutputCount = inter.outputCount || 1;
+                correctedBaseCycleTime = inter.cycleTime || 5;
+              }
+            }
+          }
+
+          return {
+            ...n,
+            baseOutputCount: correctedBaseOutputCount,
+            baseCycleTime: correctedBaseCycleTime,
+            outputs: n.outputs.map(p => ({
+              ...p,
+              type: isFluidItem(p.name, items) || n.machineName === '注入機' ? 'fluid' : 'solid'
+            }))
+          };
+        });
       } catch (e) { /* ignore */ }
+
     }
     // 預設樣板：1 台發電熔爐 + 1 台採煤機 + 1 台水泵 + 1 台煮鍋 (示範新手開局)
     return [
@@ -355,15 +380,38 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     const newNodes: SandboxNodeData[] = clipNodes.map(n => {
       const newId = `node_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
       idMap.set(n.id, newId);
+
+      let correctedBaseOutputCount = n.baseOutputCount;
+      let correctedBaseCycleTime = n.baseCycleTime;
+      if (n.type === 'machine') {
+        if (n.machineName === '收割機' || n.machineName === '採掘機') {
+          correctedBaseOutputCount = 1;
+          correctedBaseCycleTime = 5;
+        } else if (n.recipeName) {
+          const rec = recipes.find(r => r.name === n.recipeName);
+          const inter = intermediate.find(r => r.name === n.recipeName);
+          if (rec) {
+            correctedBaseOutputCount = rec.outputCount || 1;
+            correctedBaseCycleTime = rec.cycleTime || 5;
+          } else if (inter) {
+            correctedBaseOutputCount = inter.outputCount || 1;
+            correctedBaseCycleTime = inter.cycleTime || 5;
+          }
+        }
+      }
+
       return {
         ...n,
         id: newId,
         x: n.x + offsetX,
         y: n.y + offsetY,
+        baseOutputCount: correctedBaseOutputCount,
+        baseCycleTime: correctedBaseCycleTime,
         inputs: n.inputs.map(p => ({ ...p })),
         outputs: n.outputs.map(p => ({ ...p }))
       };
     });
+
 
     const newConns: SandboxConnection[] = clipConns.map(c => ({
       ...c,
@@ -405,9 +453,35 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleQuickSave, handleCopy, handlePaste]);
 
-  // 載入專案 (清空並覆寫當前畫布)
+  // 載入專案 (清空並覆寫當前畫布，同時校準歷史殘留產能倍率)
   const handleLoadBlueprint = useCallback((bp: SandboxBlueprint) => {
-    setNodes(bp.nodes);
+    const calibratedNodes = bp.nodes.map(n => {
+      let correctedBaseOutputCount = n.baseOutputCount;
+      let correctedBaseCycleTime = n.baseCycleTime;
+      if (n.type === 'machine') {
+        if (n.machineName === '收割機' || n.machineName === '採掘機') {
+          correctedBaseOutputCount = 1;
+          correctedBaseCycleTime = 5;
+        } else if (n.recipeName) {
+          const rec = recipes.find(r => r.name === n.recipeName);
+          const inter = intermediate.find(r => r.name === n.recipeName);
+          if (rec) {
+            correctedBaseOutputCount = rec.outputCount || 1;
+            correctedBaseCycleTime = rec.cycleTime || 5;
+          } else if (inter) {
+            correctedBaseOutputCount = inter.outputCount || 1;
+            correctedBaseCycleTime = inter.cycleTime || 5;
+          }
+        }
+      }
+      return {
+        ...n,
+        baseOutputCount: correctedBaseOutputCount,
+        baseCycleTime: correctedBaseCycleTime
+      };
+    });
+
+    setNodes(calibratedNodes);
     setConnections(bp.connections);
     if (bp.pan) setPan(bp.pan);
     if (bp.zoom) setZoom(bp.zoom);
@@ -415,7 +489,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     setCurrentBlueprintName(bp.name);
     setQuickSaveFeedback(`已載入「${bp.name}」！`);
     setTimeout(() => setQuickSaveFeedback(null), 3000);
-  }, []);
+  }, [recipes, intermediate]);
 
   // 追加專案至當前畫布 (不覆寫現有機台，自動計算右側邊界平移)
   const handleAppendBlueprint = useCallback((bp: SandboxBlueprint) => {
@@ -433,11 +507,33 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     const clonedNodes: SandboxNodeData[] = bp.nodes.map(n => {
       const newId = `node_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
       idMap.set(n.id, newId);
+
+      let correctedBaseOutputCount = n.baseOutputCount;
+      let correctedBaseCycleTime = n.baseCycleTime;
+      if (n.type === 'machine') {
+        if (n.machineName === '收割機' || n.machineName === '採掘機') {
+          correctedBaseOutputCount = 1;
+          correctedBaseCycleTime = 5;
+        } else if (n.recipeName) {
+          const rec = recipes.find(r => r.name === n.recipeName);
+          const inter = intermediate.find(r => r.name === n.recipeName);
+          if (rec) {
+            correctedBaseOutputCount = rec.outputCount || 1;
+            correctedBaseCycleTime = rec.cycleTime || 5;
+          } else if (inter) {
+            correctedBaseOutputCount = inter.outputCount || 1;
+            correctedBaseCycleTime = inter.cycleTime || 5;
+          }
+        }
+      }
+
       return {
         ...n,
         id: newId,
         x: n.x + offsetX,
         y: n.y + offsetY,
+        baseOutputCount: correctedBaseOutputCount,
+        baseCycleTime: correctedBaseCycleTime,
         inputs: n.inputs.map(p => ({ ...p })),
         outputs: n.outputs.map(p => ({ ...p }))
       };
@@ -455,7 +551,8 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     setQuickSaveFeedback(`已將「${bp.name}」追加至畫布 (${clonedNodes.length} 台設備)！`);
     setTimeout(() => setQuickSaveFeedback(null), 3500);
     setIsBlueprintModalOpen(false);
-  }, [nodes, pan]);
+  }, [nodes, pan, recipes, intermediate]);
+
 
   // 另存/儲存成功回調
   const handleSaveCurrentSuccess = useCallback((bp: SandboxBlueprint) => {

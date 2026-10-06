@@ -7,6 +7,9 @@ import { dataService } from './dataService';
 
 const STORAGE_KEY = 'snacktorio_sandbox_blueprints_v1';
 const DELETED_KEY = 'snacktorio_sandbox_deleted_builtins_v1';
+const BUILTIN_VERSION = '20261006_v3_pure_physical';
+const VERSION_KEY = 'snacktorio_sandbox_builtin_version';
+
 
 export const isOfficialDishBlueprint = (bp: SandboxBlueprint) =>
   bp.id.startsWith('bp_dish_') || bp.id.startsWith('bp_recipe_');
@@ -69,11 +72,25 @@ class SandboxBlueprintService {
   public getAllBlueprints(): SandboxBlueprint[] {
     const builtInList = this.getBuiltInAndDynamicBlueprints();
     try {
+      const savedVersion = localStorage.getItem(VERSION_KEY);
+      const isOutdatedVersion = savedVersion !== BUILTIN_VERSION;
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
           const deletedIds = this.getDeletedIds();
+
+          if (isOutdatedVersion) {
+            // 版本升級：全面更新官方預設藍圖為最新版本 (修復物理產能問題)，同時完整保留使用者自創/副本專案
+            const builtInIds = new Set(builtInList.map(bp => bp.id));
+            const userCustomBlueprints = parsed.filter(bp => !builtInIds.has(bp.id));
+            const activeBuiltIns = builtInList.filter(bp => !deletedIds.has(bp.id));
+            const merged = [...userCustomBlueprints, ...activeBuiltIns];
+            this.saveList(merged);
+            localStorage.setItem(VERSION_KEY, BUILTIN_VERSION);
+            return merged;
+          }
+
           const savedIds = new Set(parsed.map(bp => bp.id));
 
           // 自動補入使用者本地尚未擁有的官方預設藍圖 (且未被使用者主動刪除)
@@ -96,8 +113,12 @@ class SandboxBlueprintService {
 
     // 初次載入或本地為空
     this.saveList(builtInList);
+    try {
+      localStorage.setItem(VERSION_KEY, BUILTIN_VERSION);
+    } catch {}
     return builtInList;
   }
+
 
   /**
    * 依 ID 取得單一產線專案
