@@ -8,30 +8,22 @@ import {
 import { simulateSandboxPhysics, isItemMatch, normalizeItemName } from './sandboxPhysics';
 import { SandboxNode } from './SandboxNode';
 import { SandboxBlueprintModal } from './SandboxBlueprintModal';
+import {
+  makeNode,
+  calibrateNodeBaseRates,
+  configureDishNodeRates,
+  cloneSubgraph,
+  sameNodesIgnoringPosition,
+  saveCanvasToLocal
+} from './sandboxNodeUtils';
 import { sandboxBlueprintService } from '../../services/sandboxBlueprintService';
 import { Machine, Item, IntermediateRecipe, Recipe } from '../../types';
 import { isScorchingDish } from '../../services/solver';
-import { ItemIcon } from '../Common/ItemIcon';
-import { 
-  Zap, 
-  Users, 
-  Droplets, 
-  Plus, 
-  Search, 
-  Compass, 
-  Sparkles, 
-  Layers, 
-  Flame,
-  Pickaxe,
-  GitFork,
-  Hourglass,
-  FolderKanban,
-  Save,
-  Cloud,
-  Copy,
-  Clipboard,
-  BoxSelect
-} from 'lucide-react';
+import { SandboxCatalogSidebar, InfrastructureType } from './SandboxCatalogSidebar';
+import { SandboxMetricsPanel } from './SandboxMetricsPanel';
+import { SandboxToolbar } from './SandboxToolbar';
+import { SandboxConnectionsLayer, ConnectingSource } from './SandboxConnectionsLayer';
+import { Compass } from 'lucide-react';
 
 interface SandboxSimulatorProps {
   machines: Machine[];
@@ -70,43 +62,19 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
       try {
         const parsed: SandboxNodeData[] = JSON.parse(saved);
         // 自動校準既有節點的端口型別與物理基準產能 (防止舊版快取殘留膨脹產能或將固體標記為 fluid)
-        return parsed.map(n => {
-          let correctedBaseOutputCount = n.baseOutputCount;
-          let correctedBaseCycleTime = n.baseCycleTime;
-
-          if (n.type === 'machine') {
-            if (n.machineName === '收割機' || n.machineName === '採掘機') {
-              correctedBaseOutputCount = 1;
-              correctedBaseCycleTime = 5;
-            } else if (n.recipeName) {
-              const rec = recipes.find(r => r.name === n.recipeName);
-              const inter = intermediate.find(r => r.name === n.recipeName);
-              if (rec) {
-                correctedBaseOutputCount = rec.outputCount || 1;
-                correctedBaseCycleTime = rec.cycleTime || 5;
-              } else if (inter) {
-                correctedBaseOutputCount = inter.outputCount || 1;
-                correctedBaseCycleTime = inter.cycleTime || 5;
-              }
-            }
-          }
-
-          return {
-            ...n,
-            baseOutputCount: correctedBaseOutputCount,
-            baseCycleTime: correctedBaseCycleTime,
-            outputs: n.outputs.map(p => ({
-              ...p,
-              type: isFluidItem(p.name, items) || n.machineName === '注入機' ? 'fluid' : 'solid'
-            }))
-          };
-        });
+        return parsed.map(n => ({
+          ...calibrateNodeBaseRates(n, recipes, intermediate),
+          outputs: n.outputs.map(p => ({
+            ...p,
+            type: isFluidItem(p.name, items) || n.machineName === '注入機' ? 'fluid' : 'solid'
+          }))
+        }));
       } catch (e) { /* ignore */ }
 
     }
     // 預設樣板：1 台發電熔爐 + 1 台採煤機 + 1 台水泵 + 1 台煮鍋 (示範新手開局)
     return [
-      {
+      makeNode({
         id: 'gen-1',
         type: 'generator',
         title: '虛空熔爐 (常規發電)',
@@ -118,16 +86,10 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         baseOutputCount: 1,
         basePowerConsumption: 4.0,
         baseGoblins: 1,
-        actualCycleTime: 10,
-        efficiency: 1.0,
-        actualPower: 4.0,
-        actualGoblins: 1,
-        fluidSaturation: 1.0,
-        solidSaturation: 1.0,
         inputs: [{ id: 'in-coal', name: '煤炭', type: 'solid', rateRequired: 0.1 }],
         outputs: []
-      },
-      {
+      }),
+      makeNode({
         id: 'miner-1',
         type: 'machine',
         title: '採煤機 (供煤)',
@@ -138,15 +100,9 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         baseOutputCount: 1,
         basePowerConsumption: 1.0,
         baseGoblins: 1,
-        actualCycleTime: 5,
-        efficiency: 1.0,
-        actualPower: 1.0,
-        actualGoblins: 1,
-        fluidSaturation: 1.0,
-        solidSaturation: 1.0,
         inputs: [],
         outputs: [{ id: 'out-coal', name: '煤炭', type: 'solid', rateProvided: 0.2 }]
-      }
+      })
     ];
   });
 
@@ -183,11 +139,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
   } | null>(null);
   const dragNodesStartPositionsRef = useRef<Record<string, { x: number; y: number }>>({});
 
-  // 側邊與抽屜選單狀態
-  const [activeCatalogTab, setActiveCatalogTab] = useState<'machines' | 'fluids' | 'items' | 'recipes'>('machines');
-  const [itemsFilter, setItemsFilter] = useState<'all' | 'miner' | 'harvester' | 'reconstructor'>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  // 終端料理預設出餐產能 (側欄型錄與新增廚師機共用；側欄其餘 UI 狀態由 SandboxCatalogSidebar 自行管理)
   const [defaultDishRateMin, setDefaultDishRateMin] = useState<number>(12);
 
   // 產線專案 (Blueprint) 狀態
@@ -199,6 +151,13 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
   });
   const [isBlueprintModalOpen, setIsBlueprintModalOpen] = useState(false);
   const [quickSaveFeedback, setQuickSaveFeedback] = useState<string | null>(null);
+  const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 顯示操作提示：新訊息會取消舊計時器，避免舊計時器提早清除新訊息
+  const flashFeedback = useCallback((msg: string, ms: number = 3000) => {
+    if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+    setQuickSaveFeedback(msg);
+    feedbackTimerRef.current = setTimeout(() => setQuickSaveFeedback(null), ms);
+  }, []);
 
   useEffect(() => {
     if (typeof localStorage === 'undefined') return;
@@ -217,16 +176,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
   const canvasRef = useRef<HTMLDivElement>(null);
 
   // 拉線中狀態 (支援自輸出端口或自輸入端口雙向拉出)
-  const [connectingSource, setConnectingSource] = useState<{
-    nodeId: string;
-    portId: string;
-    portType: 'solid' | 'fluid';
-    isOutput: boolean;
-    startX: number;
-    startY: number;
-    currentX: number;
-    currentY: number;
-  } | null>(null);
+  const [connectingSource, setConnectingSource] = useState<ConnectingSource | null>(null);
 
   // 邊緣自動推鏡頭 (Auto-Pan) 與即時座標同步 Ref
   const panRef = useRef(pan);
@@ -235,8 +185,6 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
   zoomRef.current = zoom;
   const connectingSourceRef = useRef(connectingSource);
   connectingSourceRef.current = connectingSource;
-  const draggingNodeIdRef = useRef(draggingNodeId);
-  draggingNodeIdRef.current = draggingNodeId;
 
   const autoPanVelocityRef = useRef<{ vx: number; vy: number }>({ vx: 0, vy: 0 });
   const autoPanAnimationRef = useRef<number | null>(null);
@@ -304,16 +252,41 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
 
   // ==========================================
   // 即時物理演算 (動態自適應更新)
+  // 物理結果與節點座標無關：拖曳時僅座標改變，沿用上次物理結果並套用最新座標，避免每幀重算
   // ==========================================
-  const { updatedNodes, updatedConnections, metrics } = useMemo(() => {
-    return simulateSandboxPhysics(nodes, connections);
-  }, [nodes, connections]);
+  const physicsNodesRef = useRef(nodes);
+  if (!sameNodesIgnoringPosition(physicsNodesRef.current, nodes)) {
+    physicsNodesRef.current = nodes;
+  }
+  const physicsNodes = physicsNodesRef.current;
+  const physics = useMemo(() => {
+    return simulateSandboxPhysics(physicsNodes, connections);
+  }, [physicsNodes, connections]);
+  const { updatedConnections, metrics } = physics;
+  const updatedNodes = useMemo(() => {
+    if (physicsNodes === nodes) return physics.updatedNodes;
+    const posMap = new Map(nodes.map(n => [n.id, n]));
+    return physics.updatedNodes.map(n => {
+      const cur = posMap.get(n.id);
+      return cur && (cur.x !== n.x || cur.y !== n.y) ? { ...n, x: cur.x, y: cur.y } : n;
+    });
+  }, [physics, physicsNodes, nodes]);
 
-  // 本機自動存檔
+  // 本機自動存檔 (300ms 防抖；離開頁面或切換分頁時立即寫入最新狀態)
+  const latestCanvasRef = useRef({ nodes, connections });
+  latestCanvasRef.current = { nodes, connections };
   useEffect(() => {
-    localStorage.setItem('snacktorio_sandbox_nodes_v1', JSON.stringify(nodes));
-    localStorage.setItem('snacktorio_sandbox_conns_v1', JSON.stringify(connections));
+    const timer = setTimeout(() => saveCanvasToLocal(nodes, connections), 300);
+    return () => clearTimeout(timer);
   }, [nodes, connections]);
+  useEffect(() => {
+    const flush = () => saveCanvasToLocal(latestCanvasRef.current.nodes, latestCanvasRef.current.connections);
+    window.addEventListener('beforeunload', flush);
+    return () => {
+      window.removeEventListener('beforeunload', flush);
+      flush();
+    };
+  }, []);
 
   // 快速存檔 (覆寫當前專案或若無則開啟專案庫儲存)
   const handleQuickSave = useCallback(() => {
@@ -326,8 +299,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         zoom,
         existingId: currentBlueprintId
       });
-      setQuickSaveFeedback(`已儲存「${updated.name}」！`);
-      setTimeout(() => setQuickSaveFeedback(null), 3000);
+      flashFeedback(`已儲存「${updated.name}」！`);
     } else {
       setIsBlueprintModalOpen(true);
     }
@@ -356,15 +328,13 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     const connsToCopy = connections.filter(c => nodeIds.has(c.fromNodeId) && nodeIds.has(c.toNodeId));
 
     setClipboardData({ nodes: nodesToCopy, connections: connsToCopy });
-    setQuickSaveFeedback(`已複製 ${nodesToCopy.length} 台機台與 ${connsToCopy.length} 條內部管線至剪貼簿！(按 Ctrl+V 貼上)`);
-    setTimeout(() => setQuickSaveFeedback(null), 3000);
+    flashFeedback(`已複製 ${nodesToCopy.length} 台機台與 ${connsToCopy.length} 條內部管線至剪貼簿！(按 Ctrl+V 貼上)`);
   }, [selectedNodeIds, selectedNodeId, nodes, connections]);
 
   // 貼上產線 (在當前視野中央附近產生副本)
   const handlePaste = useCallback(() => {
     if (!clipboardData || clipboardData.nodes.length === 0) {
-      setQuickSaveFeedback('剪貼簿為空！請先框選/點選機台按 Ctrl+C 複製');
-      setTimeout(() => setQuickSaveFeedback(null), 2500);
+      flashFeedback('剪貼簿為空！請先框選/點選機台按 Ctrl+C 複製', 2500);
       return;
     }
 
@@ -376,49 +346,8 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     const offsetX = (-pan.x + 350) - minX + (Math.random() * 40);
     const offsetY = (-pan.y + 180) - minY + (Math.random() * 40);
 
-    const idMap = new Map<string, string>();
-    const newNodes: SandboxNodeData[] = clipNodes.map(n => {
-      const newId = `node_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
-      idMap.set(n.id, newId);
-
-      let correctedBaseOutputCount = n.baseOutputCount;
-      let correctedBaseCycleTime = n.baseCycleTime;
-      if (n.type === 'machine') {
-        if (n.machineName === '收割機' || n.machineName === '採掘機') {
-          correctedBaseOutputCount = 1;
-          correctedBaseCycleTime = 5;
-        } else if (n.recipeName) {
-          const rec = recipes.find(r => r.name === n.recipeName);
-          const inter = intermediate.find(r => r.name === n.recipeName);
-          if (rec) {
-            correctedBaseOutputCount = rec.outputCount || 1;
-            correctedBaseCycleTime = rec.cycleTime || 5;
-          } else if (inter) {
-            correctedBaseOutputCount = inter.outputCount || 1;
-            correctedBaseCycleTime = inter.cycleTime || 5;
-          }
-        }
-      }
-
-      return {
-        ...n,
-        id: newId,
-        x: n.x + offsetX,
-        y: n.y + offsetY,
-        baseOutputCount: correctedBaseOutputCount,
-        baseCycleTime: correctedBaseCycleTime,
-        inputs: n.inputs.map(p => ({ ...p })),
-        outputs: n.outputs.map(p => ({ ...p }))
-      };
-    });
-
-
-    const newConns: SandboxConnection[] = clipConns.map(c => ({
-      ...c,
-      id: `c_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-      fromNodeId: idMap.get(c.fromNodeId) || c.fromNodeId,
-      toNodeId: idMap.get(c.toNodeId) || c.toNodeId
-    }));
+    const { nodes: newNodes, connections: newConns } =
+      cloneSubgraph(clipNodes, clipConns, offsetX, offsetY, 6, recipes, intermediate);
 
     setNodes(prev => [...prev, ...newNodes]);
     setConnections(prev => [...prev, ...newConns]);
@@ -426,8 +355,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     setSelectedNodeIds(pastedIds);
     setSelectedNodeId(pastedIds[0] || null);
 
-    setQuickSaveFeedback(`已貼上 ${newNodes.length} 台設備與 ${newConns.length} 條管線！`);
-    setTimeout(() => setQuickSaveFeedback(null), 3000);
+    flashFeedback(`已貼上 ${newNodes.length} 台設備與 ${newConns.length} 條管線！`);
   }, [clipboardData, pan]);
 
   // 鍵盤 Ctrl+S / Ctrl+C / Ctrl+V 快捷鍵監聽
@@ -455,31 +383,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
 
   // 載入專案 (清空並覆寫當前畫布，同時校準歷史殘留產能倍率)
   const handleLoadBlueprint = useCallback((bp: SandboxBlueprint) => {
-    const calibratedNodes = bp.nodes.map(n => {
-      let correctedBaseOutputCount = n.baseOutputCount;
-      let correctedBaseCycleTime = n.baseCycleTime;
-      if (n.type === 'machine') {
-        if (n.machineName === '收割機' || n.machineName === '採掘機') {
-          correctedBaseOutputCount = 1;
-          correctedBaseCycleTime = 5;
-        } else if (n.recipeName) {
-          const rec = recipes.find(r => r.name === n.recipeName);
-          const inter = intermediate.find(r => r.name === n.recipeName);
-          if (rec) {
-            correctedBaseOutputCount = rec.outputCount || 1;
-            correctedBaseCycleTime = rec.cycleTime || 5;
-          } else if (inter) {
-            correctedBaseOutputCount = inter.outputCount || 1;
-            correctedBaseCycleTime = inter.cycleTime || 5;
-          }
-        }
-      }
-      return {
-        ...n,
-        baseOutputCount: correctedBaseOutputCount,
-        baseCycleTime: correctedBaseCycleTime
-      };
-    });
+    const calibratedNodes = bp.nodes.map(n => calibrateNodeBaseRates(n, recipes, intermediate));
 
     setNodes(calibratedNodes);
     setConnections(bp.connections);
@@ -487,8 +391,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     if (bp.zoom) setZoom(bp.zoom);
     setCurrentBlueprintId(bp.id);
     setCurrentBlueprintName(bp.name);
-    setQuickSaveFeedback(`已載入「${bp.name}」！`);
-    setTimeout(() => setQuickSaveFeedback(null), 3000);
+    flashFeedback(`已載入「${bp.name}」！`);
   }, [recipes, intermediate]);
 
   // 追加專案至當前畫布 (不覆寫現有機台，自動計算右側邊界平移)
@@ -503,53 +406,12 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     const offsetX = maxX - bpMinX;
     const offsetY = minY - bpMinY;
 
-    const idMap = new Map<string, string>();
-    const clonedNodes: SandboxNodeData[] = bp.nodes.map(n => {
-      const newId = `node_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-      idMap.set(n.id, newId);
-
-      let correctedBaseOutputCount = n.baseOutputCount;
-      let correctedBaseCycleTime = n.baseCycleTime;
-      if (n.type === 'machine') {
-        if (n.machineName === '收割機' || n.machineName === '採掘機') {
-          correctedBaseOutputCount = 1;
-          correctedBaseCycleTime = 5;
-        } else if (n.recipeName) {
-          const rec = recipes.find(r => r.name === n.recipeName);
-          const inter = intermediate.find(r => r.name === n.recipeName);
-          if (rec) {
-            correctedBaseOutputCount = rec.outputCount || 1;
-            correctedBaseCycleTime = rec.cycleTime || 5;
-          } else if (inter) {
-            correctedBaseOutputCount = inter.outputCount || 1;
-            correctedBaseCycleTime = inter.cycleTime || 5;
-          }
-        }
-      }
-
-      return {
-        ...n,
-        id: newId,
-        x: n.x + offsetX,
-        y: n.y + offsetY,
-        baseOutputCount: correctedBaseOutputCount,
-        baseCycleTime: correctedBaseCycleTime,
-        inputs: n.inputs.map(p => ({ ...p })),
-        outputs: n.outputs.map(p => ({ ...p }))
-      };
-    });
-
-    const clonedConns: SandboxConnection[] = bp.connections.map(c => ({
-      ...c,
-      id: `c_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      fromNodeId: idMap.get(c.fromNodeId) || c.fromNodeId,
-      toNodeId: idMap.get(c.toNodeId) || c.toNodeId
-    }));
+    const { nodes: clonedNodes, connections: clonedConns } =
+      cloneSubgraph(bp.nodes, bp.connections, offsetX, offsetY, 7, recipes, intermediate);
 
     setNodes(prev => [...prev, ...clonedNodes]);
     setConnections(prev => [...prev, ...clonedConns]);
-    setQuickSaveFeedback(`已將「${bp.name}」追加至畫布 (${clonedNodes.length} 台設備)！`);
-    setTimeout(() => setQuickSaveFeedback(null), 3500);
+    flashFeedback(`已將「${bp.name}」追加至畫布 (${clonedNodes.length} 台設備)！`, 3500);
     setIsBlueprintModalOpen(false);
   }, [nodes, pan, recipes, intermediate]);
 
@@ -558,72 +420,12 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
   const handleSaveCurrentSuccess = useCallback((bp: SandboxBlueprint) => {
     setCurrentBlueprintId(bp.id);
     setCurrentBlueprintName(bp.name);
-    setQuickSaveFeedback(`已成功儲存「${bp.name}」！`);
-    setTimeout(() => setQuickSaveFeedback(null), 3000);
+    flashFeedback(`已成功儲存「${bp.name}」！`);
   }, []);
 
   // ==========================================
   // 終端料理產能換算與炙熱菜餚連動引擎
   // ==========================================
-  const configureDishNodeRates = useCallback((
-    node: SandboxNodeData,
-    targetRatePerMin: number,
-    recipe: Recipe,
-    mach: Machine
-  ): SandboxNodeData => {
-    const outputCount = recipe.outputCount || 1;
-    const cycleTime = recipe.cycleTime || 5;
-    const singleRate = outputCount / cycleTime; // 單台廚師機產率 (份/秒)
-    const targetPerSec = targetRatePerMin / 60; // 目標產率 (份/秒)
-    const machineMultiplier = targetPerSec / singleRate;
-
-    // 固體輸入端口需求換算 (嚴格保留既有 port.id，防止管線中斷跳掉)
-    const inputs: SandboxNodeData['inputs'] = [];
-    (recipe.inputs || []).forEach((inp, idx) => {
-      if (inp.name && !inp.name.startsWith('無') && inp.count > 0) {
-        const rateReq = Number(((inp.count / outputCount) * targetPerSec).toFixed(3));
-        const existingPort = node.inputs?.find(p => p.name === inp.name && p.type === 'solid') 
-          || node.inputs?.[idx];
-        const portId = existingPort?.id || `in-${inp.name}`;
-        inputs.push({
-          id: portId,
-          name: inp.name,
-          type: 'solid',
-          rateRequired: rateReq
-        });
-      }
-    });
-
-    // 連續流體需求換算 (嚴格保留既有流體端口 id)
-    if (recipe.fluidType && recipe.fluidType !== '無') {
-      const fluidReq = Number(((recipe.fluidRate || 1.0) * machineMultiplier).toFixed(3));
-      const existingFluid = node.inputs?.find(p => p.type === 'fluid');
-      inputs.push({
-        id: existingFluid?.id || `in-fluid-${recipe.fluidType}`,
-        name: recipe.fluidType,
-        type: 'fluid',
-        rateRequired: fluidReq
-      });
-    }
-
-    // 終端輸出端口產率 (保留既有輸出端口 id)
-    const existingOut = node.outputs?.[0];
-    const outputs: SandboxNodeData['outputs'] = [{
-      id: existingOut?.id || `out-${recipe.name}`,
-      name: recipe.name,
-      type: 'solid',
-      rateProvided: Number(targetPerSec.toFixed(3))
-    }];
-
-    return {
-      ...node,
-      targetRatePerMin,
-      basePowerConsumption: Number((mach.power * machineMultiplier).toFixed(2)),
-      baseGoblins: Math.max(1, Math.round(mach.goblins * machineMultiplier)),
-      inputs,
-      outputs
-    };
-  }, []);
 
   // 動態同步全廠炙熱菜餚總和產能至【胃復慘】終端方塊
   const syncAutoPeptoNodes = useCallback((currentNodes: SandboxNodeData[]): SandboxNodeData[] => {
@@ -657,13 +459,13 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
       }
       return node;
     });
-  }, [items, recipes, machines, configureDishNodeRates]);
+  }, [items, recipes, machines]);
 
   // ==========================================
   // 節點生成工廠 (純資料庫驅動，自適應未來任何新配方)
   // ==========================================
   const handleAddMachineWithRecipe = (mach: Machine, recipeOrInter?: IntermediateRecipe | Recipe) => {
-    const id = `node-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
+    const id = `node-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
     
     // 解析輸入端口
     const inputs: SandboxNodeData['inputs'] = [];
@@ -707,7 +509,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
       });
     }
 
-    const rawNode: SandboxNodeData = {
+    const rawNode: SandboxNodeData = makeNode({
       id,
       type: 'machine',
       title: recipeOrInter ? recipeOrInter.name : mach.name,
@@ -719,15 +521,9 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
       baseOutputCount: recipeOrInter?.outputCount || 1,
       basePowerConsumption: mach.power,
       baseGoblins: mach.goblins,
-      actualCycleTime: recipeOrInter?.cycleTime || 5,
-      efficiency: 1.0,
-      actualPower: mach.power,
-      actualGoblins: mach.goblins,
-      fluidSaturation: 1.0,
-      solidSaturation: 1.0,
       inputs,
       outputs
-    };
+    });
 
     const isDish = recipeOrInter && recipes.some(r => r.name === recipeOrInter.name);
     let finalNewNode = rawNode;
@@ -744,7 +540,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         const chefMach = machines.find(m => m.name === '自動廚師機') || { name: '自動廚師機', power: 1.0, goblins: 3 };
         if (peptoRecipe) {
           const peptoId = `node-pepto-${Date.now()}`;
-          const peptoRawNode: SandboxNodeData = {
+          const peptoRawNode: SandboxNodeData = makeNode({
             id: peptoId,
             type: 'machine',
             title: '胃復慘',
@@ -757,16 +553,10 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
             baseOutputCount: 10,
             basePowerConsumption: 1.0,
             baseGoblins: 3,
-            actualCycleTime: 5,
-            efficiency: 1.0,
-            actualPower: 1.0,
-            actualGoblins: 3,
-            fluidSaturation: 1.0,
-            solidSaturation: 1.0,
             isAutoPepto: true,
             inputs: [],
             outputs: []
-          };
+          });
           const peptoNode = configureDishNodeRates(peptoRawNode, defaultDishRateMin, peptoRecipe, chefMach as Machine);
           setNodes(prev => syncAutoPeptoNodes([...prev, finalNewNode, peptoNode]));
           setSelectedNodeId(finalNewNode.id);
@@ -780,7 +570,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
   };
 
   const handleAddItemHarvester = (item: Item) => {
-    const id = `item-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
+    const id = `item-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
     
     // 依據資料庫 source 與物理特性，精準匹配實體設備
     let machName = '收割機';
@@ -820,7 +610,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     const mach = machines.find(m => m.name === machName) || { name: machName, power: 1.0, goblins: 1 };
     const outRate = Number((outCount / cycleTime).toFixed(3));
 
-    const newNode: SandboxNodeData = {
+    const newNode: SandboxNodeData = makeNode({
       id,
       type: 'machine',
       title: `${titlePrefix}：${item.name}`,
@@ -832,12 +622,6 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
       baseOutputCount: outCount,
       basePowerConsumption: mach.power,
       baseGoblins: mach.goblins,
-      actualCycleTime: cycleTime,
-      efficiency: 1.0,
-      actualPower: mach.power,
-      actualGoblins: mach.goblins,
-      fluidSaturation: 1.0,
-      solidSaturation: 1.0,
       inputs: baseInputs,
       outputs: [
         {
@@ -847,18 +631,18 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
           rateProvided: outRate
         }
       ]
-    };
+    });
 
     setNodes(prev => [...prev, newNode]);
     setSelectedNodeId(id);
   };
 
-  const handleAddInfrastructure = (type: 'generator' | 'pump' | 'environment_pool' | 'splitter' | 'buffer_decay', subtype?: string) => {
-    const id = `infra-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`;
+  const handleAddInfrastructure = (type: InfrastructureType, subtype?: string) => {
+    const id = `infra-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
     let node: SandboxNodeData;
 
     if (type === 'generator') {
-      node = {
+      node = makeNode({
         id,
         type: 'generator',
         title: subtype === 'overclock' ? '虛空熔爐 (超頻發電 16 FV/s)' : '虛空熔爐 (常規發電 4 FV/s)',
@@ -870,12 +654,6 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         baseOutputCount: 1,
         basePowerConsumption: subtype === 'overclock' ? 16.0 : 4.0,
         baseGoblins: 1,
-        actualCycleTime: 10,
-        efficiency: 1.0,
-        actualPower: subtype === 'overclock' ? 16.0 : 4.0,
-        actualGoblins: 1,
-        fluidSaturation: 1.0,
-        solidSaturation: 1.0,
         inputs: subtype === 'overclock' 
           ? [
               { id: 'in-coal', name: '煤炭', type: 'solid', rateRequired: 0.1 },
@@ -883,7 +661,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
             ]
           : [{ id: 'in-coal', name: '煤炭', type: 'solid', rateRequired: 0.1 }],
         outputs: []
-      };
+      });
     } else if (type === 'pump') {
       const isGeneric = subtype === 'generic' || !subtype;
       const fluidName = isGeneric ? '通用流體' : subtype;
@@ -905,7 +683,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         rateRequired: 0.2
       });
 
-      node = {
+      node = makeNode({
         id,
         type: 'pump',
         title: isGeneric ? '通用抽取泵機 (待接液源)' : `${fluidName}抽取泵機 (常規 2 fl/s)`,
@@ -917,12 +695,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         baseOutputCount: 2,
         basePowerConsumption: 1.0,
         baseGoblins: 1,
-        actualCycleTime: 1,
         efficiency: isGeneric ? 0 : 1.0,
-        actualPower: 1.0,
-        actualGoblins: 1,
-        fluidSaturation: 1.0,
-        solidSaturation: 1.0,
         statusNote: isGeneric ? '⚠️ 待連接原位轉化液或環境池' : '正常運轉中 (常規 2.0 fl/s)',
         inputs,
         outputs: [
@@ -933,9 +706,9 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
             rateProvided: isGeneric ? 0 : 2.0
           }
         ]
-      };
+      });
     } else if (type === 'splitter') {
-      node = {
+      node = makeNode({
         id,
         type: 'splitter',
         title: '物品分流器 (待進料)',
@@ -946,12 +719,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         baseOutputCount: 1,
         basePowerConsumption: 0,
         baseGoblins: 0,
-        actualCycleTime: 0,
         efficiency: 0,
-        actualPower: 0,
-        actualGoblins: 0,
-        fluidSaturation: 1.0,
-        solidSaturation: 1.0,
         statusNote: '⚠️ 待連接輸入物料',
         splitterMode: 'equal',
         splitterRatios: [1, 1],
@@ -962,15 +730,15 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
           { id: 'out-item-1', name: '分流A (50%)', type: 'solid', rateProvided: 0 },
           { id: 'out-item-2', name: '分流B (50%)', type: 'solid', rateProvided: 0 }
         ]
-      };
-    } else if (type === ('buffer_decay' as any)) {
+      });
+    } else if (type === 'buffer_decay') {
       // 發酵變質 / 輸送緩衝方塊 (支援指定變質物或泛用緩衝)
       const perishItem = subtype ? items.find(i => i.name === subtype) : null;
       const rawName = perishItem?.name || '發酵原料';
       const prodName = perishItem?.spoilProduct || '熟成產物';
       const spoilSeconds = Number(perishItem?.spoilTime) || 15;
 
-      node = {
+      node = makeNode({
         id,
         type: 'buffer_decay',
         title: perishItem ? `發酵：${rawName} ➔ ${prodName}` : '發酵變質緩衝方塊',
@@ -982,12 +750,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         baseOutputCount: 1,
         basePowerConsumption: 0,
         baseGoblins: 0,
-        actualCycleTime: spoilSeconds,
         efficiency: 0,
-        actualPower: 0,
-        actualGoblins: 0,
-        fluidSaturation: 1.0,
-        solidSaturation: 1.0,
         statusNote: `⏳ 發酵需時 ${spoilSeconds}s (傳送帶長度 ≥ ${spoilSeconds} 格)`,
         inputs: [
           { id: 'in-raw', name: rawName, type: 'solid', rateRequired: 0.2 }
@@ -995,11 +758,11 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         outputs: [
           { id: 'out-spoiled', name: prodName, type: 'solid', rateProvided: 0 }
         ]
-      };
+      });
     } else {
       // 環境池 (水池, 油池, 虛空裂隙)
       const fluid = subtype || '油池';
-      node = {
+      node = makeNode({
         id,
         type: 'environment_pool',
         title: `環境資源：${fluid}`,
@@ -1009,15 +772,9 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         baseOutputCount: 999,
         basePowerConsumption: 0,
         baseGoblins: 0,
-        actualCycleTime: 1,
-        efficiency: 1.0,
-        actualPower: 0,
-        actualGoblins: 0,
-        fluidSaturation: 1.0,
-        solidSaturation: 1.0,
         inputs: [],
         outputs: [{ id: `out-env-${fluid}`, name: fluid.replace('池', ''), type: 'fluid', rateProvided: 999 }]
-      };
+      });
     }
 
     setNodes(prev => [...prev, node]);
@@ -1192,8 +949,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
   const handleMouseUp = () => {
     if (selectionBox) {
       if (selectedNodeIds.length > 0) {
-        setQuickSaveFeedback(`已框選 ${selectedNodeIds.length} 台機台！(可按 Ctrl+C 複製)`);
-        setTimeout(() => setQuickSaveFeedback(null), 3000);
+        flashFeedback(`已框選 ${selectedNodeIds.length} 台機台！(可按 Ctrl+C 複製)`);
       }
       setSelectionBox(null);
     }
@@ -1307,7 +1063,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
       });
       return syncAutoPeptoNodes(next);
     });
-  }, [recipes, machines, configureDishNodeRates, syncAutoPeptoNodes]);
+  }, [recipes, machines, syncAutoPeptoNodes]);
 
   const handleToggleMock = (id: string) => {
     setNodes(prev => prev.map(n => {
@@ -1351,6 +1107,23 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
       currentX,
       currentY
     });
+  };
+
+  // 檢查分流器/泵機既有下游連線是否與即將連入的物料不符；不符則提示並取消拉線
+  const hasDownstreamConflict = (hubNodeId: string, incomingName: string, hubLabel: string): boolean => {
+    const outgoingConns = connections.filter(c => c.fromNodeId === hubNodeId);
+    for (const outConn of outgoingConns) {
+      const downstreamNode = nodes.find(n => n.id === outConn.toNodeId);
+      const downstreamInPort = downstreamNode?.inputs.find(p => p.id === outConn.toPortId);
+      if (downstreamNode && downstreamInPort) {
+        if (!isItemMatch(incomingName, downstreamInPort.name, downstreamNode, downstreamInPort.id)) {
+          alert(`⚠️ ${hubLabel}下游衝突！\n該${hubLabel}下游已連接至「${downstreamNode.title}」的「${downstreamInPort.name}」端口。\n無法連入不相符的「${incomingName}」！`);
+          setConnectingSource(null);
+          return true;
+        }
+      }
+    }
+    return false;
   };
 
   // 連線終點放開 (雙向對接：無論先拉輸出端或先拉輸入端，皆可自動接合)
@@ -1426,34 +1199,12 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
       }
 
       // 檢查分流器已有的下游連線是否與即將連入的物料衝突
-      const outgoingConns = connections.filter(c => c.fromNodeId === toNode.id);
-      for (const outConn of outgoingConns) {
-        const downstreamNode = nodes.find(n => n.id === outConn.toNodeId);
-        const downstreamInPort = downstreamNode?.inputs.find(p => p.id === outConn.toPortId);
-        if (downstreamNode && downstreamInPort) {
-          if (!isItemMatch(outPort.name, downstreamInPort.name, downstreamNode, downstreamInPort.id)) {
-            alert(`⚠️ 分流器下游衝突！\n該分流器下游已連接至「${downstreamNode.title}」的「${downstreamInPort.name}」端口。\n無法連入不相符的「${outPort.name}」！`);
-            setConnectingSource(null);
-            return;
-          }
-        }
-      }
+      if (hasDownstreamConflict(toNode.id, outPort.name, '分流器')) return;
     }
 
     // 若目標端為通用泵機：檢查泵機下游連線是否與即將連入的液源相容
     if (toNode.type === 'pump' && inPort.id === 'in-fluid') {
-      const outgoingConns = connections.filter(c => c.fromNodeId === toNode.id);
-      for (const outConn of outgoingConns) {
-        const downstreamNode = nodes.find(n => n.id === outConn.toNodeId);
-        const downstreamInPort = downstreamNode?.inputs.find(p => p.id === outConn.toPortId);
-        if (downstreamNode && downstreamInPort) {
-          if (!isItemMatch(outPort.name, downstreamInPort.name, downstreamNode, downstreamInPort.id)) {
-            alert(`⚠️ 泵機下游衝突！\n該泵機下游已連接至「${downstreamNode.title}」的「${downstreamInPort.name}」端口。\n無法連入不相符的「${outPort.name}」！`);
-            setConnectingSource(null);
-            return;
-          }
-        }
-      }
+      if (hasDownstreamConflict(toNode.id, outPort.name, '泵機')) return;
     }
 
     // 檢查物料名稱相容性 (嚴格認物品)
@@ -1483,7 +1234,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     }
 
     const newConnection: SandboxConnection = {
-      id: `conn-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      id: `conn-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       fromNodeId: fromNode.id,
       fromPortId: outPort.id,
       toNodeId: toNode.id,
@@ -1503,9 +1254,14 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     setConnections(prev => prev.filter(c => c.id !== connId));
   };
 
-  // 取得節點端口的畫布絕對座標
+  // 取得節點端口的畫布絕對座標 (以 id 索引查表；重複 id 時與 Array.find 相同取第一筆)
+  const nodeById = useMemo(() => {
+    const map = new Map<string, SandboxNodeData>();
+    nodes.forEach(n => { if (!map.has(n.id)) map.set(n.id, n); });
+    return map;
+  }, [nodes]);
   const getPortCoordinates = (nodeId: string, portId: string, isOutput: boolean) => {
-    const node = nodes.find(n => n.id === nodeId);
+    const node = nodeById.get(nodeId);
     if (!node) return { x: 0, y: 0 };
 
     const nodeWidth = 288; // w-72 = 18rem = 288px
@@ -1532,471 +1288,17 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
       {/* ========================================================================= */}
       {/* 1. 左側可折疊物資庫 (純資料庫驅動，自適應未來任何新配方) */}
       {/* ========================================================================= */}
-      <div className={`transition-all duration-300 z-20 flex flex-col border-r border-[#1c2e38] bg-[#0b1419]/95 backdrop-blur-xl ${
-        isSidebarOpen ? 'w-80' : 'w-12'
-      }`}>
-        {/* 頂部切換與搜尋列 */}
-        <div className="p-3 border-b border-[#1c2e38] flex items-center justify-between">
-          {isSidebarOpen ? (
-            <div className="flex-1 flex items-center justify-between space-x-2">
-              <span className="text-xs font-bold text-slate-200 flex items-center space-x-1.5">
-                <Layers className="w-4 h-4 text-amber-400" />
-                <span>物資與設備庫</span>
-              </span>
-              <button 
-                onClick={() => setIsSidebarOpen(false)}
-                className="text-xs p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg"
-                title="收起選單"
-              >
-                ◀
-              </button>
-            </div>
-          ) : (
-            <button 
-              onClick={() => setIsSidebarOpen(true)}
-              className="mx-auto text-xs p-1 text-slate-400 hover:text-slate-200"
-              title="展開物資庫"
-            >
-              ▶
-            </button>
-          )}
-        </div>
-
-        {isSidebarOpen && (
-          <>
-            {/* 分類標籤切換 */}
-            <div className="grid grid-cols-4 border-b border-[#1c2e38] text-[10px] font-bold p-1 bg-slate-950/40 gap-0.5">
-              <button 
-                onClick={() => setActiveCatalogTab('machines')}
-                className={`py-1.5 rounded-lg transition-colors text-center ${activeCatalogTab === 'machines' ? 'bg-amber-500/20 text-amber-300' : 'text-slate-400 hover:text-slate-200'}`}
-              >
-                中間工序
-              </button>
-              <button 
-                onClick={() => setActiveCatalogTab('items')}
-                className={`py-1.5 rounded-lg transition-colors text-center ${activeCatalogTab === 'items' ? 'bg-emerald-500/20 text-emerald-300' : 'text-slate-400 hover:text-slate-200'}`}
-              >
-                自然採集
-              </button>
-              <button 
-                onClick={() => setActiveCatalogTab('fluids')}
-                className={`py-1.5 rounded-lg transition-colors text-center ${activeCatalogTab === 'fluids' ? 'bg-cyan-500/20 text-cyan-300' : 'text-slate-400 hover:text-slate-200'}`}
-              >
-                流體/能源
-              </button>
-              <button 
-                onClick={() => setActiveCatalogTab('recipes')}
-                className={`py-1.5 rounded-lg transition-colors text-center ${activeCatalogTab === 'recipes' ? 'bg-purple-500/20 text-purple-300' : 'text-slate-400 hover:text-slate-200'}`}
-              >
-                終端食譜
-              </button>
-            </div>
-
-            {/* 搜尋欄 */}
-            <div className="p-2 border-b border-[#1c2e38]">
-              <div className="relative">
-                <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5" />
-                <input
-                  type="text"
-                  placeholder="搜尋設備、配方或原料..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 bg-[#070e12] border border-slate-800 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500/50"
-                />
-              </div>
-            </div>
-
-            {/* 物資列表卡片區 (點擊即放置到畫布) */}
-            <div className="flex-1 overflow-y-auto p-2 space-y-2 text-xs">
-              {/* 分頁 1: 機器設備與中間配方 */}
-              {activeCatalogTab === 'machines' && (
-                <div className="space-y-2">
-                  <div className="text-[10px] font-bold text-slate-500 px-1 uppercase tracking-wider">常用中間工序機台</div>
-                  {intermediate
-                    .filter(r => r.name.includes(searchQuery) || r.machine.includes(searchQuery))
-                    .map(r => {
-                      const mach = machines.find(m => m.name === r.machine) || { name: r.machine, power: 1.0, goblins: 1 };
-                      return (
-                        <div
-                          key={r.name}
-                          onClick={() => handleAddMachineWithRecipe(mach as Machine, r)}
-                          className="flex items-center justify-between p-2 rounded-xl bg-[#0e171c] hover:bg-[#14222a] border border-slate-800/80 hover:border-amber-500/50 cursor-pointer transition-all group"
-                        >
-                          <div className="flex items-center space-x-2 truncate">
-                            <ItemIcon name={r.name} size="sm" />
-                            <div className="truncate">
-                              <div className="font-bold text-slate-200 truncate group-hover:text-amber-300 transition-colors">
-                                {r.name}
-                              </div>
-                              <div className="text-[10px] text-slate-500 flex items-center space-x-1">
-                                <span>{r.machine}</span>
-                                <span>·</span>
-                                <span>{r.cycleTime || 5}s/次</span>
-                              </div>
-                            </div>
-                          </div>
-                          <Plus className="w-4 h-4 text-slate-500 group-hover:text-amber-400 shrink-0" />
-                        </div>
-                      );
-                    })}
-                </div>
-              )}
-
-              {/* 分頁 2: 基礎物資、採掘礦產與活體重構 */}
-              {activeCatalogTab === 'items' && (() => {
-                // 嚴格過濾原生開採物資：一律依 items.json 之 source 欄位判定（純資料庫驅動，新增食材免改程式）
-                const isReconItem = (i: Item) => i.source === '物質操縱機';
-                const isMinerItem = (i: Item) => i.source === '採掘機' || i.source === '採掘機直接開採';
-                const isHarvestItem = (i: Item) => !isReconItem(i) && !isMinerItem(i) && i.source === '收割機';
-
-                const filteredRawItems = items.filter(i => {
-                  if (i.isFluid) return false;
-                  // 防禦性過濾：自動排除地圖地塊與殘留虛擬項目
-                  if (i.name.includes('植株') || i.name.includes('(礦石方塊)') || i.name.includes('(香料方塊)')) return false;
-
-                  // 必須屬於三種合法基礎來源之一
-                  const matchType = isReconItem(i) || isMinerItem(i) || isHarvestItem(i);
-                  if (!matchType) return false;
-
-                  // 搜尋關鍵字
-                  const matchQuery = i.name.includes(searchQuery) || (i.source && i.source.includes(searchQuery)) || (i.island && i.island.includes(searchQuery));
-                  if (!matchQuery) return false;
-
-                  // 分類切換過濾
-                  if (itemsFilter === 'miner') return isMinerItem(i);
-                  if (itemsFilter === 'harvester') return isHarvestItem(i);
-                  if (itemsFilter === 'reconstructor') return isReconItem(i);
-                  return true;
-                });
-
-                return (
-                  <div className="space-y-2">
-                    {/* 子分類快速過濾膠囊 */}
-                    <div className="grid grid-cols-4 gap-1 p-1 bg-slate-950/70 rounded-xl text-[10px] font-bold border border-slate-800">
-                      <button
-                        onClick={() => setItemsFilter('all')}
-                        className={`py-1 rounded-lg transition-colors text-center ${itemsFilter === 'all' ? 'bg-emerald-500/20 text-emerald-300' : 'text-slate-400 hover:text-slate-200'}`}
-                      >
-                        全部
-                      </button>
-                      <button
-                        onClick={() => setItemsFilter('miner')}
-                        className={`py-1 rounded-lg transition-colors text-center ${itemsFilter === 'miner' ? 'bg-amber-500/20 text-amber-300' : 'text-slate-400 hover:text-slate-200'}`}
-                      >
-                        ⛏️ 採掘
-                      </button>
-                      <button
-                        onClick={() => setItemsFilter('harvester')}
-                        className={`py-1 rounded-lg transition-colors text-center ${itemsFilter === 'harvester' ? 'bg-green-500/20 text-green-300' : 'text-slate-400 hover:text-slate-200'}`}
-                      >
-                        🌾 收割
-                      </button>
-                      <button
-                        onClick={() => setItemsFilter('reconstructor')}
-                        className={`py-1 rounded-lg transition-colors text-center ${itemsFilter === 'reconstructor' ? 'bg-purple-500/20 text-purple-300' : 'text-slate-400 hover:text-slate-200'}`}
-                      >
-                        🧬 重構
-                      </button>
-                    </div>
-
-                    <div className="text-[10px] font-bold text-slate-500 px-1 uppercase tracking-wider flex items-center justify-between">
-                      <span>基礎原料庫 ({filteredRawItems.length})</span>
-                      <Pickaxe className="w-3 h-3 text-slate-500" />
-                    </div>
-
-                    {filteredRawItems.map(item => {
-                      const isRecon = isReconItem(item);
-                      const isMine = isMinerItem(item);
-
-                      let badgeText = '收割機';
-                      let badgeClass = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30';
-                      let descText = '0.20/s · 自主採收';
-
-                      if (isRecon) {
-                        badgeText = '物質操縱機';
-                        badgeClass = 'bg-purple-500/20 text-purple-300 border-purple-500/30';
-                        descText = item.name === '虛空汙泥'
-                          ? '0.20/s · 空載凝結 (僅需虛空 1.0 fl/s)'
-                          : (item.name === '泥沼蟑螂' ? '0.40/s · 吃底料+虛空' : '0.20/s · 吃底料+虛空');
-                      } else if (isMine) {
-                        badgeText = '採掘機';
-                        badgeClass = 'bg-amber-500/20 text-amber-300 border-amber-500/30';
-                        descText = '0.20/s · 自主開採';
-                      }
-
-                      return (
-                        <div
-                          key={item.name}
-                          onClick={() => handleAddItemHarvester(item)}
-                          className="flex items-center justify-between p-2 rounded-xl bg-[#0e171c] hover:bg-[#14222a] border border-slate-800/80 hover:border-emerald-500/50 cursor-pointer transition-all group"
-                        >
-                          <div className="flex items-center space-x-2 truncate">
-                            <ItemIcon name={item.name} size="sm" />
-                            <div className="truncate">
-                              <div className="flex items-center space-x-1.5 truncate">
-                                <span className="font-bold text-slate-200 truncate group-hover:text-emerald-300 transition-colors">
-                                  {item.name}
-                                </span>
-                                <span className={`text-[9px] px-1.5 py-0.2 rounded font-mono font-bold border shrink-0 ${badgeClass}`}>
-                                  {badgeText}
-                                </span>
-                              </div>
-                              <div className="text-[10px] text-slate-500 flex items-center space-x-1 mt-0.5">
-                                <span>{descText}</span>
-                                {item.island && (
-                                  <>
-                                    <span>·</span>
-                                    <span>{item.island}</span>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          <Plus className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 shrink-0" />
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
-
-              {/* 分頁 3: 流體環境池、外採泵機與電網 */}
-              {activeCatalogTab === 'fluids' && (
-                <div className="space-y-2">
-                  <div className="text-[10px] font-bold text-slate-500 px-1 uppercase tracking-wider">⚡ 電網基礎設施</div>
-                  <div 
-                    onClick={() => handleAddInfrastructure('generator', 'regular')}
-                    className="p-2 rounded-xl bg-[#14180e] hover:bg-[#1c2214] border border-amber-900/40 hover:border-amber-500/50 cursor-pointer flex items-center justify-between group"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <Flame className="w-4 h-4 text-amber-400" />
-                      <div>
-                        <div className="font-bold text-slate-200 group-hover:text-amber-300">虛空熔爐 (常規)</div>
-                        <div className="text-[10px] text-slate-400">發電 4.0 FV/s · 吃煤炭 0.1/s</div>
-                      </div>
-                    </div>
-                    <Plus className="w-4 h-4 text-slate-500 group-hover:text-amber-400" />
-                  </div>
-
-                  <div 
-                    onClick={() => handleAddInfrastructure('generator', 'overclock')}
-                    className="p-2 rounded-xl bg-[#14180e] hover:bg-[#1c2214] border border-amber-900/40 hover:border-amber-500/50 cursor-pointer flex items-center justify-between group"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <Zap className="w-4 h-4 text-amber-300" />
-                      <div>
-                        <div className="font-bold text-slate-200 group-hover:text-amber-300">虛空熔爐 (超頻)</div>
-                        <div className="text-[10px] text-slate-400">發電 16.0 FV/s · 煤+汙泥 0.1/s</div>
-                      </div>
-                    </div>
-                    <Plus className="w-4 h-4 text-slate-500 group-hover:text-amber-400" />
-                  </div>
-
-                  <div className="text-[10px] font-bold text-slate-500 px-1 uppercase tracking-wider mt-3">💧 抽取泵機站 (投入虛空汙泥自動超頻)</div>
-                  {['水', '油', '虛空'].map(fluid => (
-                    <div 
-                      key={fluid}
-                      onClick={() => handleAddInfrastructure('pump', fluid)}
-                      className="p-2 rounded-xl bg-[#0e161c] hover:bg-[#132029] border border-cyan-900/40 hover:border-cyan-500/50 cursor-pointer flex items-center justify-between group"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <Droplets className="w-4 h-4 text-cyan-400" />
-                        <div>
-                          <div className="font-bold text-slate-200 group-hover:text-cyan-300">{fluid}抽取泵機</div>
-                          <div className="text-[10px] text-slate-400">常規 2.0 fl/s · 供汙泥超頻 8.0 fl/s</div>
-                        </div>
-                      </div>
-                      <Plus className="w-4 h-4 text-slate-500 group-hover:text-cyan-400" />
-                    </div>
-                  ))}
-
-                  <div 
-                    onClick={() => handleAddInfrastructure('pump', 'generic')}
-                    className="p-2 rounded-xl bg-[#140e1c] hover:bg-[#1f142b] border border-purple-900/40 hover:border-purple-500/50 cursor-pointer flex items-center justify-between group"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <Droplets className="w-4 h-4 text-purple-400" />
-                      <div>
-                        <div className="font-bold text-slate-200 group-hover:text-purple-300">通用抽取泵機 (無指定液體)</div>
-                        <div className="text-[10px] text-slate-400">接注入機或環境池 · 常規 2.0 / 超頻 8.0 fl/s</div>
-                      </div>
-                    </div>
-                    <Plus className="w-4 h-4 text-slate-500 group-hover:text-purple-400" />
-                  </div>
-
-                  <div className="text-[10px] font-bold text-slate-500 px-1 uppercase tracking-wider mt-3">🏞️ 環境池節點 (注入機原位轉化)</div>
-                  {['油池', '水池', '虛空裂隙'].map(pool => (
-                    <div 
-                      key={pool}
-                      onClick={() => handleAddInfrastructure('environment_pool', pool)}
-                      className="p-2 rounded-xl bg-[#091517] hover:bg-[#0f1f22] border border-teal-900/40 hover:border-teal-500/50 cursor-pointer flex items-center justify-between group"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <Droplets className="w-4 h-4 text-teal-400" />
-                        <div>
-                          <div className="font-bold text-slate-200 group-hover:text-teal-300">{pool}</div>
-                          <div className="text-[10px] text-slate-400">環境底料，支援原位轉化</div>
-                        </div>
-                      </div>
-                      <Plus className="w-4 h-4 text-slate-500 group-hover:text-teal-400" />
-                    </div>
-                  ))}
-                  <div className="text-[10px] font-bold text-slate-500 px-1 uppercase tracking-wider mt-3">🔀 物流分流與時序發酵</div>
-                  <div 
-                    onClick={() => handleAddInfrastructure('splitter')}
-                    className="p-2 rounded-xl bg-[#0e1724] hover:bg-[#152336] border border-blue-900/40 hover:border-blue-500/50 cursor-pointer flex items-center justify-between group"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <GitFork className="w-4 h-4 text-blue-400" />
-                      <div>
-                        <div className="font-bold text-slate-200 group-hover:text-blue-300">物品分流器 (1進2出)</div>
-                        <div className="text-[10px] text-slate-400">固體傳送帶 1:1 均分 · 即時分流</div>
-                      </div>
-                    </div>
-                    <Plus className="w-4 h-4 text-slate-500 group-hover:text-blue-400" />
-                  </div>
-
-                  <div 
-                    onClick={() => handleAddInfrastructure('buffer_decay')}
-                    className="p-2 rounded-xl bg-[#0c1a14] hover:bg-[#12261d] border border-emerald-900/40 hover:border-emerald-500/50 cursor-pointer flex items-center justify-between group"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <Hourglass className="w-4 h-4 text-emerald-400" />
-                      <div>
-                        <div className="font-bold text-slate-200 group-hover:text-emerald-300">發酵變質緩衝方塊 (自選)</div>
-                        <div className="text-[10px] text-slate-400">時序輸送帶發酵 · 依原料自動轉化</div>
-                      </div>
-                    </div>
-                    <Plus className="w-4 h-4 text-slate-500 group-hover:text-emerald-400" />
-                  </div>
-
-                  {/* 常用遊戲時序發酵快捷項 */}
-                  {[
-                    { name: '麵包麵團', prod: '發酵麵糰', time: 15 },
-                    { name: '軟質奶酪', prod: '中等熟成奶酪', time: 20 },
-                    { name: '中等熟成奶酪', prod: '硬質奶酪', time: 30 },
-                    { name: '硬質奶酪', prod: '藍紋奶酪', time: 60 },
-                    { name: '蛇蛋', prod: '臭蛇蛋', time: 30 },
-                    { name: '蟑螂奶油', prod: '酸奶油', time: 30 }
-                  ].map(ferment => (
-                    <div 
-                      key={ferment.name}
-                      onClick={() => handleAddInfrastructure('buffer_decay', ferment.name)}
-                      className="p-2 rounded-xl bg-[#091512] hover:bg-[#0e211d] border border-emerald-950/60 hover:border-emerald-500/40 cursor-pointer flex items-center justify-between group pl-4"
-                    >
-                      <div className="flex items-center space-x-2">
-                        <ItemIcon name={ferment.prod} size="sm" />
-                        <div>
-                          <div className="font-bold text-slate-200 group-hover:text-emerald-300 text-[11px]">
-                            {ferment.name} ➔ {ferment.prod}
-                          </div>
-                          <div className="text-[10px] text-slate-400">
-                            發酵 {ferment.time}s · 傳送帶 ≥ {ferment.time} 格
-                          </div>
-                        </div>
-                      </div>
-                      <Plus className="w-3.5 h-3.5 text-slate-500 group-hover:text-emerald-400" />
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* 分頁 3: 終端料理自動廚師機 */}
-              {activeCatalogTab === 'recipes' && (
-                <div className="space-y-3">
-                  {/* 全域料理出餐目標設定 */}
-                  <div className="p-2.5 rounded-xl bg-slate-900/90 border border-amber-900/50 space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-amber-300 flex items-center space-x-1">
-                        <Flame className="w-3.5 h-3.5 text-amber-400" />
-                        <span>預設料理出餐目標</span>
-                      </span>
-                      <span className="font-mono text-slate-300 font-bold">
-                        {defaultDishRateMin} 份/分
-                      </span>
-                    </div>
-
-                    <div className="flex items-center space-x-1">
-                      {[12, 24, 36].map(rate => (
-                        <button
-                          key={rate}
-                          onClick={() => setDefaultDishRateMin(rate)}
-                          className={`flex-1 py-1 rounded-lg text-[10px] font-mono transition-colors ${
-                            defaultDishRateMin === rate
-                              ? 'bg-amber-500/30 text-amber-300 font-bold border border-amber-500/50'
-                              : 'bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800'
-                          }`}
-                          title={`設定預設出餐目標為 ${rate} 份/分 (${(rate / 12).toFixed(1)} 台廚師機需求)`}
-                        >
-                          {rate} 份/分
-                        </button>
-                      ))}
-                      <div className="flex items-center bg-slate-950 px-2 py-1 rounded-lg border border-slate-800 w-20">
-                        <input
-                          type="number"
-                          min="1"
-                          value={defaultDishRateMin}
-                          onChange={(e) => setDefaultDishRateMin(Math.max(1, Number(e.target.value) || 12))}
-                          className="w-full bg-transparent text-[10px] font-mono text-amber-200 outline-none text-center"
-                          title="自訂出餐目標"
-                        />
-                        <span className="text-[9px] text-slate-500 ml-0.5">/分</span>
-                      </div>
-                    </div>
-                    <div className="text-[9px] text-slate-500">
-                      💡 放置料理時直接以此產能為基準；若為熾熱料理將自動連動【胃復慘】。
-                    </div>
-                  </div>
-
-                  <div className="text-[10px] font-bold text-slate-500 px-1 uppercase tracking-wider flex items-center justify-between">
-                    <span>終端組裝料理 ({recipes.filter(r => r.name.includes(searchQuery)).length})</span>
-                    <Sparkles className="w-3 h-3 text-amber-400" />
-                  </div>
-                  {recipes
-                    .filter(r => r.name.includes(searchQuery))
-                    .map(r => {
-                      const mach = machines.find(m => m.name === '自動廚師機') || { name: '自動廚師機', power: 1.0, goblins: 3 };
-                      const isScorching = isScorchingDish(r.name, items, recipes);
-                      return (
-                        <div
-                          key={r.name}
-                          onClick={() => handleAddMachineWithRecipe(mach as Machine, r)}
-                          className="flex items-center justify-between p-2 rounded-xl bg-[#0e171c] hover:bg-[#14222a] border border-slate-800/80 hover:border-amber-500/50 cursor-pointer transition-all group"
-                        >
-                          <div className="flex items-center space-x-2 truncate">
-                            <ItemIcon name="自動廚師機" size="sm" />
-                            <div className="truncate">
-                              <div className="flex items-center space-x-1.5 truncate">
-                                <span className="font-bold text-slate-200 truncate group-hover:text-amber-300 transition-colors">
-                                  {r.name}
-                                </span>
-                                {isScorching && (
-                                  <span className="text-[9px] px-1 py-0.2 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 font-mono font-bold shrink-0" title="熾熱菜餚：點擊將自動配對【胃復慘】">
-                                    🌶️ 熾熱
-                                  </span>
-                                )}
-                              </div>
-                              <div className="text-[10px] text-slate-500 flex items-center space-x-1 mt-0.5">
-                                <span>出餐 {defaultDishRateMin} 份/分</span>
-                                {r.island && (
-                                  <>
-                                    <span>·</span>
-                                    <span>{r.island}</span>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          <Plus className="w-4 h-4 text-slate-500 group-hover:text-amber-400 shrink-0" />
-                        </div>
-                      );
-                    })}
-                </div>
-              )}
-            </div>
-          </>
-        )}
-      </div>
+      <SandboxCatalogSidebar
+        machines={machines}
+        items={items}
+        intermediate={intermediate}
+        recipes={recipes}
+        defaultDishRateMin={defaultDishRateMin}
+        setDefaultDishRateMin={setDefaultDishRateMin}
+        handleAddMachineWithRecipe={handleAddMachineWithRecipe}
+        handleAddItemHarvester={handleAddItemHarvester}
+        handleAddInfrastructure={handleAddInfrastructure}
+      />
 
       {/* ========================================================================= */}
       {/* 2. 中央無限畫布 (Canvas / Node Graph) */}
@@ -2011,85 +1313,17 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         onContextMenu={(e) => e.preventDefault()}
       >
         {/* 畫布左上角浮動專案控制列 (產線專案/藍圖管理) */}
-        <div className="absolute top-3.5 left-3.5 z-20 flex items-center space-x-2 bg-[#091217]/90 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-[#1e3340] text-xs text-slate-300 shadow-2xl">
-          <div className="flex items-center space-x-2 pr-2 border-r border-[#1e3340]">
-            <FolderKanban className="w-4 h-4 text-amber-400 shrink-0" />
-            <div className="flex flex-col">
-              <span className="text-[10px] text-slate-400 font-medium">當前產線專案</span>
-              <span className="font-bold text-slate-100 max-w-[140px] truncate" title={currentBlueprintName}>
-                {currentBlueprintName}
-              </span>
-            </div>
-            {currentBlueprintId && (
-              <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" title="已關聯專案" />
-            )}
-          </div>
-
-          <button
-            onClick={handleQuickSave}
-            className="px-2.5 py-1.5 hover:bg-slate-800 hover:text-amber-300 rounded-xl transition-colors flex items-center space-x-1 text-slate-300"
-            title="儲存變更 (Ctrl+S / 點擊快速覆寫)"
-          >
-            <Save className="w-3.5 h-3.5" />
-            <span>儲存</span>
-          </button>
-
-          <button
-            onClick={() => setIsBlueprintModalOpen(true)}
-            className="px-2.5 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-xl transition-colors flex items-center space-x-1 font-bold shadow-sm"
-            title="開啟產線專案庫 (無限儲存、複製副本、重新命名、匯入匯出)"
-          >
-            <FolderKanban className="w-3.5 h-3.5" />
-            <span>專案庫 / 藍圖</span>
-          </button>
-
-          <button
-            onClick={() => setIsBlueprintModalOpen(true)}
-            className="px-2.5 py-1.5 hover:bg-purple-950/40 text-purple-300 hover:text-purple-200 rounded-xl transition-colors flex items-center space-x-1 border border-purple-800/40"
-            title="一鍵同步至 GitHub 跨裝置帶著走"
-          >
-            <Cloud className="w-3.5 h-3.5" />
-            <span>同步 GIT</span>
-          </button>
-
-          {/* 剪貼簿 複製 / 貼上 按鈕 */}
-          <div className="flex items-center pl-1 border-l border-[#1e3340] space-x-1">
-            <button
-              onClick={handleCopy}
-              className="px-2 py-1.5 hover:bg-slate-800 hover:text-cyan-300 rounded-xl transition-colors flex items-center space-x-1 text-slate-300"
-              title="複製選取機台或全廠產線至剪貼簿 (Ctrl+C)"
-            >
-              <Copy className="w-3.5 h-3.5 text-cyan-400" />
-              <span>複製</span>
-            </button>
-            <button
-              onClick={handlePaste}
-              className="px-2 py-1.5 hover:bg-slate-800 hover:text-emerald-300 rounded-xl transition-colors flex items-center space-x-1 text-slate-300"
-              title="貼上剪貼簿產線 (Ctrl+V，可重複貼上至任何頁面)"
-            >
-              <Clipboard className="w-3.5 h-3.5 text-emerald-400" />
-              <span>貼上</span>
-            </button>
-            <button
-              onClick={() => setIsMarqueeMode(!isMarqueeMode)}
-              className={`px-2 py-1.5 rounded-xl transition-colors flex items-center space-x-1 ${
-                isMarqueeMode 
-                  ? 'bg-cyan-500/30 text-cyan-200 border border-cyan-400 font-bold' 
-                  : 'hover:bg-slate-800 text-slate-300'
-              }`}
-              title={isMarqueeMode ? "點擊退出框選模式" : "點擊切換框選工具（亦可直接在畫布按住 Shift 鍵拖曳框選）"}
-            >
-              <BoxSelect className="w-3.5 h-3.5 text-cyan-400" />
-              <span>{isMarqueeMode ? '框選中' : '框選 (Shift)'}</span>
-            </button>
-          </div>
-
-          {quickSaveFeedback && (
-            <div className="px-2 py-1 bg-emerald-950/80 border border-emerald-500/60 text-emerald-300 text-[11px] rounded-lg animate-fadeIn font-bold">
-              {quickSaveFeedback}
-            </div>
-          )}
-        </div>
+        <SandboxToolbar
+          currentBlueprintName={currentBlueprintName}
+          currentBlueprintId={currentBlueprintId}
+          isMarqueeMode={isMarqueeMode}
+          quickSaveFeedback={quickSaveFeedback}
+          onQuickSave={handleQuickSave}
+          onOpenBlueprints={() => setIsBlueprintModalOpen(true)}
+          onCopy={handleCopy}
+          onPaste={handlePaste}
+          onToggleMarquee={() => setIsMarqueeMode(!isMarqueeMode)}
+        />
 
         {/* 背景網格點 */}
         <div 
@@ -2123,90 +1357,12 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
           )}
 
           {/* SVG 連線層 */}
-          <svg className="absolute inset-0 w-[5000px] h-[5000px] overflow-visible pointer-events-none">
-            <defs>
-              <linearGradient id="solidGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#10b981" />
-                <stop offset="100%" stopColor="#f59e0b" />
-              </linearGradient>
-              <linearGradient id="fluidGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#06b6d4" />
-                <stop offset="100%" stopColor="#3b82f6" />
-              </linearGradient>
-            </defs>
-
-            {/* 已建立的連線 */}
-            {updatedConnections.map(c => {
-              const start = getPortCoordinates(c.fromNodeId, c.fromPortId, true);
-              const end = getPortCoordinates(c.toNodeId, c.toPortId, false);
-              const dx = Math.abs(end.x - start.x) * 0.5;
-              const pathD = `M ${start.x} ${start.y} C ${start.x + dx} ${start.y}, ${end.x - dx} ${end.y}, ${end.x} ${end.y}`;
-
-              return (
-                <g key={c.id} className="pointer-events-auto group/conn cursor-pointer">
-                  {/* 粗邊熱區方便點擊刪除 */}
-                  <path
-                    d={pathD}
-                    fill="none"
-                    stroke="transparent"
-                    strokeWidth={16}
-                    onClick={(e) => handleDeleteConnection(c.id, e)}
-                  />
-                  {/* 實質導線 */}
-                  <path
-                    d={pathD}
-                    fill="none"
-                    stroke={c.type === 'fluid' ? '#06b6d4' : '#10b981'}
-                    strokeWidth={2.5}
-                    strokeDasharray={c.actualFlowRate > 0 ? "5,3" : "none"}
-                    className="transition-all group-hover/conn:stroke-rose-400 group-hover/conn:stroke-[4]"
-                  />
-                  {/* 流量標籤 */}
-                  <foreignObject
-                    x={(start.x + end.x) / 2 - 40}
-                    y={(start.y + end.y) / 2 - 12}
-                    width={80}
-                    height={24}
-                    className="overflow-visible pointer-events-none"
-                  >
-                    <div className="px-1.5 py-0.5 rounded bg-slate-950/80 border border-slate-700 text-[10px] text-center font-mono font-bold text-slate-300 whitespace-nowrap shadow-md">
-                      {c.actualFlowRate.toFixed(2)} {c.type === 'fluid' ? 'fl/s' : '/s'}
-                    </div>
-                  </foreignObject>
-                </g>
-              );
-            })}
-
-            {/* 正在拉線中的臨時虛線 (支援雙向貝茲曲線與動態指示) */}
-            {connectingSource && (
-              <g>
-                <path
-                  d={connectingSource.isOutput
-                    ? `M ${connectingSource.startX} ${connectingSource.startY} C ${connectingSource.startX + 60} ${connectingSource.startY}, ${connectingSource.currentX - 60} ${connectingSource.currentY}, ${connectingSource.currentX} ${connectingSource.currentY}`
-                    : `M ${connectingSource.startX} ${connectingSource.startY} C ${connectingSource.startX - 60} ${connectingSource.startY}, ${connectingSource.currentX + 60} ${connectingSource.currentY}, ${connectingSource.currentX} ${connectingSource.currentY}`
-                  }
-                  fill="none"
-                  stroke={connectingSource.portType === 'fluid' ? '#06b6d4' : '#f59e0b'}
-                  strokeWidth={2.5}
-                  strokeDasharray="5,4"
-                  className="animate-pulse"
-                />
-                <circle
-                  cx={connectingSource.currentX}
-                  cy={connectingSource.currentY}
-                  r={5}
-                  fill={connectingSource.portType === 'fluid' ? '#06b6d4' : '#f59e0b'}
-                  className="animate-ping opacity-75"
-                />
-                <circle
-                  cx={connectingSource.currentX}
-                  cy={connectingSource.currentY}
-                  r={4}
-                  fill={connectingSource.portType === 'fluid' ? '#22d3ee' : '#fbbf24'}
-                />
-              </g>
-            )}
-          </svg>
+          <SandboxConnectionsLayer
+            connections={updatedConnections}
+            connectingSource={connectingSource}
+            getPortCoordinates={getPortCoordinates}
+            onDeleteConnection={handleDeleteConnection}
+          />
 
           {/* 節點卡片層 */}
           <div className="pointer-events-auto">
@@ -2258,146 +1414,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
       {/* ========================================================================= */}
       {/* 3. 右側即時物理監控儀表板 (電網、流體盈虧、出餐效率) */}
       {/* ========================================================================= */}
-      <div className="w-80 border-l border-[#1c2e38] bg-[#0b1419]/95 backdrop-blur-xl flex flex-col z-20">
-        <div className="p-3.5 border-b border-[#1c2e38] flex items-center justify-between">
-          <span className="text-xs font-bold text-slate-200 flex items-center space-x-1.5">
-            <Zap className="w-4 h-4 text-amber-400" />
-            <span>全廠即時物理監控</span>
-          </span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold bg-[#14232a] text-teal-300 border border-teal-500/30">
-            {metrics.machineCount} 台機
-          </span>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-3.5 space-y-4 text-xs">
-          
-          {/* (1) 即時電網監控 */}
-          <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800/80 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-slate-300 flex items-center space-x-1">
-                <Zap className="w-3.5 h-3.5 text-amber-400" />
-                <span>即時連續電網</span>
-              </span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded font-mono font-bold ${
-                metrics.powerBalance >= 0 
-                  ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/60' 
-                  : 'bg-rose-950 text-rose-300 border border-rose-800/60'
-              }`}>
-                {metrics.powerBalance >= 0 ? '電網穩定' : '⚠️ 嚴重跳電'}
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
-              <div className="bg-[#121c22] p-2 rounded-xl border border-slate-800">
-                <div className="text-[10px] text-slate-400">總發電量</div>
-                <div className="text-base font-bold text-amber-300">+{metrics.totalPowerGen} <span className="text-[10px] font-normal text-slate-500">FV/s</span></div>
-              </div>
-              <div className="bg-[#121c22] p-2 rounded-xl border border-slate-800">
-                <div className="text-[10px] text-slate-400">總負載</div>
-                <div className="text-base font-bold text-slate-200">{metrics.totalPowerLoad} <span className="text-[10px] font-normal text-slate-500">FV/s</span></div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between text-[11px] pt-1 border-t border-slate-800/60">
-              <span className="text-slate-400">電網淨盈餘</span>
-              <span className={`font-mono font-bold ${metrics.powerBalance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {metrics.powerBalance > 0 ? `+${metrics.powerBalance}` : metrics.powerBalance} FV/s
-              </span>
-            </div>
-          </div>
-
-          {/* (2) 小妖精勞動力 */}
-          <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800/80 flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Users className="w-4 h-4 text-teal-400" />
-              <div>
-                <div className="font-bold text-slate-300">打工小妖精需求</div>
-                <div className="text-[10px] text-slate-500">全廠運作所需妖精總額</div>
-              </div>
-            </div>
-            <div className="text-xl font-bold font-mono text-teal-300">
-              {metrics.totalGoblins} <span className="text-xs font-normal text-slate-400">隻</span>
-            </div>
-          </div>
-
-          {/* (3) 連續流體平衡 */}
-          <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800/80 space-y-2">
-            <div className="font-bold text-slate-300 flex items-center space-x-1">
-              <Droplets className="w-3.5 h-3.5 text-cyan-400" />
-              <span>全廠連續流體產銷</span>
-            </div>
-
-            <div className="space-y-1.5 text-[11px]">
-              {/* 水 */}
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">供水 (fl/s)</span>
-                <span className="font-mono text-slate-200">
-                  <span className="text-cyan-400">{metrics.fluidsSummary.water.produced.toFixed(1)}</span>
-                  <span className="text-slate-600"> / </span>
-                  <span className="text-slate-400">{metrics.fluidsSummary.water.consumed.toFixed(1)} 需</span>
-                </span>
-              </div>
-              {/* 油 */}
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">供油 (fl/s)</span>
-                <span className="font-mono text-slate-200">
-                  <span className="text-amber-400">{metrics.fluidsSummary.oil.produced.toFixed(1)}</span>
-                  <span className="text-slate-600"> / </span>
-                  <span className="text-slate-400">{metrics.fluidsSummary.oil.consumed.toFixed(1)} 需</span>
-                </span>
-              </div>
-              {/* 虛空 */}
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">虛空流體</span>
-                <span className="font-mono text-slate-200">
-                  <span className="text-purple-400">{metrics.fluidsSummary.void.produced.toFixed(1)}</span>
-                  <span className="text-slate-600"> / </span>
-                  <span className="text-slate-400">{metrics.fluidsSummary.void.consumed.toFixed(1)} 需</span>
-                </span>
-              </div>
-              {/* 衍生流體 (如炙烈紅油, 醋) */}
-              {Object.entries(metrics.fluidsSummary.custom).map(([fName, val]) => (
-                <div key={fName} className="flex items-center justify-between">
-                  <span className="text-rose-300">{fName}</span>
-                  <span className="font-mono text-slate-200">
-                    <span className="text-rose-400">{val.produced.toFixed(1)}</span>
-                    <span className="text-slate-600"> / </span>
-                    <span className="text-slate-400">{val.consumed.toFixed(1)} 需</span>
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* (4) 終端料理出餐檢測 */}
-          <div className="bg-slate-950 p-3 rounded-2xl border border-slate-800/80 space-y-2">
-            <div className="font-bold text-slate-300 flex items-center space-x-1">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>終端料理出餐統計</span>
-            </div>
-
-            {metrics.terminalDishes.length === 0 ? (
-              <div className="text-[10px] text-slate-500 italic py-1 text-center">
-                尚未放置自動廚師機
-              </div>
-            ) : (
-              metrics.terminalDishes.map((dish, i) => (
-                <div key={i} className="p-2 rounded-xl bg-[#121c22] border border-slate-800 flex items-center justify-between">
-                  <div className="truncate">
-                    <div className="font-bold text-slate-200 truncate">{dish.dishName}</div>
-                    <div className="text-[10px] text-slate-400">稼動率 {dish.efficiency}%</div>
-                  </div>
-                  <div className="text-right font-mono shrink-0">
-                    <div className="font-bold text-amber-300">{dish.ratePerMin}</div>
-                    <div className="text-[9px] text-slate-500">份 / 分</div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-
-        </div>
-      </div>
+      <SandboxMetricsPanel metrics={metrics} />
 
       {/* 產線專案庫管理彈窗 */}
       <SandboxBlueprintModal
