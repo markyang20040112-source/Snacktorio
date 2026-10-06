@@ -342,17 +342,6 @@
   },
   {
     "island": "波莫拉 (Pomora)",
-    "name": "鹽(礦石方塊)",
-    "source": "採掘機直接開採",
-    "isPerishable": false,
-    "spoilTime": null,
-    "spoilProduct": "",
-    "attributes": "",
-    "notes": "",
-    "isFluid": false
-  },
-  {
-    "island": "波莫拉 (Pomora)",
     "name": "鹽",
     "source": "採掘機",
     "isPerishable": false,
@@ -375,30 +364,8 @@
   },
   {
     "island": "波莫拉 (Pomora)",
-    "name": "煤炭(礦石方塊)",
-    "source": "地圖生成",
-    "isPerishable": false,
-    "spoilTime": null,
-    "spoilProduct": "",
-    "attributes": "",
-    "notes": "",
-    "isFluid": false
-  },
-  {
-    "island": "波莫拉 (Pomora)",
     "name": "鐵礦石",
     "source": "採掘機",
-    "isPerishable": false,
-    "spoilTime": null,
-    "spoilProduct": "",
-    "attributes": "",
-    "notes": "",
-    "isFluid": false
-  },
-  {
-    "island": "波莫拉 (Pomora)",
-    "name": "豆肉蔻(礦石方塊)",
-    "source": "地圖生成",
     "isPerishable": false,
     "spoilTime": null,
     "spoilProduct": "",
@@ -441,17 +408,6 @@
   },
   {
     "island": "波莫拉 (Pomora)",
-    "name": "日桂葉植株",
-    "source": "地圖生成",
-    "isPerishable": false,
-    "spoilTime": null,
-    "spoilProduct": "",
-    "attributes": "",
-    "notes": "生長於石頭",
-    "isFluid": false
-  },
-  {
-    "island": "波莫拉 (Pomora)",
     "name": "塔瑪茄",
     "source": "收割機",
     "isPerishable": false,
@@ -459,17 +415,6 @@
     "spoilProduct": "",
     "attributes": "",
     "notes": "",
-    "isFluid": false
-  },
-  {
-    "island": "波莫拉 (Pomora)",
-    "name": "塔瑪茄植株",
-    "source": "地圖生成",
-    "isPerishable": false,
-    "spoilTime": null,
-    "spoilProduct": "",
-    "attributes": "",
-    "notes": "生長於草地",
     "isFluid": false
   },
   {
@@ -485,17 +430,6 @@
   },
   {
     "island": "波莫拉 (Pomora)",
-    "name": "洋蔥蔥植株",
-    "source": "地圖生成",
-    "isPerishable": false,
-    "spoilTime": null,
-    "spoilProduct": "",
-    "attributes": "",
-    "notes": "生長於草地",
-    "isFluid": false
-  },
-  {
-    "island": "波莫拉 (Pomora)",
     "name": "·椒",
     "source": "收割機",
     "isPerishable": false,
@@ -503,17 +437,6 @@
     "spoilProduct": "",
     "attributes": "",
     "notes": "",
-    "isFluid": false
-  },
-  {
-    "island": "波莫拉 (Pomora)",
-    "name": "·椒植株",
-    "source": "地圖生成",
-    "isPerishable": false,
-    "spoilTime": null,
-    "spoilProduct": "",
-    "attributes": "",
-    "notes": "生長於沙塊",
     "isFluid": false
   },
   {
@@ -749,17 +672,6 @@
   },
   {
     "island": "克洛文納 (Clovina)",
-    "name": "香豆蔻(香料方塊)",
-    "source": "地圖生成",
-    "isPerishable": false,
-    "spoilTime": null,
-    "spoilProduct": "",
-    "attributes": "",
-    "notes": "",
-    "isFluid": false
-  },
-  {
-    "island": "克洛文納 (Clovina)",
     "name": "香豆蔻",
     "source": "採掘機",
     "isPerishable": false,
@@ -793,17 +705,6 @@
   },
   {
     "island": "克洛文納 (Clovina)",
-    "name": "歐琴植株",
-    "source": "地圖生成",
-    "isPerishable": false,
-    "spoilTime": null,
-    "spoilProduct": "",
-    "attributes": "",
-    "notes": "生長於草地",
-    "isFluid": false
-  },
-  {
-    "island": "克洛文納 (Clovina)",
     "name": "小蒜",
     "source": "收割機",
     "isPerishable": false,
@@ -811,17 +712,6 @@
     "spoilProduct": "",
     "attributes": "氣味刺鼻",
     "notes": "",
-    "isFluid": false
-  },
-  {
-    "island": "克洛文納 (Clovina)",
-    "name": "小蒜植株",
-    "source": "地圖生成",
-    "isPerishable": false,
-    "spoilTime": null,
-    "spoilProduct": "",
-    "attributes": "",
-    "notes": "生長於石頭",
     "isFluid": false
   },
   {
@@ -855,17 +745,6 @@
     "spoilProduct": "",
     "attributes": "",
     "notes": "",
-    "isFluid": false
-  },
-  {
-    "island": "克洛文納 (Clovina)",
-    "name": "水稻植株",
-    "source": "物質操縱機",
-    "isPerishable": false,
-    "spoilTime": null,
-    "spoilProduct": "",
-    "attributes": "",
-    "notes": "生長於水裡",
     "isFluid": false
   },
   {
@@ -1647,34 +1526,12 @@
   },
   {
     "island": "斯科瓦拉",
-    "name": "菠菜植株",
-    "source": "地圖生成",
-    "isPerishable": false,
-    "spoilTime": null,
-    "spoilProduct": "-",
-    "attributes": "無",
-    "notes": "",
-    "isFluid": false
-  },
-  {
-    "island": "斯科瓦拉",
     "name": "油荳蔻",
     "source": "收割機",
     "isPerishable": false,
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "氣味刺鼻",
-    "notes": "",
-    "isFluid": false
-  },
-  {
-    "island": "斯科瓦拉",
-    "name": "油荳蔻植株",
-    "source": "地圖生成",
-    "isPerishable": false,
-    "spoilTime": null,
-    "spoilProduct": "-",
-    "attributes": "無",
     "notes": "",
     "isFluid": false
   },
@@ -1726,17 +1583,6 @@
     "island": "斯科瓦拉",
     "name": "辣椒",
     "source": "收割機",
-    "isPerishable": false,
-    "spoilTime": null,
-    "spoilProduct": "-",
-    "attributes": "無",
-    "notes": "",
-    "isFluid": false
-  },
-  {
-    "island": "斯科瓦拉",
-    "name": "辣椒植株",
-    "source": "地圖生成",
     "isPerishable": false,
     "spoilTime": null,
     "spoilProduct": "-",

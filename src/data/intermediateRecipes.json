@@ -534,98 +534,6 @@
     "notes": "將1個綠色史萊姆絞碎成2個史萊姆肉餡"
   },
   {
-    "name": "塔瑪茄",
-    "machine": "收割機",
-    "fluidType": "無",
-    "fluidRate": 0,
-    "inputs": [
-      {
-        "name": "塔瑪茄植株",
-        "count": 1
-      },
-      {
-        "name": "無",
-        "count": 0
-      },
-      {
-        "name": "無",
-        "count": 0
-      }
-    ],
-    "cycleTime": 5,
-    "outputCount": 1,
-    "notes": "收割機採收自然生長之塔瑪茄"
-  },
-  {
-    "name": "日桂葉",
-    "machine": "收割機",
-    "fluidType": "無",
-    "fluidRate": 0,
-    "inputs": [
-      {
-        "name": "日桂葉植株",
-        "count": 1
-      },
-      {
-        "name": "無",
-        "count": 0
-      },
-      {
-        "name": "無",
-        "count": 0
-      }
-    ],
-    "cycleTime": 5,
-    "outputCount": 1,
-    "notes": "收割機採收生長於石頭之日桂葉"
-  },
-  {
-    "name": "豆肉蔻",
-    "machine": "採掘機",
-    "fluidType": "無",
-    "fluidRate": 0,
-    "inputs": [
-      {
-        "name": "豆肉蔻(礦石方塊)",
-        "count": 1
-      },
-      {
-        "name": "無",
-        "count": 0
-      },
-      {
-        "name": "無",
-        "count": 0
-      }
-    ],
-    "cycleTime": 5,
-    "outputCount": 1,
-    "notes": "採掘機開採香料礦石，具過敏原特性"
-  },
-  {
-    "name": "鹽",
-    "machine": "採掘機",
-    "fluidType": "無",
-    "fluidRate": 0,
-    "inputs": [
-      {
-        "name": "鹽(礦石方塊)",
-        "count": 1
-      },
-      {
-        "name": "無",
-        "count": 0
-      },
-      {
-        "name": "無",
-        "count": 0
-      }
-    ],
-    "cycleTime": 5,
-    "outputCount": 1,
-    "notes": "採掘機開採鹽礦石"
-  },
-  {
     "name": "生史萊姆肉丸",
     "machine": "混合機",
     "fluidType": "無",
@@ -1566,21 +1474,6 @@
     "inputs": [
       {
         "name": "任意物品",
-        "count": 1
-      }
-    ],
-    "cycleTime": 5,
-    "outputCount": 1,
-    "notes": ""
-  },
-  {
-    "name": "油荳蔻",
-    "machine": "收割機",
-    "fluidType": "無",
-    "fluidRate": 0,
-    "inputs": [
-      {
-        "name": "油荳蔻植株",
         "count": 1
       }
     ],
