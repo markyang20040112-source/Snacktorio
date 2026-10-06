@@ -49,4 +49,6 @@
 - 動態公式手冊：`./docs/02_spreadsheet_architecture_and_formulas.md`
 - 食譜登錄與 SOP：`./docs/03_recipe_ingestion_sop_and_case_studies.md`
 - 開發決策日誌：`./docs/CHANGELOG.md`（詳細歷史紀錄；`PROJECT_STATUS.md` 僅保留現況摘要與近期決策）
-- 回歸測試：`./scripts/regression/`（重構 solver / planner 前後須比對結果為 IDENTICAL）
+- 回歸測試：`./scripts/regression/`（案例定義 `cases.ts`；需要逐欄比對時使用）
+- 品質閘門：`npm run check`（`./scripts/check/`：tsc + 資料 lint + 程式守門 + 回歸指紋；提交前必跑，規則見 `AGENTS.md` 第 6 節）
+- 物品分類工具：`./src/utils/itemTraits.ts`（流體 / 原料來源 / 可腐壞，一律由資料推導）

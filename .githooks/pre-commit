@@ -1,0 +1,14 @@
+#!/bin/sh
+# 提交前品質閘門：tsc + 資料 lint + 程式守門 + 回歸指紋（詳見 AGENTS.md「品質閘門」）
+# 找不到 npm（例如未安裝 Node 的環境）時只警告不阻擋；GitHub Actions 仍會在部署前再檢查一次。
+if ! command -v npm >/dev/null 2>&1; then
+  echo "[pre-commit] 找不到 npm，略過 npm run check（部署前 CI 仍會檢查）"
+  exit 0
+fi
+npm run check --silent
+status=$?
+if [ $status -ne 0 ]; then
+  echo ""
+  echo "[pre-commit] 品質檢查未通過，提交已取消。請依上方訊息修正後再提交。"
+fi
+exit $status

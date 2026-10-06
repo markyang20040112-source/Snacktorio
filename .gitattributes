@@ -1,0 +1,2 @@
+# git hook 由 sh 執行，必須維持 LF（Windows core.autocrlf=true 時避免轉成 CRLF 而失效）
+.githooks/* text eol=lf

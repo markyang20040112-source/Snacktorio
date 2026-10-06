@@ -51,7 +51,8 @@
 | `src/utils/itemTraits.ts` | 物品特性資料驅動判定：流體（食譜 `fluidType` 引用推導）、原料機台（`source`）、可發酵物品（`isPerishable`） |
 | `src/utils/actionVerbs.ts` | 工序動作動詞共用正則（solver 與 iconHelper 共用） |
 | `src/utils/` 其他 | `math.ts`（GCD/精度）、`iconHelper.ts`、`imageBeautifier.ts`、`machineBadge.ts` |
-| `scripts/regression/` | 黃金快照回歸測試：`snapshot.ts`（solver 1008 案例）、`sandboxSnapshot.ts`（沙盒物理 378 案例）、`compare.mjs` |
+| `scripts/regression/` | 黃金快照回歸測試：`cases.ts`（案例定義，solver 1008 + 沙盒 378）、`snapshot.ts` / `sandboxSnapshot.ts`（輸出完整快照）、`compare.mjs` |
+| `scripts/check/` | 品質閘門 `npm run check`：`index.ts`（資料 lint + 程式守門 + 回歸指紋）、`fingerprints.json`（每案例雜湊 + 資料雜湊）、`baseline.json`（佔位名、既有資料問題、已審核相似名、大檔行數、既有硬編碼名稱；只能縮減）、`installHooks.mjs`；hook 在 `.githooks/pre-commit` |
 | `scripts/generateAllDishBlueprints.ts` | 以 `buildDishBlueprint` 生成全部料理藍圖並逐道回報缺料（預設只檢查，不寫入資料檔） |
 | `docs/` | 知識庫（README、01 物理、02 公式、03 登錄 SOP、CHANGELOG 決策日誌） |
 
@@ -79,12 +80,9 @@
 
 ## 5. 開發與交接流程 (Dev Workflow)
 * **環境**：Node.js 22（建議）→ `npm install` → `npm run dev`（開發）/ `npm run build`（建置）。
-* **型別檢查**：`npx tsc --noEmit`（需 0 錯誤）。
-* **回歸測試**（任何 solver / planner / 沙盒物理 / 藍圖生成器重構前後必跑）：
-  1. 重構前：`npx tsx scripts/regression/snapshot.ts before.snapshot.json`、`npx tsx scripts/regression/sandboxSnapshot.ts before.sandbox.snapshot.json`
-  2. 重構後：同上指令輸出至 `after.*.snapshot.json`
-  3. 比對：`node scripts/regression/compare.mjs before.snapshot.json after.snapshot.json`（沙盒同理）→ 須為 `IDENTICAL`
-  （`*.snapshot.json` 已列入 `.gitignore`；`SandboxSimulator.tsx` 等 React 介面不在快照範圍，需以 `tsc` + `npm run build` + 實機操作確認）
+* **品質閘門（提交前必跑）**：`npm run check` = `tsc` + 資料 lint + 程式守門（硬編碼物品名 / 單檔 800 行上限）+ 回歸指紋（solver 1008 + 沙盒 378 案例）。`npm install` 會自動安裝 pre-commit hook；GitHub Actions 未通過則不部署。規則與失敗處理見 `AGENTS.md` 第 6 節。
+* **刻意改變計算結果**（新食譜、公式調整）：`npm run baseline` → commit 訊息寫 `BASELINE: 原因`（CI 檢查）。網頁工作台同步資料後，下一次開發先單獨跑一次 baseline。
+* **逐欄比對差異**（除錯用）：`npx tsx scripts/regression/snapshot.ts before.json` → 修改 → `after.json` → `node scripts/regression/compare.mjs before.json after.json`（沙盒用 `sandboxSnapshot.ts`）。React 介面不在快照範圍，需以 `npm run build` + 實機操作確認。
 * **跨裝置轉移**：`git clone` / `git pull` → `npm install` → `npm run dev`。
   > ⚠️ 只存在瀏覽器 localStorage 的編輯不會跟著 Git 走，須先在工作台「GitHub 同步」推上去，或匯出 JSON 後提交。
 
@@ -98,14 +96,17 @@
 - [x] 沙盒 `isFluidItem` 名稱後綴推測改為資料庫驅動判定（13 種真實流體白名單、156 項物品校準）
 - [x] 沙盒程式瘦身重構第二輪（SandboxSimulator 2419 → 1435 行、沙盒 378 案例回歸快照）
 - [x] C 組：官方藍圖執行期生成（打包 1406 → 727 KB）、物品分類全面資料驅動、移除覆寫使用者資料之遷移碼、合併重複按鈕
+- [x] 品質閘門：`npm run check` + pre-commit hook + GitHub Actions 部署前檢查（讓任何 AI 的修改自動受檢）
 - [ ] 依遊戲推進持續登錄後半段新島嶼與高階配方
-- [ ] 資料缺口待確認：【致命莎莎醬】被食譜引用為液體但 `items.json` 無此物品；【冰塊 → 糊糊 1 秒】是否符合遊戲
+- [ ] 資料待使用者確認（`npm run check` 警告的 12 項既有問題）：【沙塊】在 items.json 重複 2 筆（烤箱 / 採掘機）；【冰塊 → 糊糊】糊糊未登錄；itemIcons.json 有 10 個鍵對不到任何物品（熔爐、刺波蘿、辛辣莎莎醬、鷹身女妖肉、刺菠蘿樹、粉塵底料、千層麵皮、生千層麵皮、通心粉、義大利麵）
 
 ---
 
 ## 7. 近期決策摘要 (Recent Decisions)
 > 完整原文見 [`docs/CHANGELOG.md`](docs/CHANGELOG.md)。新紀錄請先追加詳細內容至 CHANGELOG 頂端，再於此更新摘要（保留最近約 10 筆）。
 
+* **2026-10-06｜品質閘門（四層防護）**：新增 `npm run check`（tsc + 資料 lint + 程式守門 + 回歸指紋）、`npm run baseline`、`.githooks/pre-commit`、CI 部署前檢查與「基準檔變更須 `BASELINE:` 說明」規則；`AGENTS.md` 新增第 6 節強制流程與寫程式慣例。既有問題以「只能縮減」的基準檔容忍，新問題一律擋下。網頁工作台同步的資料變更不會被擋（回歸比對自動暫停並提示）。
+* **2026-10-06｜更名**：`items.json`【致命沙沙醬】→【致命莎莎醬】（使用者確認草字頭），移除 itemIcons 重複鍵。
 * **2026-10-06｜C 組（使用者核准）**：官方料理藍圖改為執行期生成（`sandboxBlueprints.json` 1.1 MB → `[]`，與舊檔 42/42 逐位元組一致，打包 −48%，同步只推送自訂/修改專案）；流體、原料機台、發酵卡改由資料欄位推導（新舊結果逐項比對：流體 13/13 相同、原料僅【沙塊】改正為採掘機、發酵卡 +冰塊 +蟑螂酸奶），未修改 `items.json`；移除每次載入強制覆寫炙烈紅油/醋產量；移除重複「同步 GIT」按鈕。1008 + 378 案例 IDENTICAL。
 * **2026-10-06｜沙盒瘦身第二輪（零功能變更）+ 3 項修正**：SandboxSimulator 2419 → 1435 行（抽出 `sandboxNodeUtils` 與 4 個顯示元件）、sandboxPhysics 938 → 797、dishBlueprintGenerator 880 → 787、批次腳本 860 → 47；新增沙盒 378 案例快照，solver 1008 + 沙盒 378 全 `IDENTICAL`，重新產生藍圖與現有資料逐位元組一致；刪除 `requirements.txt`。修正：GitHub 同步不再以 `[]` 覆蓋藍圖庫、拖曳不再每幀重算物理與存檔、提示訊息計時器不再互相覆蓋。
 * **2026-10-06**：日桂葉產能異常與虛假倍率根除、廚師機產能切換斷線修復、專案庫新增空白專案與區域框選局部複製貼上（排查並根除 42 套藍圖中 186 台設備虛假產能倍率，全面改為實體 1:1 分離獨立機台直供，42 套藍圖 100% 滿載且 0 虛假產能驗證；修復廚師機 24 ➔ 12 切換端口斷線；專案庫實裝「➕ 新增空白專案」；實裝 Shift+拖曳區域框選、多選整組移動與 Ctrl+C/Ctrl+V 局部複製貼上拓撲）。
@@ -114,5 +115,3 @@
 * **2026-10-06**：沙盒輸入端嚴格認物品機制與分流器混流污染防禦系統（物理引擎全機台/廚師機/發酵/熔爐嚴格比對進料物料名稱，錯誤連入一律停機並標記 `❌ 錯誤連入原料/流體：X（需求：Y）`；分流器混流污染檢測 `❌ 物料混流污染（嚴禁混流，設備停機）`；前端拉線雙向防呆，目標端口物料不符或分流器/泵機上下游衝突時立即攔截提示）。
 * **2026-10-06**：分流器輸入端動態流量適應與多產線專案庫/GIT雲端同步系統（分流器輸入端口隨進料自動綁定名稱與實時流量如 `塔瑪茄 0.40/s`；沙盒支援無限套產線專案命名儲存、Ctrl+S 快速覆寫、複製副本、重新命名、JSON匯入匯出與 GitHub API 一鍵雲端同步跨裝置漫遊）。
 * **2026-10-06**：沙盒物品分流器升級為「輸出比例權重」模式與高精度平衡（徹底解決 1/3, 2/3, 1/6, 3:2, 2:1 等除不盡循環小數之精度痛點；支援比例預設快捷鍵、各路百分比與實際流率即時反饋、進料變動自適應等比縮放、4 位高精度計算與 $0.005$ 容差防禦）。
-* **2026-10-06**：沙盒終端料理產能設定（X 份/分）、供料不足即時警告與炙熱菜餚自動配餐【胃復慘】動態連動（支援 12/24/36 份/分等比縮放、端口實供/需量即時比對與缺料警示；點擊炙熱菜餚自動生成【胃復慘】且產能恆等於全廠炙熱料理總和）。
-* **2026-10-06**：基礎材料收集矛盾徹底修復與地圖虛擬方塊清理（移除 `intermediateRecipes.json` 5 筆採收偽配方與 `items.json` 14 項地圖地塊虛擬物品；「自然採集」確立為單一事實來源，全廠 1008 測試案例 0 KPI 差異）。

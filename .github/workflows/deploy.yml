@@ -25,6 +25,8 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -34,6 +36,22 @@ jobs:
 
       - name: Install Dependencies
         run: npm install
+
+      # 品質閘門：tsc + 資料 lint + 程式守門 + 回歸指紋。未通過則不部署。
+      - name: Quality Gate (npm run check)
+        run: npm run check
+
+      # 基準檔（回歸指紋 / 守門基準）被修改時，本次推送的 commit 訊息必須含「BASELINE:」說明原因
+      - name: Baseline Change Requires Explanation
+        if: github.event_name == 'push' && github.event.before != '0000000000000000000000000000000000000000'
+        run: |
+          RANGE="${{ github.event.before }}..${{ github.sha }}"
+          if git diff --name-only "$RANGE" | grep -qE '^scripts/check/(fingerprints|baseline)\.json$'; then
+            if ! git log --format=%B "$RANGE" | grep -q 'BASELINE:'; then
+              echo "::error::scripts/check 基準檔被修改，但 commit 訊息沒有「BASELINE: 原因」。請說明為何接受計算結果 / 基準的變更。"
+              exit 1
+            fi
+          fi
 
       - name: Build Web Application
         run: npm run build
