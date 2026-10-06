@@ -132,12 +132,13 @@
   {
     "island": "常規物資",
     "name": "沙塊",
-    "source": "烤箱",
+    "source": "地圖生成",
     "isPerishable": false,
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": "燃燒形成玻璃"
+    "notes": "燃燒形成玻璃",
+    "isFluid": false
   },
   {
     "island": "常規物資",
@@ -350,14 +351,15 @@
     "notes": ""
   },
   {
-    "island": "波莫拉 (Pomora)",
+    "island": "常規物資",
     "name": "沙塊",
-    "source": "採掘機",
+    "source": "地圖生成",
     "isPerishable": false,
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "",
-    "notes": ""
+    "notes": "燃燒形成玻璃",
+    "isFluid": false
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -1558,7 +1560,7 @@
   },
   {
     "island": "斯科瓦拉",
-    "name": "致命莎莎醬",
+    "name": "致命沙沙醬",
     "source": "攪拌機",
     "isPerishable": false,
     "spoilTime": null,
@@ -1678,6 +1680,16 @@
     "spoilTime": null,
     "spoilProduct": "",
     "attributes": "熾熱",
+    "notes": ""
+  },
+  {
+    "island": "斯科瓦拉",
+    "name": "致命莎莎醬",
+    "source": "攪拌機",
+    "isPerishable": false,
+    "spoilTime": null,
+    "spoilProduct": "-",
+    "attributes": "無",
     "notes": ""
   }
 ]
