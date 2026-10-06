@@ -5,6 +5,72 @@ import {
 } from './sandboxTypes';
 
 /**
+ * 清理物料名稱 (去除分流器百分比後綴如 " (A: 50%)"、"(無限制)" 等附加標記)
+ */
+export function normalizeItemName(name: string): string {
+  if (!name) return '';
+  let clean = name.replace(/\s*\([A-Z]:\s*\d+%\)$/, '').trim();
+  clean = clean.replace(/\s*\((.*?)\)$/, (match, p1) => {
+    if (p1.includes('出') || p1.includes('分流') || p1.includes('無限制') || p1.includes('無限料') || p1.includes('超頻')) return '';
+    return match;
+  }).trim();
+  return clean;
+}
+
+/**
+ * 嚴格檢驗物料相容性 (嚴格認物品)
+ */
+export function isItemMatch(
+  sourceName: string, 
+  targetName: string, 
+  targetNode?: SandboxNodeData, 
+  targetPortId?: string
+): boolean {
+  if (!sourceName || !targetName) return false;
+  
+  const cleanSource = normalizeItemName(sourceName);
+  const cleanTarget = normalizeItemName(targetName);
+
+  // 1. 完全相同
+  if (cleanSource === cleanTarget) return true;
+
+  // 2. 特殊設備或通用端口邏輯
+  if (targetNode) {
+    // 分流器：單一端口為通用接收（多筆輸入是否混流由 incomingItemNames.length 判定）
+    if (targetNode.type === 'splitter') {
+      return true;
+    }
+
+    // 發電熔爐：接受煤炭系列或虛空汙泥
+    if (targetNode.type === 'generator') {
+      return cleanSource.includes('煤炭') || cleanSource.includes('煤') || cleanSource === '虛空汙泥';
+    }
+
+    // 通用抽取泵機流體輸入端口：接受任意環境池或原位轉化液
+    if (targetNode.type === 'pump' && targetPortId === 'in-fluid') {
+      return true;
+    }
+
+    // 泵機超頻端口：嚴格接收虛空汙泥
+    if (targetNode.type === 'pump' && targetPortId === 'in-sludge') {
+      return cleanSource === '虛空汙泥';
+    }
+
+    // 未綁定特定產物之泛用發酵緩衝
+    if (targetNode.type === 'buffer_decay' && !targetNode.recipeName) {
+      return true;
+    }
+  }
+
+  // 3. 環境池流體相容性 (水池 <=> 水, 油池 <=> 油, 虛空裂隙 <=> 虛空)
+  const normSource = cleanSource.replace('池', '').replace('裂隙', '');
+  const normTarget = cleanTarget.replace('池', '').replace('裂隙', '');
+  if (normSource === normTarget) return true;
+
+  return false;
+}
+
+/**
  * 泵機節點專屬物理更新邏輯 (嚴格物料守恆與降載模型)
  * 1. 虛空汙泥超頻判定與降載：額定需求 0.20/s。若供泥不足，依比例降載 (sludgeSat = sludgeRate / 0.20)。
  * 2. 通用泵機液源判定與降載：環境池/注入機依來源稼動率供液；若為其他來源依實質進液量滿足率。
@@ -167,6 +233,11 @@ export function simulateSandboxPhysics(
 
       const outPort = fromNode.outputs.find(p => p.id === fromPortId);
       const totalRate = outPort?.rateProvided || 0;
+      if (outPort?.name) {
+        conns.forEach(c => {
+          c.itemOrFluidName = outPort.name;
+        });
+      }
 
       // 若來源為環境流體池或注入機 (原位轉化池)
       if (fromNode.type === 'environment_pool' || fromNode.machineName === '注入機') {
@@ -240,18 +311,40 @@ export function simulateSandboxPhysics(
         const outCount = Math.max(1, node.outputs.length);
 
         if (incomingConns.length > 0 && inRate > 0) {
-          const firstConn = incomingConns[0];
-          const fromNode = nodeMap.get(firstConn.fromNodeId);
-          const fromPort = fromNode?.outputs.find(p => p.id === firstConn.fromPortId);
-          const rawItemName = fromPort?.name || firstConn.itemOrFluidName || '物品';
-          const itemName = rawItemName.replace(/\s*\([A-Z]:\s*\d+%\)$/, '').trim() || rawItemName;
+          // 檢查是否有多種不同物料混入同一個分流器 (Contamination Check)
+          const incomingItemNames = Array.from(new Set(
+            incomingConns
+              .map(c => normalizeItemName(c.itemOrFluidName))
+              .filter(n => n.length > 0 && n !== '物品' && n !== '分流物品')
+          ));
+
+          if (incomingItemNames.length > 1) {
+            // 混流污染！停機並發出強烈警告
+            node.efficiency = 0;
+            node.solidSaturation = 0;
+            node.fluidSaturation = 0;
+            node.title = `分流器 (混流污染) · ${outCount}出`;
+            node.statusNote = `❌ 物料混流污染！同時混入：${incomingItemNames.join('、')}（嚴禁混流，設備停機）`;
+            if (inPort) {
+              inPort.name = '混流污染';
+              inPort.rateReceived = Number(inRate.toFixed(2));
+              inPort.isDeficit = true;
+            }
+            node.outputs.forEach(p => {
+              p.name = '混流污染';
+              p.rateProvided = 0;
+            });
+            return;
+          }
+
+          const rawItemName = incomingItemNames[0] || incomingConns[0].itemOrFluidName || '物品';
+          const itemName = normalizeItemName(rawItemName);
 
           node.efficiency = 1.0;
           node.solidSaturation = 1.0;
           node.fluidSaturation = 1.0;
           node.title = `分流器 (${itemName}) · ${outCount}出`;
 
-          const inPort = node.inputs[0];
           if (inPort) {
             inPort.name = itemName;
             inPort.rateReceived = Number(inRate.toFixed(2));
@@ -322,9 +415,22 @@ export function simulateSandboxPhysics(
 
         if (incomingConns.length > 0 && inRate > 0) {
           const firstConn = incomingConns[0];
-          const fromNode = nodeMap.get(firstConn.fromNodeId);
-          const fromPort = fromNode?.outputs.find(p => p.id === firstConn.fromPortId);
-          const rawName = fromPort?.name || firstConn.itemOrFluidName || '原料';
+          const rawName = normalizeItemName(firstConn.itemOrFluidName || '原料');
+          const expectedName = inPort?.name || '原料';
+
+          // 若節點明確指定了需求原料且不相符
+          if (expectedName !== '原料' && expectedName !== '發酵原料' && !isItemMatch(rawName, expectedName, node, inPort?.id)) {
+            node.efficiency = 0;
+            node.solidSaturation = 0;
+            node.fluidSaturation = 0;
+            node.statusNote = `❌ 原料不符合：需求「${expectedName}」，但連入「${rawName}」`;
+            if (inPort) {
+              inPort.isDeficit = true;
+              inPort.rateReceived = Number(inRate.toFixed(2));
+            }
+            node.outputs.forEach(p => { p.rateProvided = 0; });
+            return;
+          }
 
           // 若節點未指定食譜/成品，預設或沿用 output[0] 名稱
           const targetOutName = node.outputs[0]?.name || node.recipeName || rawName;
@@ -370,14 +476,25 @@ export function simulateSandboxPhysics(
       let minFluidSat = 1.0;
       let missingFluidName = '';
       let missingFluidDetail = '';
+      let hasFluidMismatch = false;
+      let fluidMismatchDetail = '';
       if (fluidInputs.length > 0) {
         fluidInputs.forEach(p => {
           const incomingConns = connList.filter(c => c.toNodeId === node.id && c.toPortId === p.id);
-          const receivedRate = incomingConns.reduce((sum, c) => sum + c.actualFlowRate, 0);
+          const validConns = incomingConns.filter(c => isItemMatch(c.itemOrFluidName, p.name, node, p.id));
+          const invalidConns = incomingConns.filter(c => !isItemMatch(c.itemOrFluidName, p.name, node, p.id));
+
+          if (invalidConns.length > 0) {
+            hasFluidMismatch = true;
+            const wrong = Array.from(new Set(invalidConns.map(c => normalizeItemName(c.itemOrFluidName)))).join('、');
+            fluidMismatchDetail = `❌ 錯誤連入流體：${wrong}（需求：${p.name}）`;
+          }
+
+          const receivedRate = validConns.reduce((sum, c) => sum + c.actualFlowRate, 0);
           const reqRate = p.rateRequired !== undefined ? p.rateRequired : 1.0;
           p.rateReceived = Number(receivedRate.toFixed(2));
-          p.isDeficit = reqRate > 0 && receivedRate < reqRate - 0.005;
-          const sat = reqRate > 0 ? (receivedRate >= reqRate - 0.005 ? 1.0 : Math.min(1.0, receivedRate / reqRate)) : 1.0;
+          p.isDeficit = (reqRate > 0 && receivedRate < reqRate - 0.005) || invalidConns.length > 0;
+          const sat = invalidConns.length > 0 ? 0 : (reqRate > 0 ? (receivedRate >= reqRate - 0.005 ? 1.0 : Math.min(1.0, receivedRate / reqRate)) : 1.0);
           if (sat < minFluidSat) {
             minFluidSat = sat;
             missingFluidName = p.name;
@@ -395,15 +512,26 @@ export function simulateSandboxPhysics(
       let minSolidSat = 1.0;
       let missingSolidName = '';
       let missingSolidDetail = '';
+      let hasSolidMismatch = false;
+      let solidMismatchDetail = '';
       if (solidInputs.length > 0) {
         solidInputs.forEach(p => {
           const incomingConns = connList.filter(c => c.toNodeId === node.id && c.toPortId === p.id);
-          const receivedRate = incomingConns.reduce((sum, c) => sum + c.actualFlowRate, 0);
+          const validConns = incomingConns.filter(c => isItemMatch(c.itemOrFluidName, p.name, node, p.id));
+          const invalidConns = incomingConns.filter(c => !isItemMatch(c.itemOrFluidName, p.name, node, p.id));
+
+          if (invalidConns.length > 0) {
+            hasSolidMismatch = true;
+            const wrong = Array.from(new Set(invalidConns.map(c => normalizeItemName(c.itemOrFluidName)))).join('、');
+            solidMismatchDetail = `❌ 錯誤連入原料：${wrong}（需求：${p.name}）`;
+          }
+
+          const receivedRate = validConns.reduce((sum, c) => sum + c.actualFlowRate, 0);
           const defaultReq = node.baseCycleTime > 0 ? 1 / node.baseCycleTime : 0.2;
           const reqRate = p.rateRequired !== undefined ? p.rateRequired : defaultReq;
           p.rateReceived = Number(receivedRate.toFixed(2));
-          p.isDeficit = reqRate > 0 && receivedRate < reqRate - 0.005;
-          const sat = reqRate > 0 ? (receivedRate >= reqRate - 0.005 ? 1.0 : Math.min(1.0, receivedRate / reqRate)) : 1.0;
+          p.isDeficit = (reqRate > 0 && receivedRate < reqRate - 0.005) || invalidConns.length > 0;
+          const sat = invalidConns.length > 0 ? 0 : (reqRate > 0 ? (receivedRate >= reqRate - 0.005 ? 1.0 : Math.min(1.0, receivedRate / reqRate)) : 1.0);
           if (sat < minSolidSat) {
             minSolidSat = sat;
             missingSolidName = p.name;
@@ -416,7 +544,15 @@ export function simulateSandboxPhysics(
       }
 
       // 5. 核心物理：流體欠壓週期拉長 (Cycle Dilation) 與狀態標註
-      if (fluidInputs.length > 0 && minFluidSat === 0) {
+      if (hasFluidMismatch) {
+        node.efficiency = 0;
+        node.actualCycleTime = node.baseCycleTime;
+        node.statusNote = fluidMismatchDetail;
+      } else if (hasSolidMismatch) {
+        node.efficiency = 0;
+        node.actualCycleTime = node.baseCycleTime;
+        node.statusNote = solidMismatchDetail;
+      } else if (fluidInputs.length > 0 && minFluidSat === 0) {
         node.efficiency = 0;
         node.actualCycleTime = node.baseCycleTime;
         node.statusNote = `❌ 缺少流體：${missingFluidName || '流體斷供'}`;
@@ -505,6 +641,11 @@ export function simulateSandboxPhysics(
 
     const outPort = fromNode.outputs.find(p => p.id === fromPortId);
     const totalRate = outPort?.rateProvided || 0;
+    if (outPort?.name) {
+      conns.forEach(c => {
+        c.itemOrFluidName = outPort.name;
+      });
+    }
 
     if (fromNode.type === 'environment_pool' || fromNode.machineName === '注入機') {
       conns.forEach(c => {
@@ -554,14 +695,25 @@ export function simulateSandboxPhysics(
     let minFluidSat = 1.0;
     let missingFluidName = '';
     let missingFluidDetail = '';
+    let hasFluidMismatch = false;
+    let fluidMismatchDetail = '';
     if (fluidInputs.length > 0) {
       fluidInputs.forEach(p => {
         const incomingConns = connList.filter(c => c.toNodeId === node.id && c.toPortId === p.id);
-        const receivedRate = incomingConns.reduce((sum, c) => sum + c.actualFlowRate, 0);
+        const validConns = incomingConns.filter(c => isItemMatch(c.itemOrFluidName, p.name, node, p.id));
+        const invalidConns = incomingConns.filter(c => !isItemMatch(c.itemOrFluidName, p.name, node, p.id));
+
+        if (invalidConns.length > 0) {
+          hasFluidMismatch = true;
+          const wrong = Array.from(new Set(invalidConns.map(c => normalizeItemName(c.itemOrFluidName)))).join('、');
+          fluidMismatchDetail = `❌ 錯誤連入流體：${wrong}（需求：${p.name}）`;
+        }
+
+        const receivedRate = validConns.reduce((sum, c) => sum + c.actualFlowRate, 0);
         const reqRate = p.rateRequired !== undefined ? p.rateRequired : 1.0;
         p.rateReceived = Number(receivedRate.toFixed(2));
-        p.isDeficit = reqRate > 0 && receivedRate < reqRate - 0.005;
-        const sat = reqRate > 0 ? (receivedRate >= reqRate - 0.005 ? 1.0 : Math.min(1.0, receivedRate / reqRate)) : 1.0;
+        p.isDeficit = (reqRate > 0 && receivedRate < reqRate - 0.005) || invalidConns.length > 0;
+        const sat = invalidConns.length > 0 ? 0 : (reqRate > 0 ? (receivedRate >= reqRate - 0.005 ? 1.0 : Math.min(1.0, receivedRate / reqRate)) : 1.0);
         if (sat < minFluidSat) {
           minFluidSat = sat;
           missingFluidName = p.name;
@@ -576,15 +728,26 @@ export function simulateSandboxPhysics(
     let minSolidSat = 1.0;
     let missingSolidName = '';
     let missingSolidDetail = '';
+    let hasSolidMismatch = false;
+    let solidMismatchDetail = '';
     if (solidInputs.length > 0) {
       solidInputs.forEach(p => {
         const incomingConns = connList.filter(c => c.toNodeId === node.id && c.toPortId === p.id);
-        const receivedRate = incomingConns.reduce((sum, c) => sum + c.actualFlowRate, 0);
+        const validConns = incomingConns.filter(c => isItemMatch(c.itemOrFluidName, p.name, node, p.id));
+        const invalidConns = incomingConns.filter(c => !isItemMatch(c.itemOrFluidName, p.name, node, p.id));
+
+        if (invalidConns.length > 0) {
+          hasSolidMismatch = true;
+          const wrong = Array.from(new Set(invalidConns.map(c => normalizeItemName(c.itemOrFluidName)))).join('、');
+          solidMismatchDetail = `❌ 錯誤連入原料：${wrong}（需求：${p.name}）`;
+        }
+
+        const receivedRate = validConns.reduce((sum, c) => sum + c.actualFlowRate, 0);
         const defaultReq = node.baseCycleTime > 0 ? 1 / node.baseCycleTime : 0.2;
         const reqRate = p.rateRequired !== undefined ? p.rateRequired : defaultReq;
         p.rateReceived = Number(receivedRate.toFixed(2));
-        p.isDeficit = reqRate > 0 && receivedRate < reqRate - 0.005;
-        const sat = reqRate > 0 ? (receivedRate >= reqRate - 0.005 ? 1.0 : Math.min(1.0, receivedRate / reqRate)) : 1.0;
+        p.isDeficit = (reqRate > 0 && receivedRate < reqRate - 0.005) || invalidConns.length > 0;
+        const sat = invalidConns.length > 0 ? 0 : (reqRate > 0 ? (receivedRate >= reqRate - 0.005 ? 1.0 : Math.min(1.0, receivedRate / reqRate)) : 1.0);
         if (sat < minSolidSat) {
           minSolidSat = sat;
           missingSolidName = p.name;
@@ -594,7 +757,15 @@ export function simulateSandboxPhysics(
       node.solidSaturation = Number(minSolidSat.toFixed(3));
     }
 
-    if (fluidInputs.length > 0 && minFluidSat === 0) {
+    if (hasFluidMismatch) {
+      node.efficiency = 0;
+      node.actualCycleTime = node.baseCycleTime;
+      node.statusNote = fluidMismatchDetail;
+    } else if (hasSolidMismatch) {
+      node.efficiency = 0;
+      node.actualCycleTime = node.baseCycleTime;
+      node.statusNote = solidMismatchDetail;
+    } else if (fluidInputs.length > 0 && minFluidSat === 0) {
       node.efficiency = 0;
       node.actualCycleTime = node.baseCycleTime;
       node.statusNote = `❌ 缺少流體：${missingFluidName || '流體斷供'}`;

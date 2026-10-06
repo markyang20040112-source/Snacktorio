@@ -5,7 +5,7 @@ import {
   PortDefinition,
   SandboxBlueprint
 } from './sandboxTypes';
-import { simulateSandboxPhysics } from './sandboxPhysics';
+import { simulateSandboxPhysics, isItemMatch, normalizeItemName } from './sandboxPhysics';
 import { SandboxNode } from './SandboxNode';
 import { SandboxBlueprintModal } from './SandboxBlueprintModal';
 import { sandboxBlueprintService } from '../../services/sandboxBlueprintService';
@@ -1083,6 +1083,67 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     // 注入機輸出防呆：注入機為原位轉化設備，輸出液體必須先接至泵機，再由泵機供入目標設備
     if (fromNode.machineName === '注入機' && toNode.type !== 'pump') {
       alert('⚠️ 注入機屬於「原位轉化」環境設備，原位轉化液無法直接拉管接至加工機台！\n請先將注入機輸出端接至「抽取泵機」，再由泵機抽取輸送至目標設備。');
+      setConnectingSource(null);
+      return;
+    }
+
+    // 若目標端為分流器：檢查物料混流衝突與下游相容性
+    if (toNode.type === 'splitter') {
+      const existingIncoming = connections.filter(c => c.toNodeId === toNode.id);
+      if (existingIncoming.length > 0) {
+        const existingItem = normalizeItemName(existingIncoming[0].itemOrFluidName);
+        const newItem = normalizeItemName(outPort.name);
+        if (existingItem && newItem && existingItem !== '待分流物料' && newItem !== '待分流物料' && existingItem !== newItem) {
+          alert(`⚠️ 分流器物料衝突！\n該分流器已接收「${existingItem}」，嚴禁混入「${newItem}」造成混流污染！\n如需分流請使用獨立分流器。`);
+          setConnectingSource(null);
+          return;
+        }
+      }
+
+      // 檢查分流器已有的下游連線是否與即將連入的物料衝突
+      const outgoingConns = connections.filter(c => c.fromNodeId === toNode.id);
+      for (const outConn of outgoingConns) {
+        const downstreamNode = nodes.find(n => n.id === outConn.toNodeId);
+        const downstreamInPort = downstreamNode?.inputs.find(p => p.id === outConn.toPortId);
+        if (downstreamNode && downstreamInPort) {
+          if (!isItemMatch(outPort.name, downstreamInPort.name, downstreamNode, downstreamInPort.id)) {
+            alert(`⚠️ 分流器下游衝突！\n該分流器下游已連接至「${downstreamNode.title}」的「${downstreamInPort.name}」端口。\n無法連入不相符的「${outPort.name}」！`);
+            setConnectingSource(null);
+            return;
+          }
+        }
+      }
+    }
+
+    // 若目標端為通用泵機：檢查泵機下游連線是否與即將連入的液源相容
+    if (toNode.type === 'pump' && inPort.id === 'in-fluid') {
+      const outgoingConns = connections.filter(c => c.fromNodeId === toNode.id);
+      for (const outConn of outgoingConns) {
+        const downstreamNode = nodes.find(n => n.id === outConn.toNodeId);
+        const downstreamInPort = downstreamNode?.inputs.find(p => p.id === outConn.toPortId);
+        if (downstreamNode && downstreamInPort) {
+          if (!isItemMatch(outPort.name, downstreamInPort.name, downstreamNode, downstreamInPort.id)) {
+            alert(`⚠️ 泵機下游衝突！\n該泵機下游已連接至「${downstreamNode.title}」的「${downstreamInPort.name}」端口。\n無法連入不相符的「${outPort.name}」！`);
+            setConnectingSource(null);
+            return;
+          }
+        }
+      }
+    }
+
+    // 檢查物料名稱相容性 (嚴格認物品)
+    const isUnconfiguredSplitterOut = fromNode.type === 'splitter' && (
+      normalizeItemName(outPort.name) === '分流物品' ||
+      outPort.name.startsWith('分流') ||
+      connections.filter(c => c.toNodeId === fromNode.id).length === 0
+    );
+    const isUnconfiguredPumpOut = fromNode.type === 'pump' && (
+      outPort.name === '通用流體' ||
+      connections.filter(c => c.toNodeId === fromNode.id && c.toPortId === 'in-fluid').length === 0
+    );
+
+    if (!isUnconfiguredSplitterOut && !isUnconfiguredPumpOut && !isItemMatch(outPort.name, inPort.name, toNode, inPort.id)) {
+      alert(`⚠️ 物料不符合！\n目標端口需求：「${inPort.name}」\n來源輸出提供：「${outPort.name}」\n兩者不相符，無法連接！`);
       setConnectingSource(null);
       return;
     }
