@@ -225,11 +225,12 @@ export function simulateSandboxPhysics(
         return;
       }
 
-      // 物品分流器專屬物理 (Splitter)：1 個輸入端，2 個輸出端均等分流
+      // 物品分流器專屬物理 (Splitter)：支援 1 進 2 出 或 1 進 3 出，支援均分模式與自訂流量模式
       if (node.type === 'splitter') {
         const inPort = node.inputs[0];
         const incomingConns = inPort ? connList.filter(c => c.toNodeId === node.id && c.toPortId === inPort.id) : [];
         const inRate = incomingConns.reduce((sum, c) => sum + c.actualFlowRate, 0);
+        const outCount = Math.max(1, node.outputs.length);
 
         if (incomingConns.length > 0 && inRate > 0) {
           const firstConn = incomingConns[0];
@@ -240,20 +241,38 @@ export function simulateSandboxPhysics(
           node.efficiency = 1.0;
           node.solidSaturation = 1.0;
           node.fluidSaturation = 1.0;
-          node.title = `分流器 (${itemName})`;
-          node.statusNote = `⚡ 均等分流中：進 ${inRate.toFixed(2)}/s，各路 ${(inRate / 2).toFixed(2)}/s`;
+          node.title = `分流器 (${itemName}) · ${outCount}出`;
 
-          // 將進料流率 1:1 均分至兩個輸出端口 (各 50%)
-          const outPerPort = Number((inRate / 2).toFixed(3));
-          node.outputs.forEach(p => {
-            p.name = itemName;
-            p.rateProvided = outPerPort;
-          });
+          if (node.splitterMode === 'custom' && node.splitterCustomRates && node.splitterCustomRates.length === outCount) {
+            // 自訂指定流量模式：按自訂限流輸出，超出進料總量則等比降載守恆
+            const sumCustom = node.splitterCustomRates.reduce((s, r) => s + r, 0);
+            const scale = sumCustom > inRate && sumCustom > 0 ? inRate / sumCustom : 1.0;
+            
+            node.outputs.forEach((p, idx) => {
+              p.name = itemName;
+              const target = node.splitterCustomRates![idx] || 0;
+              p.rateProvided = Number((target * scale).toFixed(3));
+            });
+
+            if (scale < 1.0) {
+              node.statusNote = `⚠️ 自訂需求 (${sumCustom.toFixed(2)}/s) 超出進料 (${inRate.toFixed(2)}/s)：已等比降載`;
+            } else {
+              node.statusNote = `🎯 自訂限流中：進 ${inRate.toFixed(2)}/s，各路 [${node.outputs.map(p => p.rateProvided).join(', ')}]/s`;
+            }
+          } else {
+            // 均分模式：1:1(:1) 均等分流
+            const outPerPort = Number((inRate / outCount).toFixed(3));
+            node.outputs.forEach(p => {
+              p.name = itemName;
+              p.rateProvided = outPerPort;
+            });
+            node.statusNote = `⚡ 均等分流中 (${outCount}出)：進 ${inRate.toFixed(2)}/s，各路 ${outPerPort}/s`;
+          }
         } else {
           node.efficiency = 0;
           node.solidSaturation = 0;
           node.fluidSaturation = 0;
-          node.title = '物品分流器 (待進料)';
+          node.title = `物品分流器 (${outCount}出)`;
           node.statusNote = incomingConns.length === 0 ? '⚠️ 未連接輸入物料' : '❌ 輸入流量為 0';
           node.outputs.forEach(p => {
             p.name = '分流物品';

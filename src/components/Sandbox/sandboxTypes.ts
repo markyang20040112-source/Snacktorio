@@ -31,6 +31,8 @@ export interface SandboxNodeData {
   powerMode?: 'regular' | 'overclock'; // 用於發電熔爐或泵機
   isMockInfiniteSupply?: boolean;      // 無中生有：原料無限供應
   overclockPercent?: number;          // 超頻百分比 (預設 100%)
+  splitterMode?: 'equal' | 'custom';  // 分流器模式：均分 或 自訂指定流量
+  splitterCustomRates?: number[];     // 自訂各端口輸出限流 (個/秒)
 
   // 額定標準參數 (來自資料庫)
   baseCycleTime: number;              // 基準加工週期 (秒)

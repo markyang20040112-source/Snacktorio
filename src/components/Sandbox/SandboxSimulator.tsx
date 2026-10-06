@@ -579,6 +579,15 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     }));
   };
 
+  const handleUpdateNode = (id: string, updates: Partial<SandboxNodeData>) => {
+    setNodes(prev => prev.map(n => {
+      if (n.id === id) {
+        return { ...n, ...updates };
+      }
+      return n;
+    }));
+  };
+
   // 連線起點拉出
   const handleStartConnect = (
     nodeId: string, 
@@ -662,7 +671,10 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
 
     const nodeWidth = 288; // w-72 = 18rem = 288px
     const headerHeight = 44;
-    const bodyHeight = 110;
+    // 分流器內部含有配置面板，卡片高度相應增加以精準貼齊底部端口
+    const bodyHeight = node.type === 'splitter'
+      ? (node.splitterMode === 'custom' ? 200 : 170)
+      : 110;
     const portStartY = headerHeight + bodyHeight + 25;
 
     const ports = isOutput ? node.outputs : node.inputs;
@@ -1195,6 +1207,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
                 onSelect={handleNodeSelect}
                 onDelete={handleDeleteNode}
                 onToggleMock={handleToggleMock}
+                onUpdateNode={handleUpdateNode}
                 onStartConnect={handleStartConnect}
                 onEndConnect={handleEndConnect}
               />

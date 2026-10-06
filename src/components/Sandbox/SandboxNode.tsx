@@ -10,6 +10,7 @@ interface SandboxNodeProps {
   onSelect: (id: string, e: React.MouseEvent) => void;
   onDelete: (id: string) => void;
   onToggleMock: (id: string) => void;
+  onUpdateNode?: (id: string, updates: Partial<SandboxNodeData>) => void;
   onStartConnect: (nodeId: string, portId: string, portType: 'solid' | 'fluid', isOutput: boolean, e: React.MouseEvent) => void;
   onEndConnect: (nodeId: string, portId: string, e: React.MouseEvent) => void;
 }
@@ -20,6 +21,7 @@ export const SandboxNode: React.FC<SandboxNodeProps> = ({
   onSelect,
   onDelete,
   onToggleMock,
+  onUpdateNode,
   onStartConnect,
   onEndConnect
 }) => {
@@ -148,6 +150,125 @@ export const SandboxNode: React.FC<SandboxNodeProps> = ({
                 : 'bg-emerald-950/30 text-emerald-400 border border-emerald-800/30'
           }`}>
             {node.statusNote}
+          </div>
+        )}
+
+        {/* 分流器專屬互動配置面板 (一進二出 / 一進三出、均分 / 自訂流量) */}
+        {isSplitter && onUpdateNode && (
+          <div className="p-2 rounded-xl bg-slate-900/90 border border-blue-900/50 space-y-2 mt-1">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold text-blue-300">分流模式設置</span>
+              <div className="flex items-center space-x-1">
+                {/* 2出 / 3出 切換按鈕 */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const newOutputs: typeof node.outputs = [
+                      { id: 'out-item-1', name: node.outputs[0]?.name || '分流A', type: 'solid', rateProvided: 0 },
+                      { id: 'out-item-2', name: node.outputs[1]?.name || '分流B', type: 'solid', rateProvided: 0 }
+                    ];
+                    const custom = node.splitterCustomRates?.slice(0, 2) || [0.1, 0.1];
+                    onUpdateNode(node.id, { outputs: newOutputs, splitterCustomRates: custom });
+                  }}
+                  className={`px-1.5 py-0.5 rounded text-[9px] font-mono transition-colors ${
+                    node.outputs.length === 2 
+                      ? 'bg-blue-500/30 text-blue-300 border border-blue-500/50 font-bold' 
+                      : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800'
+                  }`}
+                  title="切換為 2 個輸出端"
+                >
+                  2 出
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const newOutputs: typeof node.outputs = [
+                      { id: 'out-item-1', name: node.outputs[0]?.name || '分流A', type: 'solid', rateProvided: 0 },
+                      { id: 'out-item-2', name: node.outputs[1]?.name || '分流B', type: 'solid', rateProvided: 0 },
+                      { id: 'out-item-3', name: node.outputs[2]?.name || '分流C', type: 'solid', rateProvided: 0 }
+                    ];
+                    const custom = node.splitterCustomRates ? [...node.splitterCustomRates, 0.1].slice(0, 3) : [0.1, 0.1, 0.1];
+                    onUpdateNode(node.id, { outputs: newOutputs, splitterCustomRates: custom });
+                  }}
+                  className={`px-1.5 py-0.5 rounded text-[9px] font-mono transition-colors ${
+                    node.outputs.length === 3 
+                      ? 'bg-blue-500/30 text-blue-300 border border-blue-500/50 font-bold' 
+                      : 'text-slate-500 hover:text-slate-300 hover:bg-slate-800'
+                  }`}
+                  title="切換為 3 個輸出端"
+                >
+                  3 出
+                </button>
+              </div>
+            </div>
+
+            {/* 均分 vs 自訂流量切換 */}
+            <div className="flex items-center space-x-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onUpdateNode(node.id, { splitterMode: 'equal' });
+                }}
+                className={`flex-1 py-0.5 rounded text-[9px] transition-colors ${
+                  node.splitterMode !== 'custom' 
+                    ? 'bg-blue-500/20 text-blue-300 font-bold' 
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                ⚖️ 均等分流
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const defaults = node.outputs.map((_, idx) => node.splitterCustomRates?.[idx] ?? 0.1);
+                  onUpdateNode(node.id, { splitterMode: 'custom', splitterCustomRates: defaults });
+                }}
+                className={`flex-1 py-0.5 rounded text-[9px] transition-colors ${
+                  node.splitterMode === 'custom' 
+                    ? 'bg-blue-500/20 text-blue-300 font-bold' 
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                ⚙️ 自訂流量
+              </button>
+            </div>
+
+            {/* 自訂各端口限流數值輸入 */}
+            {node.splitterMode === 'custom' && (
+              <div className="space-y-1 pt-1">
+                <div className="text-[9px] text-slate-400 flex justify-between">
+                  <span>各端口限流 (個/秒)</span>
+                  <span className="text-blue-400 font-mono">
+                    合: {(node.splitterCustomRates?.reduce((a, b) => a + b, 0) || 0).toFixed(2)}/s
+                  </span>
+                </div>
+                <div className={`grid gap-1 ${node.outputs.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+                  {node.outputs.map((_, idx) => {
+                    const currentVal = node.splitterCustomRates?.[idx] ?? 0.1;
+                    return (
+                      <div key={idx} className="flex items-center space-x-1 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">
+                        <span className="text-[9px] text-slate-500 font-mono">{String.fromCharCode(65 + idx)}:</span>
+                        <input
+                          type="number"
+                          step="0.05"
+                          min="0"
+                          value={currentVal}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            const val = parseFloat(e.target.value) || 0;
+                            const newRates = [...(node.splitterCustomRates || node.outputs.map(() => 0.1))];
+                            newRates[idx] = Math.max(0, val);
+                            onUpdateNode(node.id, { splitterCustomRates: newRates });
+                          }}
+                          className="w-full bg-transparent text-[10px] font-mono text-slate-200 focus:outline-none"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
