@@ -37,8 +37,12 @@ export function buildDishBlueprint(
   const intermediateRecipes: IntermediateRecipe[] = context?.intermediate || dataService.getIntermediateRecipes();
   const items: Item[] = context?.items || dataService.getItems();
 
-  // Dynamic derivation of standard base crop item (defaults to crop with '底料' attribute, then first harvester crop, then items[0])
-  const baseCropItemName = items.find(it => it.attributes?.includes('底料') || it.source === '收割機')?.name || items[0]?.name || '';
+  // Dynamic derivation of standard base crop item (defaults to crop with '底料' attribute, then basic leaf crop, then Pomora crop, then first harvester crop)
+  const baseCropItem = items.find(it => it.attributes?.includes('底料'))
+    || items.find(it => it.source === '收割機' && it.name.includes('桂'))
+    || items.find(it => it.source === '收割機' && it.island.includes('波莫拉'))
+    || items.find(it => it.source === '收割機');
+  const baseCropItemName = baseCropItem?.name || '';
   // Dynamic derivation of remedy recipe for scorching dishes (defaults to recipe with '中和' & '熾熱/炙熱')
   const remedyRecipe = recipes.find(r => r.notes?.includes('中和') && (r.notes?.includes('熾熱') || r.notes?.includes('炙熱')));
   const remedyDishName = remedyRecipe?.name || '';
@@ -65,10 +69,10 @@ export function buildDishBlueprint(
     return { isRecon: machName === '物質操縱機', machName };
   };
 
-  /** 物質操縱機之標準輸入端口 (虛空 + 重構底料) */
+  /** 物質操縱機之標準輸入端口 (虛空 + 任意物品) */
   const reconInputs = (): PortDefinition[] => [
     { id: 'in-fluid-虛空', name: '虛空', type: 'fluid', rateRequired: 1.0 },
-    { id: 'in-base', name: '重構底料', type: 'solid', rateRequired: 0.2 }
+    { id: 'in-base', name: '任意物品', type: 'solid', rateRequired: 0.2 }
   ];
 
   const res = calculateSingleDish(dish.name, 0.2, 'regular', 'dedicated');
@@ -187,7 +191,7 @@ export function buildDishBlueprint(
           const solidReq = Number(((inp.count || 1) / machCycleTime).toFixed(3));
           inputs.push({
             id: inp.isFluid ? `in-fluid-${inp.name}` : `in-${inp.name}`,
-            name: inp.name === '任意物品' ? baseCropItemName : inp.name,
+            name: inp.name,
             type: inp.isFluid ? 'fluid' : 'solid',
             rateRequired: inp.isFluid ? 1.0 : solidReq
           });
@@ -201,8 +205,8 @@ export function buildDishBlueprint(
           if (!inputs.some(inp => inp.name === '虛空')) {
             inputs.push({ id: 'in-fluid-虛空', name: '虛空', type: 'fluid', rateRequired: 1.0 });
           }
-          if (!inputs.some(inp => inp.name === baseCropItemName || inp.name === '重構底料')) {
-            inputs.push({ id: 'in-base', name: baseCropItemName, type: 'solid', rateRequired: 0.2 });
+          if (!inputs.some(inp => inp.name === '任意物品' || inp.name === '重構底料' || inp.id === 'in-base')) {
+            inputs.push({ id: 'in-base', name: '任意物品', type: 'solid', rateRequired: 0.2 });
           }
         }
 
@@ -278,14 +282,14 @@ export function buildDishBlueprint(
       const toNode = toNodes.find(tn => {
         const pInp = tn.inputs.find(inp => 
           inp.name === outputInfo.name || 
-          ((inp.name === '重構底料' || inp.name === baseCropItemName) && (outputInfo.name === '底料專供' || outputInfo.name === '底料' || outputInfo.name === baseCropItemName))
+          ((inp.name === '重構底料' || inp.name === '任意物品' || inp.name === baseCropItemName) && (outputInfo.name === '底料專供' || outputInfo.name === '底料' || outputInfo.name === baseCropItemName))
         );
         return pInp && !isInputConnected(tn.id, pInp.id);
       }) || toNodes[0];
 
       const toPort = toNode.inputs.find(inp => 
         inp.name === outputInfo.name || 
-        ((inp.name === '重構底料' || inp.name === baseCropItemName) && (outputInfo.name === '底料專供' || outputInfo.name === '底料' || outputInfo.name === baseCropItemName))
+        ((inp.name === '重構底料' || inp.name === '任意物品' || inp.name === baseCropItemName) && (outputInfo.name === '底料專供' || outputInfo.name === '底料' || outputInfo.name === baseCropItemName))
       );
 
       let decayPath: string[] = [];
@@ -447,10 +451,15 @@ export function buildDishBlueprint(
         const machRate = Number((machOutCount / machCycle).toFixed(3));
         const healNodeId = `heal-mach-${dishIndex}-${healCounter}`;
 
+        const isCondensation = items.find(i => i.name === targetRawName)?.island === '常規物資';
+        const titlePrefix = isRecon 
+          ? (isCondensation ? '空載凝結' : '重構') 
+          : (machName === '採掘機' ? '開採' : '採收');
+
         const healNode = makeNode({
           id: healNodeId,
           type: 'machine',
-          title: isRecon ? `物質操縱機 (${targetRawName})` : `${machName} (${targetRawName})`,
+          title: `${titlePrefix}：${targetRawName}`,
           machineName: machName,
           recipeName: targetRawName,
           x: consumer.x - 300,
@@ -499,10 +508,15 @@ export function buildDishBlueprint(
         const { isRecon, machName } = classifyRawSource(targetRawName);
         const healNodeId = `heal-sub-${dishIndex}-${healCounter}`;
 
+        const isCondensation = items.find(i => i.name === targetRawName)?.island === '常規物資';
+        const titlePrefix = isRecon 
+          ? (isCondensation ? '空載凝結' : '重構') 
+          : (machName === '採掘機' ? '開採' : '採收');
+
         nodes.push(makeNode({
           id: healNodeId,
           type: 'machine',
-          title: isRecon ? `物質操縱機 (${targetRawName})` : `${machName} (${targetRawName})`,
+          title: `${titlePrefix}：${targetRawName}`,
           machineName: machName,
           recipeName: targetRawName,
           x: consumer.x - 280,
@@ -537,7 +551,7 @@ export function buildDishBlueprint(
       nodes.push(makeNode({
         id: baseHarvesterId,
         type: 'machine',
-        title: `收割機 (${baseCropItemName} - 供底料)`,
+        title: `採收：${baseCropItemName}`,
         machineName: '收割機',
         recipeName: baseCropItemName,
         x: m.x - 280,

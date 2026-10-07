@@ -41,8 +41,8 @@ export function isItemMatch(
 
   // 2. 特殊設備或通用端口邏輯
   if (targetNode) {
-    // 物質操縱機重構底料端口：接受任意固體食材/物品
-    if (targetNode.machineName === '物質操縱機' && (targetPortId === 'in-base' || cleanTarget === '重構底料' || cleanTarget === '任意物品')) {
+    // 物質操縱機重構底料端口或任意物品端口（如烤箱灰燼）：接受任意固體食材/物品
+    if (cleanTarget === '重構底料' || cleanTarget === '任意物品' || targetPortId === 'in-base') {
       return true;
     }
 
