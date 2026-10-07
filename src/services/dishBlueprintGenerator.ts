@@ -109,6 +109,7 @@ export function buildDishBlueprint(
   const neededEnvFluids = new Set<string>();
   const procNodesMap = new Map<string, SandboxNodeData[]>();
   const procOutputMap = new Map<string, { name: string; isFluid: boolean }>();
+  const transPumpMap = new Map<string, SandboxNodeData>();
   const columnCounts = new Map<number, number>();
 
   // 2. Instantiate Process Nodes with strict physical machine counts
@@ -253,6 +254,58 @@ export function buildDishBlueprint(
 
       nodes.push(node);
       instanceList.push(node);
+
+      if (p.machine === '注入機') {
+        // 原位轉化鐵律：注入機原位轉化液體必須由專屬抽取泵機抽取，嚴禁直接拉管直連下游設備！
+        const transFluidName = outputInfo.name;
+        const pumpNodeId = `pump-trans-${dishIndex}-${pIdx}-${instIdx}`;
+        const transPumpNode = makeNode({
+          id: pumpNodeId,
+          type: 'pump',
+          title: `${transFluidName}抽取泵機`,
+          machineName: '泵機',
+          powerMode: 'regular',
+          pumpCapacity: 2.0,
+          x: x + 180,
+          y: y,
+          baseCycleTime: 1,
+          baseOutputCount: 2.0,
+          basePowerConsumption: 1.0,
+          baseGoblins: 0,
+          inputs: [
+            {
+              id: 'in-fluid',
+              name: transFluidName,
+              type: 'fluid',
+              rateRequired: 2.0
+            }
+          ],
+          outputs: [
+            {
+              id: `out-${transFluidName}`,
+              name: transFluidName,
+              type: 'fluid',
+              rateProvided: 2.0
+            }
+          ]
+        });
+
+        nodes.push(transPumpNode);
+
+        // 原位抽取管線：注入機 ➔ 轉化泵機
+        pushConn({
+          id: `c-trans-inj-${dishIndex}-${pIdx}-${instIdx}`,
+          fromNodeId: node.id,
+          fromPortId: `out-${transFluidName}`,
+          toNodeId: transPumpNode.id,
+          toPortId: 'in-fluid',
+          itemOrFluidName: transFluidName,
+          type: 'fluid',
+          actualFlowRate: 2.0
+        });
+
+        transPumpMap.set(node.id, transPumpNode);
+      }
     }
     procNodesMap.set(p.processName, instanceList);
   });
@@ -274,7 +327,12 @@ export function buildDishBlueprint(
       if (!toNodes || toNodes.length === 0) return;
 
       // Match target to a fromNode instance and toNode instance
-      const fromNode = fromNodes[tIdx % fromNodes.length];
+      const rawFromNode = fromNodes[tIdx % fromNodes.length];
+      // 原位轉化鐵律：若來源機台為注入機，下游供液端口嚴格改由專屬轉化泵機提供
+      const fromNode = (rawFromNode.machineName === '注入機' && transPumpMap.get(rawFromNode.id))
+        ? transPumpMap.get(rawFromNode.id)!
+        : rawFromNode;
+
       const outPort = fromNode.outputs[0];
       if (!outPort) return;
 
@@ -394,6 +452,30 @@ export function buildDishBlueprint(
       if (inPort.type === 'fluid') {
         if (!ENV_FLUIDS.includes(inPort.name)) {
           if (!isInputConnected(consumer.id, inPort.id)) {
+            // 原位轉化流體 (如 炙烈紅油)：若存在轉化抽取泵機，優先接駁轉化泵機，絕不建立攪拌機！
+            const existingTransPump = nodes.find(n => n.type === 'pump' && n.outputs.some(o => o.name === inPort.name));
+            if (existingTransPump) {
+              const outPort = existingTransPump.outputs.find(o => o.name === inPort.name);
+              if (outPort) {
+                pushConn({
+                  id: `c-heal-trans-${dishIndex}-${consumer.id}-${inPort.id}`,
+                  fromNodeId: existingTransPump.id,
+                  fromPortId: outPort.id,
+                  toNodeId: consumer.id,
+                  toPortId: inPort.id,
+                  itemOrFluidName: inPort.name,
+                  type: 'fluid',
+                  actualFlowRate: inPort.rateRequired || 1.0
+                });
+                return;
+              }
+            }
+
+            // 嚴格禁止為原位轉化流體建立任何攪拌機
+            if (inPort.name === '炙烈紅油' || inPort.name.includes('紅油')) {
+              return;
+            }
+
             const interDef = intermediateRecipes.find(r => r.name === inPort.name);
             // 只有當配方明確為攪拌機（且不是原位轉化液體如炙烈紅油）時才建立攪拌機
             if (interDef && interDef.machine === '攪拌機') {
@@ -449,6 +531,8 @@ export function buildDishBlueprint(
         const machOutCount = targetRawName === '泥沼蟑螂' ? 2 : 1;
         const machCycle = 5;
         const machRate = Number((machOutCount / machCycle).toFixed(3));
+        const neededRate = inPort.rateRequired || 0.2;
+        const outRate = Math.max(machRate, neededRate);
         const healNodeId = `heal-mach-${dishIndex}-${healCounter}`;
 
         const isCondensation = items.find(i => i.name === targetRawName)?.island === '常規物資';
@@ -465,7 +549,7 @@ export function buildDishBlueprint(
           x: consumer.x - 300,
           y: consumer.y + 120 + (healCounter % 3) * 60,
           baseCycleTime: machCycle,
-          baseOutputCount: machOutCount,
+          baseOutputCount: neededRate > 0.2 ? Number((neededRate * machCycle).toFixed(2)) : machOutCount,
           basePowerConsumption: isRecon ? 2.0 : 1.0,
           baseGoblins: isRecon ? 2 : 1,
           inputs: isRecon ? reconInputs() : [],
@@ -473,7 +557,7 @@ export function buildDishBlueprint(
             id: `out-${targetRawName}`,
             name: targetRawName,
             type: 'solid',
-            rateProvided: machRate
+            rateProvided: outRate
           }]
         });
 
@@ -490,7 +574,7 @@ export function buildDishBlueprint(
           toPortId: inPort.id,
           itemOrFluidName: targetRawName,
           type: 'solid',
-          actualFlowRate: inPort.rateRequired || 0.2
+          actualFlowRate: neededRate
         });
       }
     });
@@ -613,6 +697,77 @@ export function buildDishBlueprint(
     }
   }
 
+  // 6.5. 動態平衡全廠電網：確保發電量充足滿足全廠所有機台（含自癒機台、泵機與胃復慘），杜絕欠壓週期膨脹
+  const currentTotalLoad = nodes
+    .filter(n => n.type !== 'generator' && !n.id.startsWith('pwr-coal'))
+    .reduce((sum, n) => sum + (n.basePowerConsumption || 0), 0);
+
+  // 常規虛空熔爐每台淨發電 3.5 FV/s (每2台需1台採煤機)
+  const requiredFurnaces = Math.max(1, Math.ceil(currentTotalLoad / 3.5));
+  const requiredCoalMiners = Math.ceil(requiredFurnaces / 2);
+  const existingFurnaces = nodes.filter(n => n.type === 'generator' && n.id.startsWith(`pwr-gen-${dishIndex}`)).length;
+
+  if (requiredFurnaces > existingFurnaces) {
+    const extraFurnaces = requiredFurnaces - existingFurnaces;
+    const existingMiners = nodes.filter(n => n.id.startsWith(`pwr-coal-${dishIndex}`)).length;
+    const extraMiners = Math.max(0, requiredCoalMiners - existingMiners);
+
+    // 追加採煤機
+    for (let em = 0; em < extraMiners; em++) {
+      const minerId = `pwr-coal-${dishIndex}-${existingMiners + em}`;
+      const minerNode = makeNode({
+        id: minerId,
+        type: 'machine',
+        title: `採煤機 #${existingMiners + em + 1} (供煤)`,
+        machineName: '採掘機',
+        x: 60,
+        y: 80 + (existingMiners + em) * 180,
+        baseCycleTime: 5,
+        baseOutputCount: 1,
+        basePowerConsumption: 1.0,
+        baseGoblins: 1,
+        inputs: [],
+        outputs: [{ id: 'out-煤炭', name: '煤炭', type: 'solid', rateProvided: 0.2 }]
+      });
+      nodes.push(minerNode);
+    }
+
+    // 追加虛空熔爐並建立煤炭供料連線
+    const allMiners = nodes.filter(n => n.id.startsWith(`pwr-coal-${dishIndex}`));
+    for (let ef = 0; ef < extraFurnaces; ef++) {
+      const fIdx = existingFurnaces + ef;
+      const genId = `pwr-gen-${dishIndex}-${fIdx}`;
+      const genNode = makeNode({
+        id: genId,
+        type: 'generator',
+        title: `虛空熔爐 #${fIdx + 1} (4 FV/s)`,
+        machineName: '虛空熔爐',
+        powerMode: 'regular',
+        x: 200,
+        y: 80 + fIdx * 120,
+        baseCycleTime: 10,
+        baseOutputCount: 1,
+        basePowerConsumption: 4.0,
+        baseGoblins: 1,
+        inputs: [{ id: 'in-coal', name: '煤炭', type: 'solid', rateRequired: 0.1 }],
+        outputs: []
+      });
+      nodes.push(genNode);
+
+      const assignedMiner = allMiners[Math.floor(fIdx / 2) % allMiners.length];
+      pushConn({
+        id: `c-pwr-coal-feed-${dishIndex}-${fIdx}`,
+        fromNodeId: assignedMiner.id,
+        fromPortId: 'out-煤炭',
+        toNodeId: genId,
+        toPortId: 'in-coal',
+        itemOrFluidName: '煤炭',
+        type: 'solid',
+        actualFlowRate: 0.1
+      });
+    }
+  }
+
   // 7. Physics Simulation Verification
   const sim = simulateSandboxPhysics(nodes, connections);
 
@@ -626,7 +781,7 @@ export function buildDishBlueprint(
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     pan: { x: 50, y: 50 },
-    zoom: 0.85,
+    zoom: isScorching ? 0.65 : 0.85,
     stats: {
       machineCount: nodes.filter(n => n.type === 'machine' || n.type === 'generator' || n.type === 'pump').length,
       powerLoad: Number(sim.metrics.totalPowerLoad.toFixed(2)),

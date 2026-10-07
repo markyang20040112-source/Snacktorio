@@ -16,7 +16,7 @@ import {
   sameNodesIgnoringPosition,
   saveCanvasToLocal
 } from './sandboxNodeUtils';
-import { sandboxBlueprintService } from '../../services/sandboxBlueprintService';
+import { sandboxBlueprintService, isOfficialDishBlueprint } from '../../services/sandboxBlueprintService';
 import { Machine, Item, IntermediateRecipe, Recipe } from '../../types';
 import { isScorchingDish } from '../../services/solver';
 import { SandboxCatalogSidebar, InfrastructureType } from './SandboxCatalogSidebar';
@@ -370,15 +370,17 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
 
   // 載入專案 (清空並覆寫當前畫布，同時校準歷史殘留產能倍率)
   const handleLoadBlueprint = useCallback((bp: SandboxBlueprint) => {
-    const calibratedNodes = bp.nodes.map(n => calibrateNodeBaseRates(n, recipes, intermediate));
-
+    const targetBp = isOfficialDishBlueprint(bp)
+      ? sandboxBlueprintService.getBuiltInAndDynamicBlueprints().find(b => b.id === bp.id) || bp
+      : bp;
+    const calibratedNodes = targetBp.nodes.map(n => calibrateNodeBaseRates(n, recipes, intermediate));
     setNodes(calibratedNodes);
-    setConnections(bp.connections);
-    if (bp.pan) setPan(bp.pan);
-    if (bp.zoom) setZoom(bp.zoom);
-    setCurrentBlueprintId(bp.id);
-    setCurrentBlueprintName(bp.name);
-    flashFeedback(`已載入「${bp.name}」！`);
+    setConnections(targetBp.connections);
+    if (targetBp.pan) setPan(targetBp.pan);
+    if (targetBp.zoom) setZoom(targetBp.zoom);
+    setCurrentBlueprintId(targetBp.id);
+    setCurrentBlueprintName(targetBp.name);
+    flashFeedback(`已載入「${targetBp.name}」！`);
   }, [recipes, intermediate]);
 
   // 追加專案至當前畫布 (不覆寫現有機台，自動計算右側邊界平移)
@@ -1417,7 +1419,6 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         onAppendBlueprint={handleAppendBlueprint}
         onSaveCurrentSuccess={handleSaveCurrentSuccess}
       />
-
     </div>
   );
 };
