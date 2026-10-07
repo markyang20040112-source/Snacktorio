@@ -99,13 +99,6 @@ export function buildDishBlueprint(
   // Group processes by topological tier
   const maxTier = Math.max(...procs.map(p => p.tier || 0));
 
-  // 1. Power Module: Generators + Coal Miners (Scaled dynamically according to powerGrid)
-  const furnaceCount = res.powerGrid?.furnaces || 1;
-  const coalMinerCount = res.powerGrid?.coalMiners || Math.ceil(furnaceCount / 2);
-  const powerMod = buildPowerModule(dishIndex, furnaceCount, coalMinerCount, '煤炭', '虛空熔爐', '採掘機');
-  nodes.push(...powerMod.nodes);
-  pushConn(...powerMod.connections);
-
   const neededEnvFluids = new Set<string>();
   const procNodesMap = new Map<string, SandboxNodeData[]>();
   const procOutputMap = new Map<string, { name: string; isFluid: boolean }>();
@@ -444,6 +437,9 @@ export function buildDishBlueprint(
 
   // 4. Fallback Auto-Healing: Dedicated 1:1 supplier for remaining inputs
   let healCounter = 0;
+  // 動態推導原位轉化液體清單 (注入機產物)，禁止建立攪拌機替代
+  const inSituFluidNames = new Set(intermediateRecipes.filter(r => r.machine === '注入機').map(r => r.name));
+
   nodes.forEach((consumer) => {
     consumer.inputs.forEach((inPort) => {
       // 忽略空端口或無物料端口
@@ -452,7 +448,7 @@ export function buildDishBlueprint(
       if (inPort.type === 'fluid') {
         if (!ENV_FLUIDS.includes(inPort.name)) {
           if (!isInputConnected(consumer.id, inPort.id)) {
-            // 原位轉化流體 (如 炙烈紅油)：若存在轉化抽取泵機，優先接駁轉化泵機，絕不建立攪拌機！
+            // 原位轉化流體：若存在轉化抽取泵機，優先接駁轉化泵機，絕不建立攪拌機！
             const existingTransPump = nodes.find(n => n.type === 'pump' && n.outputs.some(o => o.name === inPort.name));
             if (existingTransPump) {
               const outPort = existingTransPump.outputs.find(o => o.name === inPort.name);
@@ -472,12 +468,12 @@ export function buildDishBlueprint(
             }
 
             // 嚴格禁止為原位轉化流體建立任何攪拌機
-            if (inPort.name === '炙烈紅油' || inPort.name.includes('紅油')) {
+            if (inSituFluidNames.has(inPort.name)) {
               return;
             }
 
             const interDef = intermediateRecipes.find(r => r.name === inPort.name);
-            // 只有當配方明確為攪拌機（且不是原位轉化液體如炙烈紅油）時才建立攪拌機
+            // 只有當配方明確為攪拌機（且不是原位轉化液體）時才建立攪拌機
             if (interDef && interDef.machine === '攪拌機') {
               healCounter++;
               const mixerId = `heal-mixer-${dishIndex}-${healCounter}`;
@@ -703,70 +699,11 @@ export function buildDishBlueprint(
     .reduce((sum, n) => sum + (n.basePowerConsumption || 0), 0);
 
   // 常規虛空熔爐每台淨發電 3.5 FV/s (每2台需1台採煤機)
-  const requiredFurnaces = Math.max(1, Math.ceil(currentTotalLoad / 3.5));
-  const requiredCoalMiners = Math.ceil(requiredFurnaces / 2);
-  const existingFurnaces = nodes.filter(n => n.type === 'generator' && n.id.startsWith(`pwr-gen-${dishIndex}`)).length;
-
-  if (requiredFurnaces > existingFurnaces) {
-    const extraFurnaces = requiredFurnaces - existingFurnaces;
-    const existingMiners = nodes.filter(n => n.id.startsWith(`pwr-coal-${dishIndex}`)).length;
-    const extraMiners = Math.max(0, requiredCoalMiners - existingMiners);
-
-    // 追加採煤機
-    for (let em = 0; em < extraMiners; em++) {
-      const minerId = `pwr-coal-${dishIndex}-${existingMiners + em}`;
-      const minerNode = makeNode({
-        id: minerId,
-        type: 'machine',
-        title: `採煤機 #${existingMiners + em + 1} (供煤)`,
-        machineName: '採掘機',
-        x: 60,
-        y: 80 + (existingMiners + em) * 180,
-        baseCycleTime: 5,
-        baseOutputCount: 1,
-        basePowerConsumption: 1.0,
-        baseGoblins: 1,
-        inputs: [],
-        outputs: [{ id: 'out-煤炭', name: '煤炭', type: 'solid', rateProvided: 0.2 }]
-      });
-      nodes.push(minerNode);
-    }
-
-    // 追加虛空熔爐並建立煤炭供料連線
-    const allMiners = nodes.filter(n => n.id.startsWith(`pwr-coal-${dishIndex}`));
-    for (let ef = 0; ef < extraFurnaces; ef++) {
-      const fIdx = existingFurnaces + ef;
-      const genId = `pwr-gen-${dishIndex}-${fIdx}`;
-      const genNode = makeNode({
-        id: genId,
-        type: 'generator',
-        title: `虛空熔爐 #${fIdx + 1} (4 FV/s)`,
-        machineName: '虛空熔爐',
-        powerMode: 'regular',
-        x: 200,
-        y: 80 + fIdx * 120,
-        baseCycleTime: 10,
-        baseOutputCount: 1,
-        basePowerConsumption: 4.0,
-        baseGoblins: 1,
-        inputs: [{ id: 'in-coal', name: '煤炭', type: 'solid', rateRequired: 0.1 }],
-        outputs: []
-      });
-      nodes.push(genNode);
-
-      const assignedMiner = allMiners[Math.floor(fIdx / 2) % allMiners.length];
-      pushConn({
-        id: `c-pwr-coal-feed-${dishIndex}-${fIdx}`,
-        fromNodeId: assignedMiner.id,
-        fromPortId: 'out-煤炭',
-        toNodeId: genId,
-        toPortId: 'in-coal',
-        itemOrFluidName: '煤炭',
-        type: 'solid',
-        actualFlowRate: 0.1
-      });
-    }
-  }
+  const totalFurnaceCount = Math.max(1, Math.ceil(currentTotalLoad / 3.5));
+  const totalCoalMinerCount = Math.ceil(totalFurnaceCount / 2);
+  const powerMod = buildPowerModule(dishIndex, totalFurnaceCount, totalCoalMinerCount, '煤炭', '虛空熔爐', '採掘機');
+  nodes.push(...powerMod.nodes);
+  pushConn(...powerMod.connections);
 
   // 7. Physics Simulation Verification
   const sim = simulateSandboxPhysics(nodes, connections);
