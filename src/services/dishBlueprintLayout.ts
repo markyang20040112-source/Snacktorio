@@ -52,6 +52,50 @@ export function applyHierarchicalLayout(
     // 1. 食譜必要製程優先：若設備具備食譜主要產出連線，其加工層級完全由主要產出決定。
     // 2. 產能回補不列入分級：連向重構底料/任意物品 (in-base) 之產能回補或副產物回輸屬額外彈性分配，
     //    不應使供給機台被迫提前至更早階層（例如研磨骨粉與重構蜘蛛蛋均直供混和麵團，維持在同一 X 坐標）。
+    const COL_WIDTH = 380;
+    const ROW_HEIGHT = 270;
+    const LANE_GAP = 40;
+
+    // ─────────────────────────────────────────────────────────────
+    // 1. 【泵機系統】(左側縱向側欄 / 後端補給區，方便主產線與胃復慘共用)
+    // ─────────────────────────────────────────────────────────────
+    let envMaxX = originX;
+    let envMaxY = 80;
+
+    if (envNodes.length > 0) {
+      let curEnvY = 80;
+      const poolNodes = envNodes.filter(n => n.type === 'environment_pool');
+
+      poolNodes.forEach(pool => {
+        pool.x = originX;
+        pool.y = curEnvY;
+
+        const pump = envNodes.find(n => n.type === 'pump' && connections.some(c => c.fromNodeId === pool.id && c.toNodeId === n.id));
+        const sludgeManip = pump ? envNodes.find(n => n.machineName === '物質操縱機' && connections.some(c => c.fromNodeId === n.id && c.toNodeId === pump.id)) : null;
+
+        if (pump) {
+          pump.x = originX + COL_WIDTH;
+          pump.y = curEnvY;
+
+          if (sludgeManip) {
+            sludgeManip.x = originX + COL_WIDTH;
+            sludgeManip.y = curEnvY + 245;
+          }
+        }
+
+        const poolHeight = sludgeManip ? (245 * 2 + 30) : 245;
+        curEnvY += poolHeight + 30;
+      });
+
+      envMaxX = originX + COL_WIDTH * 2;
+      envMaxY = curEnvY;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 2. 【產線區域】(右上側區塊)
+    // ─────────────────────────────────────────────────────────────
+    const prodStartX = envNodes.length > 0 ? (envMaxX + 60) : originX;
+
     const primaryOutsMap = new Map<string, string[]>();
     const baseOutsMap = new Map<string, string[]>();
     prodNodes.forEach(n => {
@@ -120,8 +164,7 @@ export function applyHierarchicalLayout(
 
     const maxProdTier = maxDist;
 
-    // 2) 依下游機器輸入端口順序分配 Y 軸通道 (Port-Lanes)
-    // 每個終端廚師機輸入端口定義獨立橫向帶狀通道 (Lane 0, Lane 1...)
+    // 依下游機器輸入端口順序分配 Y 軸通道 (Port-Lanes)
     const laneMap = new Map<string, number>();
     const ySubRankMap = new Map<string, number>();
 
@@ -169,13 +212,8 @@ export function applyHierarchicalLayout(
       }
     });
 
-    // 3) 排版各通道之製程機台 (足夠安全間距防重疊)
-    const COL_WIDTH = 380;
-    const ROW_HEIGHT = 270;
-    const LANE_GAP = 40;
-    const START_X = originX + 60;
+    // 排版各通道之製程機台 (足夠安全間距防重疊)
     let curLaneY = 80;
-
     const totalLanes = chefNode ? (chefNode.inputs.length + 1) : 1;
 
     for (let l = 0; l <= totalLanes; l++) {
@@ -197,7 +235,7 @@ export function applyHierarchicalLayout(
 
       colsInLane.forEach((colNodes, t) => {
         colNodes.sort((a, b) => (ySubRankMap.get(a.id) || 0) - (ySubRankMap.get(b.id) || 0));
-        const colX = START_X + t * COL_WIDTH;
+        const colX = prodStartX + t * COL_WIDTH;
 
         colNodes.forEach((node, rIdx) => {
           node.x = colX;
@@ -209,7 +247,7 @@ export function applyHierarchicalLayout(
     }
 
     // 終端廚師機置於最右側欄位，垂直置中於各通道中央
-    const maxProdX = START_X + maxProdTier * COL_WIDTH;
+    const maxProdX = prodStartX + maxProdTier * COL_WIDTH;
     if (chefNode) {
       chefNode.x = maxProdX;
       chefNode.y = Math.max(80, Math.round((80 + curLaneY - ROW_HEIGHT) / 2));
@@ -217,49 +255,51 @@ export function applyHierarchicalLayout(
 
     const maxProdY = curLaneY;
 
-    // 4) 環境流體與泵機模組 (縱向間距 245px，防疊)
-    const envY = maxProdY + 40;
-    const poolNodes = envNodes.filter(n => n.type === 'environment_pool');
-    poolNodes.forEach((pool, pIdx) => {
-      pool.x = START_X;
-      pool.y = envY + pIdx * 245;
-
-      const pump = envNodes.find(n => n.type === 'pump' && connections.some(c => c.fromNodeId === pool.id && c.toNodeId === n.id));
-      if (pump) {
-        pump.x = START_X + COL_WIDTH;
-        pump.y = pool.y;
-
-        const sludgeManip = envNodes.find(n => n.machineName === '物質操縱機' && connections.some(c => c.fromNodeId === n.id && c.toNodeId === pump.id));
-        if (sludgeManip) {
-          sludgeManip.x = START_X + COL_WIDTH * 2;
-          sludgeManip.y = pool.y;
-        }
-      }
-    });
-
-    const envTotalHeight = poolNodes.length * 245;
-    const maxEnvY = envNodes.length > 0 ? envY + envTotalHeight : maxProdY;
-
-    // 5) 自給電網發電模組 (縱向間距 245px，防疊)
-    const pwrY = maxEnvY + 40;
+    // ─────────────────────────────────────────────────────────────
+    // 3. 【電力系統】(右下側區塊，產線區域正下方，橫向並排釋放 Y 軸壓力)
+    // ─────────────────────────────────────────────────────────────
     const coalMiners = powerNodes.filter(n => n.id.startsWith('pwr-coal'));
     const furnaces = powerNodes.filter(n => n.type === 'generator');
 
+    const pwrStartY = Math.max(maxProdY, envMaxY) + 50;
+    const pwrStartX = prodStartX;
+
+    // 每排最多並排單元數 (依產線欄寬自適應，每單元佔 2 欄)
+    const prodCols = maxProdTier + 1;
+    const unitsPerRow = Math.max(2, Math.floor(prodCols / 2));
+
     coalMiners.forEach((miner, mIdx) => {
-      miner.x = START_X;
-      miner.y = pwrY + mIdx * 245;
+      const rowIdx = Math.floor(mIdx / unitsPerRow);
+      const colInRow = mIdx % unitsPerRow;
+
+      const unitX = pwrStartX + colInRow * 2 * COL_WIDTH;
+      const unitY = pwrStartY + rowIdx * (245 * 2 + 40);
+
+      // 採煤機置於單元左欄中央
+      miner.x = unitX;
+      miner.y = unitY + 120;
+
+      // 該採煤機供給之 1~2 台熔爐並排於右欄上下
+      const f1 = furnaces[mIdx * 2];
+      const f2 = furnaces[mIdx * 2 + 1];
+
+      if (f1) {
+        f1.x = unitX + COL_WIDTH;
+        f1.y = unitY;
+      }
+      if (f2) {
+        f2.x = unitX + COL_WIDTH;
+        f2.y = unitY + 245;
+      }
     });
 
-    furnaces.forEach((furnace, fIdx) => {
-      furnace.x = START_X + COL_WIDTH;
-      furnace.y = pwrY + fIdx * 245;
-    });
-
-    const maxPwrY = pwrY + Math.max(coalMiners.length * 245, furnaces.length * 245);
+    const totalPwrRows = Math.ceil(coalMiners.length / unitsPerRow);
+    const maxPwrY = coalMiners.length > 0 ? (pwrStartY + totalPwrRows * (245 * 2 + 40)) : maxProdY;
+    const maxPwrX = coalMiners.length > 0 ? (pwrStartX + Math.min(coalMiners.length, unitsPerRow) * 2 * COL_WIDTH) : maxProdX;
 
     return {
-      maxX: maxProdX + COL_WIDTH,
-      maxY: maxPwrY
+      maxX: Math.max(maxProdX + COL_WIDTH, maxPwrX),
+      maxY: Math.max(maxProdY, envMaxY, maxPwrY)
     };
   };
 
