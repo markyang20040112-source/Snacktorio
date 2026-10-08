@@ -7,6 +7,10 @@ import { Zap, Users, Flame, Droplets, Trash2, Infinity as InfinityIcon } from 'l
 interface SandboxNodeProps {
   node: SandboxNodeData;
   isSelected: boolean;
+  glowMode?: 'source' | 'target' | 'neighbor' | null;
+  isDimmed?: boolean;
+  onNodeMouseEnter?: (id: string) => void;
+  onNodeMouseLeave?: (id: string) => void;
   onSelect: (id: string, e: React.MouseEvent) => void;
   onDelete: (id: string) => void;
   onToggleMock: (id: string) => void;
@@ -19,6 +23,10 @@ interface SandboxNodeProps {
 export const SandboxNode: React.FC<SandboxNodeProps> = ({
   node,
   isSelected,
+  glowMode = null,
+  isDimmed = false,
+  onNodeMouseEnter,
+  onNodeMouseLeave,
   onSelect,
   onDelete,
   onToggleMock,
@@ -33,9 +41,15 @@ export const SandboxNode: React.FC<SandboxNodeProps> = ({
   const isSplitter = node.type === 'splitter';
   const isBufferDecay = node.type === 'buffer_decay';
 
-  // 狀態邊框顏色
+  // 狀態邊框顏色 (支援連線懸停高亮光暈)
   let borderClass = 'border-slate-800 bg-[#0f171c]/95';
-  if (isSelected) {
+  if (glowMode === 'source') {
+    borderClass = 'border-emerald-400 ring-2 ring-emerald-400/60 shadow-[0_0_25px_rgba(16,185,129,0.45)] bg-[#14232a]/98';
+  } else if (glowMode === 'target') {
+    borderClass = 'border-cyan-400 ring-2 ring-cyan-400/60 shadow-[0_0_25px_rgba(6,182,212,0.45)] bg-[#0e212b]/98';
+  } else if (glowMode === 'neighbor') {
+    borderClass = 'border-amber-400 ring-2 ring-amber-400/60 shadow-[0_0_20px_rgba(245,158,11,0.35)] bg-[#1a2223]/98';
+  } else if (isSelected) {
     borderClass = 'border-amber-400 ring-2 ring-amber-400/30 bg-[#142027]/98';
   } else if (node.efficiency === 0) {
     borderClass = 'border-rose-600/70 bg-[#1a0e12]/95';
@@ -57,8 +71,10 @@ export const SandboxNode: React.FC<SandboxNodeProps> = ({
         transform: `translate(${node.x}px, ${node.y}px)`,
         touchAction: 'none'
       }}
-      className={`absolute w-72 rounded-2xl border shadow-xl backdrop-blur-md transition-shadow select-none group cursor-move ${borderClass}`}
+      className={`absolute w-72 rounded-2xl border shadow-xl backdrop-blur-md transition-all duration-300 select-none group cursor-move ${isDimmed ? 'opacity-25' : 'opacity-100'} ${borderClass}`}
       onMouseDown={(e) => onSelect(node.id, e)}
+      onMouseEnter={() => onNodeMouseEnter?.(node.id)}
+      onMouseLeave={() => onNodeMouseLeave?.(node.id)}
     >
       {/* 頂部標題列 */}
       <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-slate-800/80 bg-slate-950/40 rounded-t-2xl">
@@ -67,6 +83,21 @@ export const SandboxNode: React.FC<SandboxNodeProps> = ({
           <div className="truncate">
             <div className="text-xs font-bold text-slate-200 truncate flex items-center space-x-1.5">
               <span>{node.title}</span>
+              {glowMode === 'source' && (
+                <span className="text-[9px] px-1 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-mono border border-emerald-500/40">
+                  供料端
+                </span>
+              )}
+              {glowMode === 'target' && (
+                <span className="text-[9px] px-1 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-mono border border-cyan-500/40">
+                  接收端
+                </span>
+              )}
+              {glowMode === 'neighbor' && (
+                <span className="text-[9px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono border border-amber-500/40">
+                  直連關聯
+                </span>
+              )}
               {node.isMockInfiniteSupply && (
                 <span className="text-[10px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono flex items-center space-x-0.5 border border-amber-500/40" title="無中生有：原料無限供應">
                   <InfinityIcon className="w-2.5 h-2.5" />

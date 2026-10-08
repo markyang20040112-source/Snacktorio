@@ -14,6 +14,7 @@ import { SandboxCatalogSidebar, InfrastructureType } from './SandboxCatalogSideb
 import { SandboxMetricsPanel } from './SandboxMetricsPanel';
 import { SandboxToolbar } from './SandboxToolbar';
 import { SandboxConnectionsLayer, ConnectingSource } from './SandboxConnectionsLayer';
+import { useSandboxHover } from './useSandboxHover';
 import { Compass, Maximize } from 'lucide-react';
 import { buildFluidNameSet, isFluidName, rawSourceMachine } from '../../utils/itemTraits';
 
@@ -71,24 +72,15 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
   const [isMarqueeMode, setIsMarqueeMode] = useState<boolean>(false);
-  const [selectionBox, setSelectionBox] = useState<{
-    startX: number;
-    startY: number;
-    currentX: number;
-    currentY: number;
-  } | null>(null);
+  const [selectionBox, setSelectionBox] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
   const dragNodesStartPositionsRef = useRef<Record<string, { x: number; y: number }>>({});
 
-  // 終端料理預設出餐產能 (側欄型錄與新增廚師機共用；側欄其餘 UI 狀態由 SandboxCatalogSidebar 自行管理)
+  // 終端料理預設出餐產能 (側欄型錄與新增廚師機共用)
   const [defaultDishRateMin, setDefaultDishRateMin] = useState<number>(12);
 
   // 產線專案 (Blueprint) 狀態
-  const [currentBlueprintId, setCurrentBlueprintId] = useState<string | null>(() => {
-    return typeof localStorage !== 'undefined' ? localStorage.getItem('snacktorio_current_blueprint_id_v1') || null : null;
-  });
-  const [currentBlueprintName, setCurrentBlueprintName] = useState<string>(() => {
-    return typeof localStorage !== 'undefined' ? localStorage.getItem('snacktorio_current_blueprint_name_v1') || '未命名產線' : '未命名產線';
-  });
+  const [currentBlueprintId, setCurrentBlueprintId] = useState<string | null>(() => typeof localStorage !== 'undefined' ? localStorage.getItem('snacktorio_current_blueprint_id_v1') || null : null);
+  const [currentBlueprintName, setCurrentBlueprintName] = useState<string>(() => typeof localStorage !== 'undefined' ? localStorage.getItem('snacktorio_current_blueprint_name_v1') || '未命名產線' : '未命名產線');
   const [isBlueprintModalOpen, setIsBlueprintModalOpen] = useState(false);
   const [quickSaveFeedback, setQuickSaveFeedback] = useState<string | null>(null);
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -119,12 +111,9 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
   const [connectingSource, setConnectingSource] = useState<ConnectingSource | null>(null);
 
   // 邊緣自動推鏡頭 (Auto-Pan) 與即時座標同步 Ref
-  const panRef = useRef(pan);
-  panRef.current = pan;
-  const zoomRef = useRef(zoom);
-  zoomRef.current = zoom;
-  const connectingSourceRef = useRef(connectingSource);
-  connectingSourceRef.current = connectingSource;
+  const panRef = useRef(pan); panRef.current = pan;
+  const zoomRef = useRef(zoom); zoomRef.current = zoom;
+  const connectingSourceRef = useRef(connectingSource); connectingSourceRef.current = connectingSource;
 
   const autoPanVelocityRef = useRef<{ vx: number; vy: number }>({ vx: 0, vy: 0 });
   const autoPanAnimationRef = useRef<number | null>(null);
@@ -212,6 +201,13 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     });
   }, [physics, physicsNodes, nodes]);
 
+  // 連線懸停發光與延遲焦點過濾 (350ms 延遲暗化無關元素，防誤觸)
+  const {
+    hoveredConnId, inspectedNodeId, isFocusDimActive,
+    handleHoverConnection, handleNodeMouseEnter, handleNodeMouseLeave,
+    getNodeGlowMode, isNodeDimmed
+  } = useSandboxHover(updatedConnections);
+
   // 本機自動存檔 (300ms 防抖；離開頁面或切換分頁時立即寫入最新狀態)
   const latestCanvasRef = useRef({ nodes, connections });
   latestCanvasRef.current = { nodes, connections };
@@ -246,10 +242,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
   }, [currentBlueprintId, currentBlueprintName, nodes, connections, pan, zoom]);
 
   // 剪貼簿狀態 (支援選中機台或整廠產線複製貼上)
-  const [clipboardData, setClipboardData] = useState<{
-    nodes: SandboxNodeData[];
-    connections: SandboxConnection[];
-  } | null>(null);
+  const [clipboardData, setClipboardData] = useState<{ nodes: SandboxNodeData[]; connections: SandboxConnection[] } | null>(null);
 
   // 複製選中（局部多選）或全廠產線
   const handleCopy = useCallback(() => {
@@ -1238,10 +1231,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
 
   return (
     <div className="flex h-[calc(100vh-140px)] w-full overflow-hidden bg-[#050b0e] rounded-3xl border border-[#1c2e38] shadow-2xl relative select-none">
-      
-      {/* ========================================================================= */}
-      {/* 1. 左側可折疊物資庫 (純資料庫驅動，自適應未來任何新配方) */}
-      {/* ========================================================================= */}
+      {/* 1. 左側可折疊物資庫 (純資料庫驅動) */}
       <SandboxCatalogSidebar
         machines={machines}
         items={items}
@@ -1254,9 +1244,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         handleAddInfrastructure={handleAddInfrastructure}
       />
 
-      {/* ========================================================================= */}
       {/* 2. 中央無限畫布 (Canvas / Node Graph) */}
-      {/* ========================================================================= */}
       <div 
         ref={canvasRef}
         className="flex-1 relative overflow-hidden bg-[#070d10] cursor-grab active:cursor-grabbing"
@@ -1316,6 +1304,12 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
             connectingSource={connectingSource}
             getPortCoordinates={getPortCoordinates}
             onDeleteConnection={handleDeleteConnection}
+            allNodes={updatedNodes}
+            nodeMap={nodeById}
+            hoveredConnId={hoveredConnId}
+            onHoverConnection={handleHoverConnection}
+            inspectedNodeId={inspectedNodeId}
+            isFocusDimActive={isFocusDimActive}
           />
 
           {/* 節點卡片層 */}
@@ -1325,6 +1319,10 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
                 key={node.id}
                 node={node}
                 isSelected={selectedNodeIds.includes(node.id) || selectedNodeId === node.id}
+                glowMode={getNodeGlowMode(node.id)}
+                isDimmed={isNodeDimmed(node.id)}
+                onNodeMouseEnter={handleNodeMouseEnter}
+                onNodeMouseLeave={handleNodeMouseLeave}
                 onSelect={handleNodeSelect}
                 onDelete={handleDeleteNode}
                 onToggleMock={handleToggleMock}
