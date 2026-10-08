@@ -404,7 +404,6 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     setIsBlueprintModalOpen(false);
   }, [nodes, pan, recipes, intermediate]);
 
-
   // 另存/儲存成功回調
   const handleSaveCurrentSuccess = useCallback((bp: SandboxBlueprint) => {
     setCurrentBlueprintId(bp.id);

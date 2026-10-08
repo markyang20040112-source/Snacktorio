@@ -521,8 +521,8 @@ export function buildDishBlueprint(
       }
 
       if (!isInputConnected(consumer.id, inPort.id)) {
-        // 物質操縱機底料交由智慧分配器統籌接駁（優先副產物，根除多餘收割機）
-        if (consumer.machineName === '物質操縱機' && (inPort.id === 'in-base' || inPort.name === '重構底料' || inPort.name === '任意物品')) {
+        // 凡需要底料（任意物品 / 重構底料）之端口，統一交由智慧分配器統籌接駁（優先副產物，根除多餘收割機）
+        if (inPort.id === 'in-base' || inPort.name === '重構底料' || inPort.name === '任意物品' || inPort.name === '底料' || inPort.name === baseCropItemName) {
           return;
         }
 
@@ -628,7 +628,8 @@ export function buildDishBlueprint(
   });
 
   // 4.5. 智慧底料分配器 (Smart Base Material Allocator)：
-  // 優先以產線內部副產物或多餘產能（如研磨機富餘骨粉）直供物質操縱機，消滅冗餘收割機；
+  // 依真實物理流量平衡 (Flow-based Balance) 自適應分配任意物品/重構底料：
+  // 優先以產線內部副產物或多餘產能（如研磨機富餘骨粉）直供，消滅冗餘收割機；
   // 若無內部多餘產能，則在全廠共用最少台數之底料收割機。
   allocateSmartBaseMaterials(
     dishIndex,
@@ -637,7 +638,9 @@ export function buildDishBlueprint(
     portUsedCapacity,
     baseCropItemName,
     isInputConnected,
-    pushConn
+    pushConn,
+    procs,
+    intermediateRecipes
   );
 
   // 5. Environment Fluids & Pumps

@@ -1,5 +1,7 @@
 import { SandboxNodeData, SandboxConnection } from '../components/Sandbox/sandboxTypes';
 import { makeNode } from '../components/Sandbox/sandboxNodeUtils';
+import { ProcessNode, IntermediateRecipe } from '../types';
+import { getProcessRealSurplusRate } from './solver';
 
 /**
  * 環境資源池節點 (無限供液)
@@ -315,9 +317,13 @@ function hasDirectedPath(fromId: string, toId: string, conns: SandboxConnection[
 
 /**
  * 智慧底料分配器 (Smart Base Material Allocator)：
- * 優先以產線內部中間機台之副產物或多餘產能（如研磨機富餘骨粉）直供物質操縱機底料，消滅冗餘收割機；
- * 嚴禁以【自動廚師機】（終端出餐料理）作為底料，並嚴格防禦循環依賴死鎖。
- * 若無內部多餘產能，則在全廠共用最少台數之底料收割機。
+/**
+ * 智慧底料分配器 (Smart Base Material Allocator)：
+ * 依真實物理流量平衡 (Flow-based Balance) 自適應分配任意物品/重構底料：
+ * 1. 優先尋找產線內部因整數配比或多產出而產生的「真實物理產能盈餘 (True Real Surplus >= 0.19)」，
+ *    且嚴防 DAG 祖先閉環死鎖，將過剩物料分流作底料，徹底消滅不必要的額外收割機。
+ * 2. 其次尋找全廠現有收割機/採掘機中尚有剩餘產能者 (surplus >= 0.19)。
+ * 3. 若無內部多餘產能，則在全廠共用最少台數之底料收割機。
  */
 export function allocateSmartBaseMaterials(
   dishIndex: number,
@@ -326,70 +332,142 @@ export function allocateSmartBaseMaterials(
   portUsedCapacity: Map<string, number>,
   baseCropItemName: string,
   isInputConnected: (nodeId: string, portId: string) => boolean,
-  pushConn: (...conns: SandboxConnection[]) => void
+  pushConn: (...conns: SandboxConnection[]) => void,
+  procs: ProcessNode[] = [],
+  intermediateRecipes: IntermediateRecipe[] = []
 ): void {
-  const manipulatorsNeedingBase = nodes.filter(n => n.machineName === '物質操縱機').filter(m => {
-    const inBasePort = m.inputs.find(inp => (inp.name === '重構底料' || inp.name === '任意物品' || inp.name === baseCropItemName || inp.id === 'in-base') && !isInputConnected(m.id, inp.id));
-    return !!inBasePort;
+  // 找出所有需要底料（任意物品 / 重構底料）且尚未連線的消費者機台
+  const consumersNeedingBase = nodes.filter(cand => {
+    if (cand.type !== 'machine') return false;
+    return cand.inputs.some(inp =>
+      (inp.name === '重構底料' || inp.name === '任意物品' || inp.name === '底料' || inp.name === baseCropItemName || inp.id === 'in-base') &&
+      !isInputConnected(cand.id, inp.id)
+    );
   });
 
   let sharedBaseHarvester: SandboxNodeData | null = null;
   let allocCounter = 0;
+  const procSurplusUsed = new Map<string, number>();
 
-  manipulatorsNeedingBase.forEach(m => {
-    const inBasePort = m.inputs.find(inp => (inp.name === '重構底料' || inp.name === '任意物品' || inp.name === baseCropItemName || inp.id === 'in-base') && !isInputConnected(m.id, inp.id));
+  // 優先級 1：全廠富餘中間產能就近匹配 (Nearest Proximity Bipartite Matching)
+  // 找出全廠所有具備真實產能盈餘的中間機台 (True Physical Surplus >= 0.19)
+  const donorNodes = nodes.filter(cand => {
+    if (cand.type !== 'machine') return false;
+    if (cand.machineName === '自動廚師機' || cand.machineName === '物質操縱機') return false;
+    if (cand.machineName === '收割機' || cand.machineName === '採掘機') return false;
+
+    const outP = cand.outputs[0];
+    if (!outP || outP.type !== 'solid') return false;
+
+    const portKey = `${cand.id}_${outP.id}`;
+    const used = portUsedCapacity.get(portKey) || 0;
+    const portSurplus = (outP.rateProvided || 0.2) - used;
+    if (portSurplus < 0.19) return false;
+
+    const procDef = procs.find(pr =>
+      (cand.recipeName && pr.processName === cand.recipeName) ||
+      cand.title.includes(pr.processName) ||
+      (cand.recipeName && pr.processName.includes(cand.recipeName))
+    );
+    if (!procDef) return false;
+
+    const totalRealSurplus = getProcessRealSurplusRate(procDef, procs, intermediateRecipes);
+    const usedSurplus = procSurplusUsed.get(procDef.processName) || 0;
+    return (totalRealSurplus - usedSurplus) >= 0.19;
+  });
+
+  donorNodes.forEach(donor => {
+    const outP = donor.outputs[0];
+    const portKey = `${donor.id}_${outP.id}`;
+    let used = portUsedCapacity.get(portKey) || 0;
+    let availablePort = (outP.rateProvided || 0.2) - used;
+
+    const procDef = procs.find(pr =>
+      (donor.recipeName && pr.processName === donor.recipeName) ||
+      donor.title.includes(pr.processName) ||
+      (donor.recipeName && pr.processName.includes(donor.recipeName))
+    )!;
+    const procKey = procDef.processName;
+    const totalReal = getProcessRealSurplusRate(procDef, procs, intermediateRecipes);
+    let remReal = totalReal - (procSurplusUsed.get(procKey) || 0);
+
+    while (availablePort >= 0.19 && remReal >= 0.19) {
+      // 尋找尚未連線且無 DAG 死鎖的消費者，依幾何距離排序 (就近直供)
+      const eligibleConsumers = consumersNeedingBase.filter(c => {
+        const inPort = c.inputs.find(inp =>
+          (inp.name === '重構底料' || inp.name === '任意物品' || inp.name === '底料' || inp.name === baseCropItemName || inp.id === 'in-base') &&
+          !isInputConnected(c.id, inp.id)
+        );
+        if (!inPort) return false;
+        return !hasDirectedPath(c.id, donor.id, connections);
+      });
+
+      if (eligibleConsumers.length === 0) break;
+
+      eligibleConsumers.sort((a, b) => {
+        const distA = Math.hypot(a.x - donor.x, a.y - donor.y);
+        const distB = Math.hypot(b.x - donor.x, b.y - donor.y);
+        return distA - distB;
+      });
+
+      const closestConsumer = eligibleConsumers[0];
+      const inBasePort = closestConsumer.inputs.find(inp =>
+        (inp.name === '重構底料' || inp.name === '任意物品' || inp.name === '底料' || inp.name === baseCropItemName || inp.id === 'in-base') &&
+        !isInputConnected(closestConsumer.id, inp.id)
+      )!;
+
+      const flowRate = Number((inBasePort.rateRequired || 0.2).toFixed(3));
+      pushConn({
+        id: `c-surplus-base-${dishIndex}-${closestConsumer.id}-${donor.id}`,
+        fromNodeId: donor.id,
+        fromPortId: outP.id,
+        toNodeId: closestConsumer.id,
+        toPortId: inBasePort.id,
+        itemOrFluidName: outP.name,
+        type: 'solid',
+        actualFlowRate: flowRate
+      });
+
+      used += flowRate;
+      portUsedCapacity.set(portKey, used);
+      availablePort -= flowRate;
+      remReal -= flowRate;
+      procSurplusUsed.set(procKey, (procSurplusUsed.get(procKey) || 0) + flowRate);
+    }
+  });
+
+  // 對於剩餘未被內部盈餘滿足之消費者，處理優先級 2 (現有收割機富餘) 與優先級 3 (底料收割機)
+  consumersNeedingBase.forEach(m => {
+    const inBasePort = m.inputs.find(inp =>
+      (inp.name === '重構底料' || inp.name === '任意物品' || inp.name === '底料' || inp.name === baseCropItemName || inp.id === 'in-base') &&
+      !isInputConnected(m.id, inp.id)
+    );
     if (!inBasePort) return;
 
-    // 優先級 1：產線中已有且產能過剩的「真正副產物 / 碎屑 / 骨粉」
-    // 嚴格排除：自動廚師機、原料機台、消耗流體之機台、精緻熟食/醬料/麵糰，並防禦循環依賴
-    const donorNode = nodes.find(cand => {
-      if (cand.id === m.id || cand.type !== 'machine') return false;
-      if (
-        cand.machineName === '自動廚師機' ||
-        cand.machineName === '收割機' ||
-        cand.machineName === '採掘機' ||
-        cand.machineName === '物質操縱機'
-      ) return false;
+    const neededRate = inBasePort.rateRequired || 0.2;
 
-      // 嚴格排除消耗流體之機台（凡消耗水/油/紅油等珍貴流體製成之產物，絕不可作重構底料）
-      if (cand.inputs.some(inp => inp.type === 'fluid' && (inp.rateRequired || 0) > 0)) {
-        return false;
-      }
-
+    // 優先級 2：全廠現有收割機/採掘機中尚有富餘產能者（例如日桂葉配置 2 台產 0.4，主流程只耗 0.2）
+    const existingExtractor = nodes.find(cand => {
+      if (cand.machineName !== '收割機' && cand.machineName !== '採掘機') return false;
       const outP = cand.outputs[0];
       if (!outP || outP.type !== 'solid') return false;
-
-      // 嚴格排除醬料、熟食、主食半成品（醬、油、熟、炸、烤、皮、團、飯、肉等）
-      const bannedKeywords = ['醬', '油', '熟', '炸', '烤', '皮', '團', '糰', '麵', '糕', '飯', '肉', '酪', '奶', '汁', '泥'];
-      if (bannedKeywords.some(kw => outP.name.includes(kw))) {
-        return false;
-      }
-
-      // 嚴格限定為合法的副產物/無機粉碎物（名帶 骨、粉、渣、屑、灰、石）
-      const allowedKeywords = ['骨', '粉', '渣', '屑', '灰', '石'];
-      if (!allowedKeywords.some(kw => outP.name.includes(kw))) {
-        return false;
-      }
-
-      // 避免死鎖閉環：若 m 已經是 cand 的上游祖先，則 cand 不能反向供給 m 作為底料
       if (hasDirectedPath(m.id, cand.id, connections)) return false;
 
       const portKey = `${cand.id}_${outP.id}`;
       const used = portUsedCapacity.get(portKey) || 0;
       const surplus = (outP.rateProvided || 0.2) - used;
-      return surplus > 0.05;
+      return surplus >= neededRate - 0.01;
     });
 
-    if (donorNode) {
-      const outP = donorNode.outputs[0];
-      const portKey = `${donorNode.id}_${outP.id}`;
+    if (existingExtractor) {
+      const outP = existingExtractor.outputs[0];
+      const portKey = `${existingExtractor.id}_${outP.id}`;
       const used = portUsedCapacity.get(portKey) || 0;
-      const surplus = (outP.rateProvided || 0.2) - used;
-      const flowRate = Number(Math.min(inBasePort.rateRequired || 0.2, surplus).toFixed(3));
+      const flowRate = Number(neededRate.toFixed(3));
 
       pushConn({
-        id: `c-surplus-base-${dishIndex}-${m.id}-${donorNode.id}`,
-        fromNodeId: donorNode.id,
+        id: `c-shared-base-${dishIndex}-${m.id}-${existingExtractor.id}`,
+        fromNodeId: existingExtractor.id,
         fromPortId: outP.id,
         toNodeId: m.id,
         toPortId: inBasePort.id,
@@ -401,39 +479,17 @@ export function allocateSmartBaseMaterials(
       return;
     }
 
-    // 優先級 2：全廠現有收割機中尚有富餘產能者
-    const existingHarvester = nodes.find(cand => {
-      if (cand.machineName !== '收割機') return false;
-      const outP = cand.outputs[0];
-      if (!outP) return false;
-      const portKey = `${cand.id}_${outP.id}`;
+    // 優先級 3：全廠共用底料收割機，依單台產能上限 (0.2 fl/s) 合理接駁
+    if (sharedBaseHarvester) {
+      const outP = sharedBaseHarvester.outputs[0];
+      const portKey = `${sharedBaseHarvester.id}_${outP.id}`;
       const used = portUsedCapacity.get(portKey) || 0;
       const surplus = (outP.rateProvided || 0.2) - used;
-      return surplus > 0.05;
-    });
-
-    if (existingHarvester) {
-      const outP = existingHarvester.outputs[0];
-      const portKey = `${existingHarvester.id}_${outP.id}`;
-      const used = portUsedCapacity.get(portKey) || 0;
-      const surplus = (outP.rateProvided || 0.2) - used;
-      const flowRate = Number(Math.min(inBasePort.rateRequired || 0.2, surplus).toFixed(3));
-
-      pushConn({
-        id: `c-shared-base-${dishIndex}-${m.id}-${existingHarvester.id}`,
-        fromNodeId: existingHarvester.id,
-        fromPortId: outP.id,
-        toNodeId: m.id,
-        toPortId: inBasePort.id,
-        itemOrFluidName: outP.name,
-        type: 'solid',
-        actualFlowRate: flowRate
-      });
-      portUsedCapacity.set(portKey, used + flowRate);
-      return;
+      if (surplus < neededRate - 0.01) {
+        sharedBaseHarvester = null; // 容量已滿，需建下一台
+      }
     }
 
-    // 優先級 3：全廠共用單一底料收割機，絕不重複建立多台
     if (!sharedBaseHarvester) {
       allocCounter++;
       const baseHarvesterId = `heal-base-${dishIndex}-${allocCounter}`;
@@ -455,15 +511,21 @@ export function allocateSmartBaseMaterials(
       nodes.push(sharedBaseHarvester);
     }
 
+    const outP = sharedBaseHarvester.outputs[0];
+    const basePortKey = `${sharedBaseHarvester.id}_${outP.id}`;
+    const baseUsed = portUsedCapacity.get(basePortKey) || 0;
+    const flowRate = Number(neededRate.toFixed(3));
+
     pushConn({
       id: `c-heal-base-${dishIndex}-${m.id}`,
       fromNodeId: sharedBaseHarvester.id,
-      fromPortId: `out-${baseCropItemName}`,
+      fromPortId: outP.id,
       toNodeId: m.id,
       toPortId: inBasePort.id,
       itemOrFluidName: baseCropItemName,
       type: 'solid',
-      actualFlowRate: inBasePort.rateRequired || 0.2
+      actualFlowRate: flowRate
     });
+    portUsedCapacity.set(basePortKey, baseUsed + flowRate);
   });
 }
