@@ -16,7 +16,7 @@ import {
 } from '../components/Sandbox/sandboxTypes';
 import { Recipe, IntermediateRecipe, Machine, Item } from '../types';
 import { ENV_FLUIDS, rawSourceMachine } from '../utils/itemTraits';
-import { buildPowerModule, buildEnvFluidsModule } from './dishBlueprintPower';
+import { buildPowerModule, buildEnvFluidsModule, allocateSmartBaseMaterials } from './dishBlueprintPower';
 
 /**
  * 為指定終端料理全自動推導並建置完整 100% 滿載且無虛假產能之真實沙盒產線藍圖
@@ -521,6 +521,11 @@ export function buildDishBlueprint(
       }
 
       if (!isInputConnected(consumer.id, inPort.id)) {
+        // 物質操縱機底料交由智慧分配器統籌接駁（優先副產物，根除多餘收割機）
+        if (consumer.machineName === '物質操縱機' && (inPort.id === 'in-base' || inPort.name === '重構底料' || inPort.name === '任意物品')) {
+          return;
+        }
+
         healCounter++;
         const targetRawName = inPort.name === '重構底料' || inPort.name === '任意物品' ? baseCropItemName : inPort.name;
         const { isRecon, machName } = classifyRawSource(targetRawName);
@@ -622,39 +627,17 @@ export function buildDishBlueprint(
     });
   });
 
-  // Dedicated base donor (收割機 - 供底料) for any manipulator lacking base material
-  nodes.filter(n => n.machineName === '物質操縱機').forEach(m => {
-    const inBasePort = m.inputs.find(inp => inp.name === '重構底料' || inp.name === '任意物品' || inp.name === baseCropItemName || inp.id === 'in-base');
-    if (inBasePort && !isInputConnected(m.id, inBasePort.id)) {
-      healCounter++;
-      const baseHarvesterId = `heal-base-${dishIndex}-${healCounter}`;
-      nodes.push(makeNode({
-        id: baseHarvesterId,
-        type: 'machine',
-        title: `採收：${baseCropItemName}`,
-        machineName: '收割機',
-        recipeName: baseCropItemName,
-        x: m.x - 280,
-        y: m.y + 100,
-        baseCycleTime: 5,
-        baseOutputCount: 1,
-        basePowerConsumption: 1.0,
-        baseGoblins: 1,
-        inputs: [],
-        outputs: [{ id: `out-${baseCropItemName}`, name: baseCropItemName, type: 'solid', rateProvided: 0.2 }]
-      }));
-      pushConn({
-        id: `c-heal-base-${dishIndex}-${healCounter}`,
-        fromNodeId: baseHarvesterId,
-        fromPortId: `out-${baseCropItemName}`,
-        toNodeId: m.id,
-        toPortId: inBasePort.id,
-        itemOrFluidName: baseCropItemName,
-        type: 'solid',
-        actualFlowRate: inBasePort.rateRequired || 0.2
-      });
-    }
-  });
+  // 4.5. 智慧底料分配器 (Smart Base Material Allocator)：
+  // 優先以產線內部副產物或多餘產能（如研磨機富餘骨粉）直供物質操縱機，消滅冗餘收割機；
+  // 若無內部多餘產能，則在全廠共用最少台數之底料收割機。
+  allocateSmartBaseMaterials(
+    dishIndex,
+    nodes,
+    portUsedCapacity,
+    baseCropItemName,
+    isInputConnected,
+    pushConn
+  );
 
   // 5. Environment Fluids & Pumps
   const envMod = buildEnvFluidsModule(
@@ -698,9 +681,13 @@ export function buildDishBlueprint(
     .filter(n => n.type !== 'generator' && !n.id.startsWith('pwr-coal'))
     .reduce((sum, n) => sum + (n.basePowerConsumption || 0), 0);
 
-  // 常規虛空熔爐每台淨發電 3.5 FV/s (每2台需1台採煤機)
-  const totalFurnaceCount = Math.max(1, Math.ceil(currentTotalLoad / 3.5));
-  const totalCoalMinerCount = Math.ceil(totalFurnaceCount / 2);
+  // 常規虛空熔爐每台淨發電 3.5 FV/s (每2台需1台採煤機)，並嚴格防禦欠壓
+  let totalFurnaceCount = Math.max(1, Math.ceil(currentTotalLoad / 3.5));
+  let totalCoalMinerCount = Math.ceil(totalFurnaceCount / 2);
+  while (totalFurnaceCount * 4 < currentTotalLoad + totalCoalMinerCount) {
+    totalFurnaceCount++;
+    totalCoalMinerCount = Math.ceil(totalFurnaceCount / 2);
+  }
   const powerMod = buildPowerModule(dishIndex, totalFurnaceCount, totalCoalMinerCount, '煤炭', '虛空熔爐', '採掘機');
   nodes.push(...powerMod.nodes);
   pushConn(...powerMod.connections);

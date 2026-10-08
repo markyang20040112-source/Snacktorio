@@ -168,28 +168,7 @@ export function buildEnvFluidsModule(
     nodes.push(pumpNode);
 
     if (isOc) {
-      const ocVoidPoolId = `oc-void-pool-${fluid}-${dishIndex}`;
-      const ocVoidPumpId = `oc-void-pump-${fluid}-${dishIndex}`;
       const sludgeManipId = `sludge-manip-${fluid}-${dishIndex}`;
-
-      const ocVoidPool = makePoolNode(ocVoidPoolId, '環境資源：虛空裂隙', voidFluidName, 500 + envY + 220);
-
-      const ocVoidPump = makeNode({
-        id: ocVoidPumpId,
-        type: 'pump',
-        title: `常規${voidFluidName}泵 (2.0 fl/s)`,
-        machineName: pumpMachineName,
-        powerMode: 'regular',
-        pumpCapacity: 2.0,
-        x: 380,
-        y: 500 + envY + 220,
-        baseCycleTime: 1,
-        baseOutputCount: 2.0,
-        basePowerConsumption: 1.0,
-        baseGoblins: 0,
-        inputs: [{ id: 'in-fluid', name: voidFluidName, type: 'fluid', rateRequired: 2.0 }],
-        outputs: [{ id: `out-${voidFluidName}`, name: voidFluidName, type: 'fluid', rateProvided: 2.0 }]
-      });
 
       const sludgeManip = makeNode({
         id: sludgeManipId,
@@ -197,8 +176,8 @@ export function buildEnvFluidsModule(
         title: `${manipulatorMachineName} (供汙泥超頻)`,
         machineName: manipulatorMachineName,
         recipeName: sludgeName,
-        x: 700,
-        y: 500 + envY + 110,
+        x: 620,
+        y: 500 + envY + 70,
         baseCycleTime: 5,
         baseOutputCount: 1,
         basePowerConsumption: 2.0,
@@ -207,40 +186,76 @@ export function buildEnvFluidsModule(
         outputs: [{ id: `out-${sludgeName}`, name: sludgeName, type: 'solid', rateProvided: 0.2 }]
       });
 
-      nodes.push(ocVoidPool, ocVoidPump, sludgeManip);
+      nodes.push(sludgeManip);
 
-      connections.push(
-        {
-          id: `c-oc-vpool-pump-${fluid}-${dishIndex}`,
-          fromNodeId: ocVoidPoolId,
-          fromPortId: `out-${voidFluidName}`,
-          toNodeId: ocVoidPumpId,
-          toPortId: 'in-fluid',
-          itemOrFluidName: voidFluidName,
-          type: 'fluid',
-          actualFlowRate: 2.0
-        },
-        {
-          id: `c-oc-vpump-manip-${fluid}-${dishIndex}`,
-          fromNodeId: ocVoidPumpId,
+      // 汙泥回饋管線：物質操縱機 ➔ 超頻泵機
+      connections.push({
+        id: `c-oc-sludge-feed-${fluid}-${dishIndex}`,
+        fromNodeId: sludgeManipId,
+        fromPortId: `out-${sludgeName}`,
+        toNodeId: pumpId,
+        toPortId: 'in-sludge',
+        itemOrFluidName: sludgeName,
+        type: 'solid',
+        actualFlowRate: 0.2
+      });
+
+      if (fluid === voidFluidName) {
+        // 最高效率自耗閉環：超頻虛空泵直接分流 1.0 fl/s 虛空給供汙泥操縱機，絕不建立冗餘常規泵與虛空池！
+        connections.push({
+          id: `c-oc-self-feed-${fluid}-${dishIndex}`,
+          fromNodeId: pumpId,
           fromPortId: `out-${voidFluidName}`,
           toNodeId: sludgeManipId,
           toPortId: `in-fluid-${voidFluidName}`,
           itemOrFluidName: voidFluidName,
           type: 'fluid',
           actualFlowRate: 1.0
-        },
-        {
-          id: `c-oc-sludge-feed-${fluid}-${dishIndex}`,
-          fromNodeId: sludgeManipId,
-          fromPortId: `out-${sludgeName}`,
-          toNodeId: pumpId,
-          toPortId: 'in-sludge',
-          itemOrFluidName: sludgeName,
-          type: 'solid',
-          actualFlowRate: 0.2
-        }
-      );
+        });
+      } else {
+        const ocVoidPoolId = `oc-void-pool-${fluid}-${dishIndex}`;
+        const ocVoidPumpId = `oc-void-pump-${fluid}-${dishIndex}`;
+        const ocVoidPool = makePoolNode(ocVoidPoolId, '環境資源：虛空裂隙', voidFluidName, 500 + envY + 220);
+        const ocVoidPump = makeNode({
+          id: ocVoidPumpId,
+          type: 'pump',
+          title: `常規${voidFluidName}泵 (2.0 fl/s)`,
+          machineName: pumpMachineName,
+          powerMode: 'regular',
+          pumpCapacity: 2.0,
+          x: 380,
+          y: 500 + envY + 220,
+          baseCycleTime: 1,
+          baseOutputCount: 2.0,
+          basePowerConsumption: 1.0,
+          baseGoblins: 0,
+          inputs: [{ id: 'in-fluid', name: voidFluidName, type: 'fluid', rateRequired: 2.0 }],
+          outputs: [{ id: `out-${voidFluidName}`, name: voidFluidName, type: 'fluid', rateProvided: 2.0 }]
+        });
+        nodes.push(ocVoidPool, ocVoidPump);
+        connections.push(
+          {
+            id: `c-oc-vpool-pump-${fluid}-${dishIndex}`,
+            fromNodeId: ocVoidPoolId,
+            fromPortId: `out-${voidFluidName}`,
+            toNodeId: ocVoidPumpId,
+            toPortId: 'in-fluid',
+            itemOrFluidName: voidFluidName,
+            type: 'fluid',
+            actualFlowRate: 2.0
+          },
+          {
+            id: `c-oc-vpump-manip-${fluid}-${dishIndex}`,
+            fromNodeId: ocVoidPumpId,
+            fromPortId: `out-${voidFluidName}`,
+            toNodeId: sludgeManipId,
+            toPortId: `in-fluid-${voidFluidName}`,
+            itemOrFluidName: voidFluidName,
+            type: 'fluid',
+            actualFlowRate: 1.0
+          }
+        );
+      }
     }
 
     connections.push({
@@ -274,4 +289,129 @@ export function buildEnvFluidsModule(
   });
 
   return { nodes, connections };
+}
+
+/**
+ * 智慧底料分配器 (Smart Base Material Allocator)：
+ * 優先以產線內部中間機台之副產物或多餘產能（如研磨機富餘骨粉）直供物質操縱機底料，消滅冗餘收割機；
+ * 若無內部多餘產能，則在全廠共用最少台數之底料收割機。
+ */
+export function allocateSmartBaseMaterials(
+  dishIndex: number,
+  nodes: SandboxNodeData[],
+  portUsedCapacity: Map<string, number>,
+  baseCropItemName: string,
+  isInputConnected: (nodeId: string, portId: string) => boolean,
+  pushConn: (...conns: SandboxConnection[]) => void
+): void {
+  const manipulatorsNeedingBase = nodes.filter(n => n.machineName === '物質操縱機').filter(m => {
+    const inBasePort = m.inputs.find(inp => (inp.name === '重構底料' || inp.name === '任意物品' || inp.name === baseCropItemName || inp.id === 'in-base') && !isInputConnected(m.id, inp.id));
+    return !!inBasePort;
+  });
+
+  let sharedBaseHarvester: SandboxNodeData | null = null;
+  let allocCounter = 0;
+
+  manipulatorsNeedingBase.forEach(m => {
+    const inBasePort = m.inputs.find(inp => (inp.name === '重構底料' || inp.name === '任意物品' || inp.name === baseCropItemName || inp.id === 'in-base') && !isInputConnected(m.id, inp.id));
+    if (!inBasePort) return;
+
+    // 優先級 1：產線中已有且產能過剩的中間加工機台 (例如研磨機富餘產能)
+    const donorNode = nodes.find(cand => {
+      if (cand.id === m.id || cand.type !== 'machine') return false;
+      if (cand.machineName === '收割機' || cand.machineName === '採掘機' || cand.machineName === '物質操縱機') return false;
+      const outP = cand.outputs[0];
+      if (!outP || outP.type !== 'solid') return false;
+      const portKey = `${cand.id}_${outP.id}`;
+      const used = portUsedCapacity.get(portKey) || 0;
+      const surplus = (outP.rateProvided || 0.2) - used;
+      return surplus > 0.05;
+    });
+
+    if (donorNode) {
+      const outP = donorNode.outputs[0];
+      const portKey = `${donorNode.id}_${outP.id}`;
+      const used = portUsedCapacity.get(portKey) || 0;
+      const surplus = (outP.rateProvided || 0.2) - used;
+      const flowRate = Number(Math.min(inBasePort.rateRequired || 0.2, surplus).toFixed(3));
+
+      pushConn({
+        id: `c-surplus-base-${dishIndex}-${m.id}-${donorNode.id}`,
+        fromNodeId: donorNode.id,
+        fromPortId: outP.id,
+        toNodeId: m.id,
+        toPortId: inBasePort.id,
+        itemOrFluidName: outP.name,
+        type: 'solid',
+        actualFlowRate: flowRate
+      });
+      portUsedCapacity.set(portKey, used + flowRate);
+      return;
+    }
+
+    // 優先級 2：全廠現有收割機中尚有富餘產能者
+    const existingHarvester = nodes.find(cand => {
+      if (cand.machineName !== '收割機') return false;
+      const outP = cand.outputs[0];
+      if (!outP) return false;
+      const portKey = `${cand.id}_${outP.id}`;
+      const used = portUsedCapacity.get(portKey) || 0;
+      const surplus = (outP.rateProvided || 0.2) - used;
+      return surplus > 0.05;
+    });
+
+    if (existingHarvester) {
+      const outP = existingHarvester.outputs[0];
+      const portKey = `${existingHarvester.id}_${outP.id}`;
+      const used = portUsedCapacity.get(portKey) || 0;
+      const surplus = (outP.rateProvided || 0.2) - used;
+      const flowRate = Number(Math.min(inBasePort.rateRequired || 0.2, surplus).toFixed(3));
+
+      pushConn({
+        id: `c-shared-base-${dishIndex}-${m.id}-${existingHarvester.id}`,
+        fromNodeId: existingHarvester.id,
+        fromPortId: outP.id,
+        toNodeId: m.id,
+        toPortId: inBasePort.id,
+        itemOrFluidName: outP.name,
+        type: 'solid',
+        actualFlowRate: flowRate
+      });
+      portUsedCapacity.set(portKey, used + flowRate);
+      return;
+    }
+
+    // 優先級 3：全廠共用單一底料收割機，絕不重複建立多台
+    if (!sharedBaseHarvester) {
+      allocCounter++;
+      const baseHarvesterId = `heal-base-${dishIndex}-${allocCounter}`;
+      sharedBaseHarvester = makeNode({
+        id: baseHarvesterId,
+        type: 'machine',
+        title: `採收：${baseCropItemName}`,
+        machineName: '收割機',
+        recipeName: baseCropItemName,
+        x: m.x - 280,
+        y: m.y + 100,
+        baseCycleTime: 5,
+        baseOutputCount: 1,
+        basePowerConsumption: 1.0,
+        baseGoblins: 1,
+        inputs: [],
+        outputs: [{ id: `out-${baseCropItemName}`, name: baseCropItemName, type: 'solid', rateProvided: 0.2 }]
+      });
+      nodes.push(sharedBaseHarvester);
+    }
+
+    pushConn({
+      id: `c-heal-base-${dishIndex}-${m.id}`,
+      fromNodeId: sharedBaseHarvester.id,
+      fromPortId: `out-${baseCropItemName}`,
+      toNodeId: m.id,
+      toPortId: inBasePort.id,
+      itemOrFluidName: baseCropItemName,
+      type: 'solid',
+      actualFlowRate: inBasePort.rateRequired || 0.2
+    });
+  });
 }

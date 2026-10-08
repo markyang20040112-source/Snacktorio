@@ -7,7 +7,7 @@ import { dataService } from './dataService';
 
 const STORAGE_KEY = 'snacktorio_sandbox_blueprints_v1';
 const DELETED_KEY = 'snacktorio_sandbox_deleted_builtins_v1';
-const BUILTIN_VERSION = '20261008_v6_in_situ_pump_and_remedy';
+const BUILTIN_VERSION = '20261008_v7_closed_loop_and_smart_base';
 const VERSION_KEY = 'snacktorio_sandbox_builtin_version';
 
 
