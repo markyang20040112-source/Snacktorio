@@ -644,7 +644,48 @@ export function buildDishBlueprint(
     intermediateRecipes
   );
 
-  // 5. Environment Fluids & Pumps
+  // 4.6. 熾熱菜餚中和解毒配產模組 (胃復慘純製程產線併入全廠產線)
+  if (isScorchingDish(dish.name, items, recipes)) {
+    if (remedyRecipe) {
+      // 以子藍圖推導胃復慘之原料與中間工序
+      const remedySubIndex = dishIndex * 100 + 88;
+      const wBp = buildDishBlueprint(remedyRecipe, remedySubIndex, context);
+
+      // 嚴格僅提取胃復慘的純製程機台（環境流體與發電基建統籌由全廠統一合併建造）
+      const remedyProcNodes = wBp.nodes.filter(n =>
+        n.type !== 'environment_pool' &&
+        n.type !== 'pump' &&
+        n.type !== 'generator' &&
+        !n.id.startsWith('pool-') &&
+        !n.id.startsWith('pump-') &&
+        !n.id.startsWith('sludge-manip-') &&
+        !n.id.startsWith('pwr-coal') &&
+        !n.id.startsWith('pwr-gen')
+      );
+      const remedyProcNodeIds = new Set(remedyProcNodes.map(n => n.id));
+
+      // 僅提取胃復慘內部製程機台之間的純工序連線（兩端皆為製程機台）
+      const remedyProcConns = wBp.connections.filter(c =>
+        remedyProcNodeIds.has(c.fromNodeId) && remedyProcNodeIds.has(c.toNodeId)
+      );
+
+      remedyProcNodes.forEach(wn => {
+        nodes.push({
+          ...wn,
+          isAutoPepto: true
+        });
+        wn.inputs.forEach(inp => {
+          if (inp.type === 'fluid' && ENV_FLUIDS.includes(inp.name)) {
+            neededEnvFluids.add(inp.name);
+          }
+        });
+      });
+
+      pushConn(...remedyProcConns);
+    }
+  }
+
+  // 5. 全廠統一環境流體與泵機模組 (左側集中供液，統籌主產線與胃復慘)
   const envMod = buildEnvFluidsModule(
     dishIndex,
     neededEnvFluids,
@@ -657,34 +698,9 @@ export function buildDishBlueprint(
   nodes.push(...envMod.nodes);
   pushConn(...envMod.connections);
 
-  // 6. Scorching Dish Auto-Remedy: Append remedy production line if scorching
-  if (isScorchingDish(dish.name, items, recipes)) {
-    if (remedyRecipe) {
-      // Find maximum X and Y across current nodes to place remedy neatly on the right
-      const maxX = Math.max(...nodes.map(n => n.x), 600);
-      const offsetX = maxX + 400;
-
-      // Build remedy blueprint without recursing into scorching check (since remedy is not scorching)
-      const wBp = buildDishBlueprint(remedyRecipe, dishIndex * 100 + 88, context);
-      
-      // Shift remedy nodes to the right side
-      wBp.nodes.forEach(wn => {
-        nodes.push({
-          ...wn,
-          isAutoPepto: true,
-          x: wn.x + offsetX
-        });
-      });
-
-      wBp.connections.forEach(wc => {
-        connections.push(wc);
-      });
-    }
-  }
-
-  // 6.5. 動態平衡全廠主電網：主產線負載只算主產線機台（胃復慘由其自帶發電模組獨立平衡）
+  // 6. 全廠統一電網平衡模組 (下方集中供電，統籌全廠所有機台負載)
   const currentTotalLoad = nodes
-    .filter(n => !n.isAutoPepto && n.type !== 'generator' && !n.id.startsWith('pwr-coal'))
+    .filter(n => n.type !== 'generator' && !n.id.startsWith('pwr-coal'))
     .reduce((sum, n) => sum + (n.basePowerConsumption || 0), 0);
 
   // 常規虛空熔爐每台淨發電 3.5 FV/s (每2台需1台採煤機)，並嚴格防禦欠壓

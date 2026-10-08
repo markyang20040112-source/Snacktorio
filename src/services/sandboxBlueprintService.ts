@@ -7,7 +7,7 @@ import { dataService } from './dataService';
 
 const STORAGE_KEY = 'snacktorio_sandbox_blueprints_v1';
 const DELETED_KEY = 'snacktorio_sandbox_deleted_builtins_v1';
-const BUILTIN_VERSION = '20261009_v17_pure_base_harvester_and_pepto_power_isolation';
+const BUILTIN_VERSION = '20261009_v18_unified_fluid_sidebar_and_bottom_power_grid';
 const VERSION_KEY = 'snacktorio_sandbox_builtin_version';
 
 
