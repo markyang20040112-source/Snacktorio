@@ -23,7 +23,7 @@
   ],
   "lineCounts": {
     "src/components/DataManager/IntermediateManager.tsx": 945,
-    "src/components/Sandbox/SandboxSimulator.tsx": 1424,
+    "src/components/Sandbox/SandboxSimulator.tsx": 1398,
     "src/services/solver.ts": 1620
   },
   "hardcodedNames": {

@@ -133,10 +133,10 @@ export function applyHierarchicalLayout(
       }
     });
 
-    // 3) 排版各通道之製程機台 (保證 100% 無重疊)
+    // 3) 排版各通道之製程機台 (緊湊舒適間距，保證 100% 無重疊)
     const COL_WIDTH = 380;
-    const ROW_HEIGHT = 270;
-    const LANE_GAP = 50;
+    const ROW_HEIGHT = 225;
+    const LANE_GAP = 30;
     const START_X = originX + 60;
     let curLaneY = 80;
 
@@ -181,12 +181,12 @@ export function applyHierarchicalLayout(
 
     const maxProdY = curLaneY;
 
-    // 4) 環境流體與泵機模組 (整齊配置於主產線下方獨立區塊)
-    let envY = maxProdY + 60;
+    // 4) 環境流體與泵機模組 (緊湊排列於主產線下方獨立區塊)
+    const envY = maxProdY + 40;
     const poolNodes = envNodes.filter(n => n.type === 'environment_pool');
     poolNodes.forEach((pool, pIdx) => {
       pool.x = START_X;
-      pool.y = envY + pIdx * ROW_HEIGHT;
+      pool.y = envY + pIdx * 210;
 
       const pump = envNodes.find(n => n.type === 'pump' && connections.some(c => c.fromNodeId === pool.id && c.toNodeId === n.id));
       if (pump) {
@@ -201,25 +201,25 @@ export function applyHierarchicalLayout(
       }
     });
 
-    const envTotalHeight = poolNodes.length * ROW_HEIGHT;
+    const envTotalHeight = poolNodes.length * 210;
     const maxEnvY = envNodes.length > 0 ? envY + envTotalHeight : maxProdY;
 
     // 5) 自給電網發電模組 (配置於流體區塊下方，雙欄縱向排列)
-    let pwrY = maxEnvY + 60;
+    const pwrY = maxEnvY + 40;
     const coalMiners = powerNodes.filter(n => n.id.startsWith('pwr-coal'));
     const furnaces = powerNodes.filter(n => n.type === 'generator');
 
     coalMiners.forEach((miner, mIdx) => {
       miner.x = START_X;
-      miner.y = pwrY + mIdx * ROW_HEIGHT;
+      miner.y = pwrY + mIdx * 210;
     });
 
     furnaces.forEach((furnace, fIdx) => {
       furnace.x = START_X + COL_WIDTH;
-      furnace.y = pwrY + fIdx * ROW_HEIGHT;
+      furnace.y = pwrY + fIdx * 200;
     });
 
-    const maxPwrY = pwrY + Math.max(coalMiners.length * ROW_HEIGHT, furnaces.length * ROW_HEIGHT);
+    const maxPwrY = pwrY + Math.max(coalMiners.length * 210, furnaces.length * 200);
 
     return {
       maxX: maxProdX + COL_WIDTH,

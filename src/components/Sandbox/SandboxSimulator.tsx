@@ -1,20 +1,11 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { 
-  SandboxNodeData, 
-  SandboxConnection,
-  PortDefinition,
-  SandboxBlueprint
-} from './sandboxTypes';
+import { SandboxNodeData, SandboxConnection, PortDefinition, SandboxBlueprint } from './sandboxTypes';
 import { simulateSandboxPhysics, isItemMatch, normalizeItemName } from './sandboxPhysics';
 import { SandboxNode } from './SandboxNode';
 import { SandboxBlueprintModal } from './SandboxBlueprintModal';
 import {
-  makeNode,
-  calibrateNodeBaseRates,
-  configureDishNodeRates,
-  cloneSubgraph,
-  sameNodesIgnoringPosition,
-  saveCanvasToLocal
+  makeNode, calibrateNodeBaseRates, configureDishNodeRates, cloneSubgraph,
+  sameNodesIgnoringPosition, saveCanvasToLocal, calculateFitView
 } from './sandboxNodeUtils';
 import { sandboxBlueprintService, isOfficialDishBlueprint } from '../../services/sandboxBlueprintService';
 import { Machine, Item, IntermediateRecipe, Recipe } from '../../types';
@@ -23,7 +14,7 @@ import { SandboxCatalogSidebar, InfrastructureType } from './SandboxCatalogSideb
 import { SandboxMetricsPanel } from './SandboxMetricsPanel';
 import { SandboxToolbar } from './SandboxToolbar';
 import { SandboxConnectionsLayer, ConnectingSource } from './SandboxConnectionsLayer';
-import { Compass } from 'lucide-react';
+import { Compass, Maximize } from 'lucide-react';
 import { buildFluidNameSet, isFluidName, rawSourceMachine } from '../../utils/itemTraits';
 
 interface SandboxSimulatorProps {
@@ -59,37 +50,10 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
       } catch (e) { /* ignore */ }
 
     }
-    // 預設樣板：1 台發電熔爐 + 1 台採煤機 + 1 台水泵 + 1 台煮鍋 (示範新手開局)
+    // 預設樣板：1 台發電熔爐 + 1 台採煤機 (示範新手開局)
     return [
-      makeNode({
-        id: 'gen-1',
-        type: 'generator',
-        title: '虛空熔爐 (常規發電)',
-        machineName: '虛空熔爐',
-        powerMode: 'regular',
-        x: 80,
-        y: 100,
-        baseCycleTime: 10,
-        baseOutputCount: 1,
-        basePowerConsumption: 4.0,
-        baseGoblins: 1,
-        inputs: [{ id: 'in-coal', name: '煤炭', type: 'solid', rateRequired: 0.1 }],
-        outputs: []
-      }),
-      makeNode({
-        id: 'miner-1',
-        type: 'machine',
-        title: '採煤機 (供煤)',
-        machineName: '採掘機',
-        x: 80,
-        y: 320,
-        baseCycleTime: 5,
-        baseOutputCount: 1,
-        basePowerConsumption: 1.0,
-        baseGoblins: 1,
-        inputs: [],
-        outputs: [{ id: 'out-coal', name: '煤炭', type: 'solid', rateProvided: 0.2 }]
-      })
+      makeNode({ id: 'gen-1', type: 'generator', title: '虛空熔爐 (常規發電)', machineName: '虛空熔爐', powerMode: 'regular', x: 80, y: 100, baseCycleTime: 10, baseOutputCount: 1, basePowerConsumption: 4.0, baseGoblins: 1, inputs: [{ id: 'in-coal', name: '煤炭', type: 'solid', rateRequired: 0.1 }], outputs: [] }),
+      makeNode({ id: 'miner-1', type: 'machine', title: '採煤機 (供煤)', machineName: '採掘機', x: 80, y: 320, baseCycleTime: 5, baseOutputCount: 1, basePowerConsumption: 1.0, baseGoblins: 1, inputs: [], outputs: [{ id: 'out-coal', name: '煤炭', type: 'solid', rateProvided: 0.2 }] })
     ];
   });
 
@@ -98,18 +62,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     if (saved) {
       try { return JSON.parse(saved); } catch (e) { /* ignore */ }
     }
-    return [
-      {
-        id: 'c-init-1',
-        fromNodeId: 'miner-1',
-        fromPortId: 'out-coal',
-        toNodeId: 'gen-1',
-        toPortId: 'in-coal',
-        itemOrFluidName: '煤炭',
-        type: 'solid',
-        actualFlowRate: 0.1
-      }
-    ];
+    return [{ id: 'c-init-1', fromNodeId: 'miner-1', fromPortId: 'out-coal', toNodeId: 'gen-1', toPortId: 'in-coal', itemOrFluidName: '煤炭', type: 'solid', actualFlowRate: 0.1 }];
   });
 
   // 畫布視角狀態 (平移與縮放)
@@ -963,9 +916,9 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
       return;
     }
 
-    // 以滑鼠游標為錨點縮放 (Zoom toward mouse pointer)
+    // 以滑鼠游標為錨點縮放 (Zoom toward mouse pointer，允許微縮至 10% 縱覽全局)
     const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-    const newZoom = Math.min(2.0, Math.max(0.4, zoom * zoomFactor));
+    const newZoom = Math.min(2.0, Math.max(0.1, zoom * zoomFactor));
 
     const mouseCanvasX = (e.clientX - rect.left - pan.x) / zoom;
     const mouseCanvasY = (e.clientY - rect.top - pan.y) / zoom;
@@ -986,6 +939,18 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
       } : null);
     }
   };
+
+  // 全景適應 (Fit to View / Zoom to Fit)
+  const handleFitToView = useCallback(() => {
+    if (!canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const fit = calculateFitView(nodes, rect.width, rect.height);
+    setZoom(fit.zoom);
+    zoomRef.current = fit.zoom;
+    setPan(fit.pan);
+    panRef.current = fit.pan;
+    flashFeedback(`已縮放至全景 (${(fit.zoom * 100).toFixed(0)}%)！`);
+  }, [nodes]);
 
   const handleNodeSelect = (nodeId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -1372,15 +1337,24 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
           </div>
         </div>
 
-        {/* 畫布左下角浮動工具按鈕 (重置視角 / 縮放) */}
+        {/* 畫布左下角浮動工具按鈕 (重置視角 / 全景適應 / 縮放 / 清空) */}
         <div className="absolute bottom-4 left-4 z-20 flex items-center space-x-2 bg-slate-950/80 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-slate-800 text-xs text-slate-300 shadow-xl">
           <button 
             onClick={() => { setPan({ x: 0, y: 0 }); setZoom(1); }}
             className="p-1 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition-colors flex items-center space-x-1"
-            title="視角回正"
+            title="視角回正 (100%)"
           >
             <Compass className="w-3.5 h-3.5" />
-            <span>重置視角</span>
+            <span>重置</span>
+          </button>
+          <span className="text-slate-600">|</span>
+          <button 
+            onClick={handleFitToView}
+            className="p-1 hover:text-cyan-400 hover:bg-slate-800 rounded-lg transition-colors flex items-center space-x-1"
+            title="全景適應 (一次查看全部產線)"
+          >
+            <Maximize className="w-3.5 h-3.5" />
+            <span>全景適應</span>
           </button>
           <span className="text-slate-600">|</span>
           <span className="font-mono text-slate-400">{(zoom * 100).toFixed(0)}%</span>
@@ -1395,7 +1369,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
             className="p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 rounded-lg transition-colors"
             title="清空畫布"
           >
-            清空畫布
+            清空
           </button>
         </div>
       </div>

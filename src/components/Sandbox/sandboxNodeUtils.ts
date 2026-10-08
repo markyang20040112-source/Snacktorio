@@ -191,3 +191,52 @@ export function configureDishNodeRates(
     outputs
   };
 }
+
+/**
+ * 計算全景適應縮放與視角錨點 (Fit to View / Zoom to Fit)
+ * 自動量測畫布所有節點之外接矩形，計算最佳縮放倍率以一次呈現完整產線
+ */
+export function calculateFitView(
+  nodes: SandboxNodeData[],
+  viewportWidth: number,
+  viewportHeight: number,
+  padding = 80
+): { zoom: number; pan: { x: number; y: number } } {
+  if (nodes.length === 0 || viewportWidth <= 0 || viewportHeight <= 0) {
+    return { zoom: 1, pan: { x: 50, y: 50 } };
+  }
+
+  const NODE_WIDTH = 288;
+  const NODE_HEIGHT = 200;
+
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  let maxY = -Infinity;
+
+  nodes.forEach(n => {
+    if (n.x < minX) minX = n.x;
+    if (n.x + NODE_WIDTH > maxX) maxX = n.x + NODE_WIDTH;
+    if (n.y < minY) minY = n.y;
+    if (n.y + NODE_HEIGHT > maxY) maxY = n.y + NODE_HEIGHT;
+  });
+
+  const boxWidth = maxX - minX;
+  const boxHeight = maxY - minY;
+  if (boxWidth <= 0 || boxHeight <= 0) {
+    return { zoom: 1, pan: { x: 50, y: 50 } };
+  }
+
+  const availWidth = Math.max(100, viewportWidth - padding * 2);
+  const availHeight = Math.max(100, viewportHeight - padding * 2);
+
+  const zoom = Math.min(1.0, Math.max(0.1, Math.min(availWidth / boxWidth, availHeight / boxHeight)));
+  const panX = viewportWidth / 2 - (minX + boxWidth / 2) * zoom;
+  const panY = viewportHeight / 2 - (minY + boxHeight / 2) * zoom;
+
+  return {
+    zoom: Number(zoom.toFixed(2)),
+    pan: { x: Math.round(panX), y: Math.round(panY) }
+  };
+}
+

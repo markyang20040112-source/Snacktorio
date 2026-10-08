@@ -7,7 +7,7 @@ import {
 } from './solver';
 import { dataService } from './dataService';
 import { simulateSandboxPhysics } from '../components/Sandbox/sandboxPhysics';
-import { makeNode } from '../components/Sandbox/sandboxNodeUtils';
+import { makeNode, calculateFitView } from '../components/Sandbox/sandboxNodeUtils';
 import { 
   SandboxNodeData, 
   SandboxConnection, 
@@ -706,14 +706,16 @@ export function buildDishBlueprint(
   const isScorching = isScorchingDish(dish.name, items, recipes);
   const hotNote = isScorching ? `，並附帶【${remedyDishName}】自動中和解毒配產模組` : '';
 
+  const initialView = calculateFitView(sim.updatedNodes, 1400, 800, 60);
+
   const blueprint: SandboxBlueprint = {
     id: `bp_dish_${dishIndex + 1}_${dish.name.replace(/\s+/g, '_')}`,
     name: `${dish.name} (標準產能 12份/分)`,
     description: `【${dish.island || '未知島嶼'}】${dish.name} 完整自動化產線：包含原料採集、中間加工、專屬流體輸送與獨立發電閉環${hotNote}。`,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    pan: { x: 50, y: 50 },
-    zoom: isScorching ? 0.65 : 0.85,
+    pan: initialView.pan,
+    zoom: initialView.zoom,
     stats: {
       machineCount: nodes.filter(n => n.type === 'machine' || n.type === 'generator' || n.type === 'pump').length,
       powerLoad: Number(sim.metrics.totalPowerLoad.toFixed(2)),
