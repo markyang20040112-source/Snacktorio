@@ -46,8 +46,8 @@ export const SandboxConnectionsLayer: React.FC<SandboxConnectionsLayerProps> = (
   let bottomCount = 0;
 
   connections.forEach(c => {
-    const isVoid = c.itemOrFluidName === '虛空' || c.toPortId?.includes('虛空') || c.fromPortId?.includes('虛空');
-    if (isVoid) {
+    const isVoidFluid = c.type === 'fluid' && (c.itemOrFluidName === '虛空' || c.toPortId?.includes('虛空') || c.fromPortId?.includes('虛空'));
+    if (isVoidFluid) {
       bottomTrackMap.set(c.id, bottomCount++);
     } else if (c.type === 'fluid') {
       topTrackMap.set(c.id, topCount++);
@@ -101,9 +101,9 @@ export const SandboxConnectionsLayer: React.FC<SandboxConnectionsLayerProps> = (
         }
         slotOffset = Math.max(-32, Math.min(32, slotOffset));
 
-        const isVoid = c.itemOrFluidName === '虛空' || c.toPortId?.includes('虛空') || c.fromPortId?.includes('虛空');
+        const isVoidFluid = c.type === 'fluid' && (c.itemOrFluidName === '虛空' || c.toPortId?.includes('虛空') || c.fromPortId?.includes('虛空'));
         const isFluid = c.type === 'fluid';
-        const corridorTrack = isVoid
+        const corridorTrack = isVoidFluid
           ? (bottomTrackMap.get(c.id) || 0)
           : (topTrackMap.get(c.id) || 0);
 
@@ -112,7 +112,7 @@ export const SandboxConnectionsLayer: React.FC<SandboxConnectionsLayerProps> = (
           slotOffset,
           isFluid,
           fluidName: c.itemOrFluidName,
-          preferBelow: isVoid ? true : undefined,
+          preferBelow: isVoidFluid ? true : undefined,
           corridorTrack
         });
 

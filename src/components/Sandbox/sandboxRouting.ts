@@ -212,14 +212,15 @@ export function computeOrthogonalPath(
     const trackGap = 16;
     const offset = 22 + corridorTrack * trackGap;
 
-    // 起點右側安全出線槽與終點左側安全入線槽 (依軌道微調展開，杜絕垂直段重疊)
+    // 起點右側安全出線槽與終點左側安全入線槽 (軌道間距放寬至 20px，徹底拉開 X 軸間距，杜絕黏合重疊)
+    const TRACK_GAP_X = 20;
     const x1 = Math.max(
       start.x + 16,
-      (fromNode ? getNodeBounds(fromNode).right + 14 : start.x + 24) + slotOffset * 0.4 + corridorTrack * 6
+      (fromNode ? getNodeBounds(fromNode).right + 16 : start.x + 24) + corridorTrack * TRACK_GAP_X + slotOffset * 0.5
     );
     const x2 = Math.min(
       end.x - 16,
-      (toNode ? getNodeBounds(toNode).left - 14 : end.x - 24) + slotOffset * 0.4 + corridorTrack * 6
+      (toNode ? getNodeBounds(toNode).left - 16 : end.x - 24) - corridorTrack * TRACK_GAP_X - slotOffset * 0.5
     );
 
     const minSpanX = Math.min(x1, x2);
@@ -313,8 +314,9 @@ export function computeOrthogonalPath(
   }
 
   // 4. 同欄位垂直連線或逆向回補 (Target 在 Source 左方、或同欄位垂直向下/向上)
-  const fromRight = (fromNode ? getNodeBounds(fromNode).right + 14 : start.x + 24) + slotOffset * 0.4 + corridorTrack * 6;
-  const toLeft = (toNode ? getNodeBounds(toNode).left - 14 : end.x - 24) - slotOffset * 0.4 - corridorTrack * 6;
+  const TRACK_GAP_X = 20;
+  const fromRight = (fromNode ? getNodeBounds(fromNode).right + 16 : start.x + 24) + corridorTrack * TRACK_GAP_X + slotOffset * 0.5;
+  const toLeft = (toNode ? getNodeBounds(toNode).left - 16 : end.x - 24) - corridorTrack * TRACK_GAP_X - slotOffset * 0.5;
 
   const fromBottom = fromNode ? getNodeBounds(fromNode).bottom : (start.y + 30);
   const fromTop = fromNode ? getNodeBounds(fromNode).top : (start.y - 30);
@@ -324,31 +326,31 @@ export function computeOrthogonalPath(
   let gapY: number;
   if (opts.preferBelow) {
     // 優先走兩者下方的安全走廊 (如虛空等需要走底部的管線，徹底避免在機台間交叉)
-    gapY = Math.max(fromBottom, toBottom) + 24 + corridorTrack * 12;
+    gapY = Math.max(fromBottom, toBottom) + 24 + corridorTrack * 16;
   } else if (end.y > start.y) {
-    // 向下走線：檢查兩機台間的縫隙是否足夠充裕 (>= 40px)
+    // 向下走線：檢查兩機台間的縫隙是否足夠充裕 (>= 35px)
     const gapHeight = toTop - fromBottom;
-    if (gapHeight >= 40) {
+    if (gapHeight >= 35) {
       gapY = (fromBottom + toTop) / 2 + slotOffset * 0.3;
     } else {
       // 縫隙過窄，禁止切穿夾縫，繞經下方安全通道
-      gapY = Math.max(fromBottom, toBottom) + 24 + corridorTrack * 12;
+      gapY = Math.max(fromBottom, toBottom) + 24 + corridorTrack * 16;
     }
   } else {
     // 向上走線 (逆向回補)：
     const gapHeight = fromTop - toBottom;
-    if (gapHeight >= 40) {
+    if (gapHeight >= 35) {
       gapY = (fromTop + toBottom) / 2 + slotOffset * 0.3;
     } else {
       // 縫隙過窄，繞經上方安全通道
-      gapY = Math.min(fromTop, toTop) - 24 - corridorTrack * 12;
+      gapY = Math.min(fromTop, toTop) - 24 - corridorTrack * 16;
     }
   }
 
   // 檢查橫向跨越段是否會切穿同欄中的其它中間機台
   if (!isHorizontalSegmentClear(gapY, toLeft, fromRight, allNodes || [], ignoreIds)) {
-    const candidateGapTop = Math.min(fromTop, toTop) - 24 - corridorTrack * 12;
-    const candidateGapBottom = Math.max(fromBottom, toBottom) + 24 + corridorTrack * 12;
+    const candidateGapTop = Math.min(fromTop, toTop) - 24 - corridorTrack * 16;
+    const candidateGapBottom = Math.max(fromBottom, toBottom) + 24 + corridorTrack * 16;
     if (opts.preferBelow) {
       gapY = candidateGapBottom;
     } else if (isHorizontalSegmentClear(candidateGapTop, toLeft, fromRight, allNodes || [], ignoreIds)) {
