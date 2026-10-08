@@ -671,6 +671,7 @@ export function buildDishBlueprint(
       wBp.nodes.forEach(wn => {
         nodes.push({
           ...wn,
+          isAutoPepto: true,
           x: wn.x + offsetX
         });
       });
@@ -681,9 +682,9 @@ export function buildDishBlueprint(
     }
   }
 
-  // 6.5. 動態平衡全廠電網：確保發電量充足滿足全廠所有機台（含自癒機台、泵機與胃復慘），杜絕欠壓週期膨脹
+  // 6.5. 動態平衡全廠主電網：主產線負載只算主產線機台（胃復慘由其自帶發電模組獨立平衡）
   const currentTotalLoad = nodes
-    .filter(n => n.type !== 'generator' && !n.id.startsWith('pwr-coal'))
+    .filter(n => !n.isAutoPepto && n.type !== 'generator' && !n.id.startsWith('pwr-coal'))
     .reduce((sum, n) => sum + (n.basePowerConsumption || 0), 0);
 
   // 常規虛空熔爐每台淨發電 3.5 FV/s (每2台需1台採煤機)，並嚴格防禦欠壓

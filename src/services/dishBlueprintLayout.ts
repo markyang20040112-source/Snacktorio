@@ -12,16 +12,8 @@ export function applyHierarchicalLayout(
   connections: SandboxConnection[]
 ): void {
   // 1. 分離主要料理產線與中和解毒模組 (如胃復慘)
-  const remedyNodes = nodes.filter(n =>
-    n.id.includes('-88-') ||
-    n.id.startsWith('pwr-coal-88') ||
-    n.id.startsWith('pwr-gen-88') ||
-    n.id.includes('decay-88-') ||
-    n.id.includes('heal-base-88-') ||
-    n.id.includes('pool-虛空-88') ||
-    n.id.includes('pump-虛空-88')
-  );
-  const mainNodes = nodes.filter(n => !remedyNodes.includes(n));
+  const remedyNodes = nodes.filter(n => !!n.isAutoPepto);
+  const mainNodes = nodes.filter(n => !n.isAutoPepto);
 
   const layoutGroup = (groupNodes: SandboxNodeData[], originX: number) => {
     if (groupNodes.length === 0) return { maxX: originX, maxY: 80 };
@@ -268,6 +260,33 @@ export function applyHierarchicalLayout(
     const prodCols = maxProdTier + 1;
     const unitsPerRow = Math.max(2, Math.floor(prodCols / 2));
 
+    // 依真實連線關係 (Connections-driven) 綁定採煤機與其供給之熔爐
+    const minerFurnacesMap = new Map<string, SandboxNodeData[]>();
+    const assignedFurnaceIds = new Set<string>();
+
+    coalMiners.forEach(miner => {
+      const targetFurnaces: SandboxNodeData[] = [];
+      connections.forEach(c => {
+        if (c.fromNodeId === miner.id && (c.toPortId === 'in-coal' || miner.outputs.some(o => o.id === c.fromPortId))) {
+          const fn = furnaces.find(f => f.id === c.toNodeId);
+          if (fn && !assignedFurnaceIds.has(fn.id)) {
+            targetFurnaces.push(fn);
+            assignedFurnaceIds.add(fn.id);
+          }
+        }
+      });
+      minerFurnacesMap.set(miner.id, targetFurnaces);
+    });
+
+    // 防禦性：未連線的熔爐依序補充分配至尚未滿 2 台的採煤機
+    const unassignedFurnaces = furnaces.filter(f => !assignedFurnaceIds.has(f.id));
+    coalMiners.forEach(miner => {
+      const list = minerFurnacesMap.get(miner.id)!;
+      while (list.length < 2 && unassignedFurnaces.length > 0) {
+        list.push(unassignedFurnaces.shift()!);
+      }
+    });
+
     coalMiners.forEach((miner, mIdx) => {
       const rowIdx = Math.floor(mIdx / unitsPerRow);
       const colInRow = mIdx % unitsPerRow;
@@ -279,9 +298,10 @@ export function applyHierarchicalLayout(
       miner.x = unitX;
       miner.y = unitY + 120;
 
-      // 該採煤機供給之 1~2 台熔爐並排於右欄上下
-      const f1 = furnaces[mIdx * 2];
-      const f2 = furnaces[mIdx * 2 + 1];
+      // 該採煤機連線供給之 1~2 台熔爐排列於右欄上下
+      const list = minerFurnacesMap.get(miner.id) || [];
+      const f1 = list[0];
+      const f2 = list[1];
 
       if (f1) {
         f1.x = unitX + COL_WIDTH;
@@ -293,9 +313,23 @@ export function applyHierarchicalLayout(
       }
     });
 
-    const totalPwrRows = Math.ceil(coalMiners.length / unitsPerRow);
-    const maxPwrY = coalMiners.length > 0 ? (pwrStartY + totalPwrRows * (245 * 2 + 40)) : maxProdY;
-    const maxPwrX = coalMiners.length > 0 ? (pwrStartX + Math.min(coalMiners.length, unitsPerRow) * 2 * COL_WIDTH) : maxProdX;
+    // 極端防禦：若仍有多餘未分配熔爐，自適應排列於額外欄位，確保絕對不重疊
+    if (unassignedFurnaces.length > 0) {
+      unassignedFurnaces.forEach((f, idx) => {
+        const uIdx = coalMiners.length + Math.floor(idx / 2);
+        const rowIdx = Math.floor(uIdx / unitsPerRow);
+        const colInRow = uIdx % unitsPerRow;
+        const unitX = pwrStartX + colInRow * 2 * COL_WIDTH;
+        const unitY = pwrStartY + rowIdx * (245 * 2 + 40);
+        f.x = unitX + COL_WIDTH;
+        f.y = (idx % 2 === 0) ? unitY : unitY + 245;
+      });
+    }
+
+    const totalCells = coalMiners.length + Math.ceil(unassignedFurnaces.length / 2);
+    const totalPwrRows = Math.ceil(totalCells / unitsPerRow);
+    const maxPwrY = totalCells > 0 ? (pwrStartY + totalPwrRows * (245 * 2 + 40)) : maxProdY;
+    const maxPwrX = totalCells > 0 ? (pwrStartX + Math.min(totalCells, unitsPerRow) * 2 * COL_WIDTH) : maxProdX;
 
     return {
       maxX: Math.max(maxProdX + COL_WIDTH, maxPwrX),

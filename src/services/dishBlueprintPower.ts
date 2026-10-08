@@ -336,6 +336,13 @@ export function allocateSmartBaseMaterials(
   procs: ProcessNode[] = [],
   intermediateRecipes: IntermediateRecipe[] = []
 ): void {
+  // 嚴密同步既有連線之端口已用流量，防止主流程已佔用物料被誤當作多餘底料偷用
+  connections.forEach(c => {
+    const portKey = `${c.fromNodeId}_${c.fromPortId}`;
+    const flow = (c.actualFlowRate !== undefined ? c.actualFlowRate : (c as any).rate) || 0.2;
+    portUsedCapacity.set(portKey, (portUsedCapacity.get(portKey) || 0) + flow);
+  });
+
   // 找出所有需要底料（任意物品 / 重構底料）且尚未連線的消費者機台
   const consumersNeedingBase = nodes.filter(cand => {
     if (cand.type !== 'machine') return false;
@@ -446,9 +453,9 @@ export function allocateSmartBaseMaterials(
 
     const neededRate = inBasePort.rateRequired || 0.2;
 
-    // 優先級 2：全廠現有收割機/採掘機中尚有富餘產能者（例如日桂葉配置 2 台產 0.4，主流程只耗 0.2）
+    // 優先級 2：全廠現有收割機中尚有富餘產能者（例如日桂葉配置 2 台產 0.4，主流程只耗 0.2；採掘機之礦石不可做作物底料）
     const existingExtractor = nodes.find(cand => {
-      if (cand.machineName !== '收割機' && cand.machineName !== '採掘機') return false;
+      if (cand.machineName !== '收割機') return false;
       const outP = cand.outputs[0];
       if (!outP || outP.type !== 'solid') return false;
       if (hasDirectedPath(m.id, cand.id, connections)) return false;
