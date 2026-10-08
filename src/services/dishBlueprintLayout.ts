@@ -48,12 +48,25 @@ export function applyHierarchicalLayout(
     // 依設備離終端組合機台（自動廚師機）的逆向加工距離推導層級：
     // 終端廚師機距離為 0；直接供給廚師機之設備距離為 1；更上游原料或中間品依消費鏈路遞增。
     // 層級公式：Tier = MaxDistance - DistanceFromChef
-    // 若設備產出有多個下游去向，為保證輸送帶一律由左向右流動 (col_from < col_to)，其距離取下游去向之最大值 + 1。
-    const outConnsMap = new Map<string, string[]>();
-    prodNodes.forEach(n => outConnsMap.set(n.id, []));
+    // 核心原則：
+    // 1. 食譜必要製程優先：若設備具備食譜主要產出連線，其加工層級完全由主要產出決定。
+    // 2. 產能回補不列入分級：連向重構底料/任意物品 (in-base) 之產能回補或副產物回輸屬額外彈性分配，
+    //    不應使供給機台被迫提前至更早階層（例如研磨骨粉與重構蜘蛛蛋均直供混和麵團，維持在同一 X 坐標）。
+    const primaryOutsMap = new Map<string, string[]>();
+    const baseOutsMap = new Map<string, string[]>();
+    prodNodes.forEach(n => {
+      primaryOutsMap.set(n.id, []);
+      baseOutsMap.set(n.id, []);
+    });
+
     connections.forEach(c => {
       if (nodeMap.has(c.fromNodeId) && nodeMap.has(c.toNodeId)) {
-        outConnsMap.get(c.fromNodeId)!.push(c.toNodeId);
+        const isBaseRefill = c.toPortId === 'in-base' || c.toPortId.includes('base') || c.toPortId.includes('底料') || c.id.includes('surplus-base') || c.id.includes('heal-base');
+        if (isBaseRefill) {
+          baseOutsMap.get(c.fromNodeId)!.push(c.toNodeId);
+        } else {
+          primaryOutsMap.get(c.fromNodeId)!.push(c.toNodeId);
+        }
       }
     });
 
@@ -69,7 +82,11 @@ export function applyHierarchicalLayout(
       if (visiting.has(nodeId)) return 1; // 破除環路防禦
       visiting.add(nodeId);
 
-      const outs = outConnsMap.get(nodeId) || [];
+      const primaryOuts = primaryOutsMap.get(nodeId) || [];
+      const baseOuts = baseOutsMap.get(nodeId) || [];
+      // 優先依必要製程流向推導；若僅作為專用底料供給機，則依所供給之機台推導
+      const outs = primaryOuts.length > 0 ? primaryOuts : baseOuts;
+
       if (outs.length === 0) {
         visiting.delete(nodeId);
         distMap.set(nodeId, 0);
@@ -152,10 +169,10 @@ export function applyHierarchicalLayout(
       }
     });
 
-    // 3) 排版各通道之製程機台 (緊湊舒適間距，保證 100% 無重疊)
+    // 3) 排版各通道之製程機台 (足夠安全間距防重疊)
     const COL_WIDTH = 380;
-    const ROW_HEIGHT = 225;
-    const LANE_GAP = 30;
+    const ROW_HEIGHT = 270;
+    const LANE_GAP = 40;
     const START_X = originX + 60;
     let curLaneY = 80;
 
@@ -200,12 +217,12 @@ export function applyHierarchicalLayout(
 
     const maxProdY = curLaneY;
 
-    // 4) 環境流體與泵機模組 (緊湊排列於主產線下方獨立區塊)
+    // 4) 環境流體與泵機模組 (縱向間距 245px，防疊)
     const envY = maxProdY + 40;
     const poolNodes = envNodes.filter(n => n.type === 'environment_pool');
     poolNodes.forEach((pool, pIdx) => {
       pool.x = START_X;
-      pool.y = envY + pIdx * 210;
+      pool.y = envY + pIdx * 245;
 
       const pump = envNodes.find(n => n.type === 'pump' && connections.some(c => c.fromNodeId === pool.id && c.toNodeId === n.id));
       if (pump) {
@@ -220,25 +237,25 @@ export function applyHierarchicalLayout(
       }
     });
 
-    const envTotalHeight = poolNodes.length * 210;
+    const envTotalHeight = poolNodes.length * 245;
     const maxEnvY = envNodes.length > 0 ? envY + envTotalHeight : maxProdY;
 
-    // 5) 自給電網發電模組 (配置於流體區塊下方，雙欄縱向排列)
+    // 5) 自給電網發電模組 (縱向間距 245px，防疊)
     const pwrY = maxEnvY + 40;
     const coalMiners = powerNodes.filter(n => n.id.startsWith('pwr-coal'));
     const furnaces = powerNodes.filter(n => n.type === 'generator');
 
     coalMiners.forEach((miner, mIdx) => {
       miner.x = START_X;
-      miner.y = pwrY + mIdx * 210;
+      miner.y = pwrY + mIdx * 245;
     });
 
     furnaces.forEach((furnace, fIdx) => {
       furnace.x = START_X + COL_WIDTH;
-      furnace.y = pwrY + fIdx * 200;
+      furnace.y = pwrY + fIdx * 245;
     });
 
-    const maxPwrY = pwrY + Math.max(coalMiners.length * 210, furnaces.length * 200);
+    const maxPwrY = pwrY + Math.max(coalMiners.length * 245, furnaces.length * 245);
 
     return {
       maxX: maxProdX + COL_WIDTH,
