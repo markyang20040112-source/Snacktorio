@@ -39,6 +39,21 @@ export const SandboxConnectionsLayer: React.FC<SandboxConnectionsLayerProps> = (
   inspectedNodeId = null,
   isFocusDimActive = false
 }) => {
+  // 預先為多條流體或長距跨欄連線分配獨立高空/地下通道軌道 (Corridor Tracks)
+  const topTrackMap = new Map<string, number>();
+  const bottomTrackMap = new Map<string, number>();
+  let topCount = 0;
+  let bottomCount = 0;
+
+  connections.forEach(c => {
+    const isVoid = c.itemOrFluidName === '虛空' || c.toPortId?.includes('虛空') || c.fromPortId?.includes('虛空');
+    if (isVoid) {
+      bottomTrackMap.set(c.id, bottomCount++);
+    } else if (c.type === 'fluid') {
+      topTrackMap.set(c.id, topCount++);
+    }
+  });
+
   return (
     <svg className="absolute inset-0 w-[5000px] h-[5000px] overflow-visible pointer-events-none">
       <defs>
@@ -64,24 +79,42 @@ export const SandboxConnectionsLayer: React.FC<SandboxConnectionsLayerProps> = (
         const fromNode = nodeMap?.get(c.fromNodeId);
         const toNode = nodeMap?.get(c.toNodeId);
 
-        // 多線分流槽位偏移量：依目標端口與來源端口索引分散，杜絕同欄或同機台多線完全重疊
+        // 順向走線槽位分流：依目標輸入端口順序排列垂直軌道
+        // 關鍵幾何法則 (契合使用者手繪圖無交叉並行架構)：
+        // 當連線由上往下進料時 (end.y >= start.y)，上方端口 (inIdx 小) 位於最右側軌道 (緊鄰目標機台)；
+        // 下方端口 (inIdx 大) 依序向左展開。
+        // 這樣上方線條在到達上方端口時直接向右轉入，完全不與下方線條產生交叉！
+        const isDownwards = end.y >= start.y;
+        const portDirection = isDownwards ? -1 : 1;
         let slotOffset = 0;
         if (toNode && toNode.inputs.length > 1) {
           const inIdx = toNode.inputs.findIndex(p => p.id === c.toPortId);
           if (inIdx >= 0) {
-            slotOffset += (inIdx - (toNode.inputs.length - 1) / 2) * 14;
+            slotOffset += portDirection * (inIdx - (toNode.inputs.length - 1) / 2) * 16;
           }
         }
         if (fromNode && fromNode.outputs.length > 1) {
           const outIdx = fromNode.outputs.findIndex(p => p.id === c.fromPortId);
           if (outIdx >= 0) {
-            slotOffset += (outIdx - (fromNode.outputs.length - 1) / 2) * 10;
+            slotOffset += (outIdx - (fromNode.outputs.length - 1) / 2) * 8;
           }
         }
-        slotOffset = Math.max(-28, Math.min(28, slotOffset));
+        slotOffset = Math.max(-32, Math.min(32, slotOffset));
 
-        // 智慧正交圓角走線 (不切穿方塊，全走在走線槽與行間通道中)
-        const pathD = computeOrthogonalPath(start, end, fromNode, toNode, allNodes, slotOffset);
+        const isVoid = c.itemOrFluidName === '虛空' || c.toPortId?.includes('虛空') || c.fromPortId?.includes('虛空');
+        const isFluid = c.type === 'fluid';
+        const corridorTrack = isVoid
+          ? (bottomTrackMap.get(c.id) || 0)
+          : (topTrackMap.get(c.id) || 0);
+
+        // 智慧正交圓角走線 (不切穿方塊，全走在走線槽與行間通道中；虛空優先走下方通道，水管走上方，同向多管獨立分軌)
+        const pathD = computeOrthogonalPath(start, end, fromNode, toNode, allNodes, {
+          slotOffset,
+          isFluid,
+          fluidName: c.itemOrFluidName,
+          preferBelow: isVoid ? true : undefined,
+          corridorTrack
+        });
 
         // 懸停與焦點狀態判斷
         const isDirectlyHovered = hoveredConnId === c.id;
@@ -90,7 +123,6 @@ export const SandboxConnectionsLayer: React.FC<SandboxConnectionsLayerProps> = (
         const isDimmed = isFocusDimActive && !isActive;
 
         // 線條色彩與外觀
-        const isFluid = c.type === 'fluid';
         let strokeColor = isFluid ? '#06b6d4' : '#10b981';
         let strokeWidth = 2.5;
 

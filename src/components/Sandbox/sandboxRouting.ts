@@ -93,14 +93,21 @@ function pointsToSvgPath(points: Point[], maxR = 12): string {
   return d;
 }
 
+export interface RoutingOptions {
+  slotOffset?: number;
+  isFluid?: boolean;
+  fluidName?: string;
+  preferBelow?: boolean;
+  corridorTrack?: number;
+}
+
 /**
  * 智慧正交圓角走線引擎 (Smart Orthogonal Conduit Routing)
  * 解決痛點：
  * 1. 跨階層長距離連線切穿中間方塊肚子（如流體水管橫穿中間多台機器）
  * 2. 多條線垂直槽位重疊（如多台採掘機直供廚師機時共用同條 midX 垂直線）
- * 3. 同欄位上下直供斜切穿透下方機台
- * 
- * @param slotOffset 槽位分流偏移量（依目標端口索引分配，避免多線重疊）
+ * 3. 虛空與水管長距離走線重疊（虛空優先走機台下方通道，水管走上方，且同向多管獨立軌道分流）
+ * 4. 同欄位上下直供斜切穿透下方機台
  */
 export function computeOrthogonalPath(
   start: Point,
@@ -108,8 +115,14 @@ export function computeOrthogonalPath(
   fromNode?: SandboxNodeData,
   toNode?: SandboxNodeData,
   allNodes?: SandboxNodeData[],
-  slotOffset: number = 0
+  options: number | RoutingOptions = 0
 ): string {
+  const opts: RoutingOptions = typeof options === 'number'
+    ? { slotOffset: options }
+    : (options || {});
+  const slotOffset = opts.slotOffset || 0;
+  const corridorTrack = opts.corridorTrack || 0;
+
   // 1. 同水平高度且無任何障礙
   if (Math.abs(start.y - end.y) < 2 && end.x >= start.x) {
     const hasObstacle = (allNodes || []).some(n => {
@@ -166,31 +179,45 @@ export function computeOrthogonalPath(
         { x: midX, y: start.y },
         { x: midX, y: end.y },
         end
-      ], 14);
+      ], 16);
     }
 
-    // ★ 有障礙物阻擋（如水管長距橫越中間整排機台）：
+    // ★ 有障礙物阻擋（如水管/虛空管長距橫越中間整排機台）：
     // 啟動 4-Bend 行間安全通道避障繞道 (Safe Corridor Detour)！
-    const maxBottom = Math.max(...intermediateObstacles.map(n => getNodeBounds(n).bottom));
-    const minTop = Math.min(...intermediateObstacles.map(n => getNodeBounds(n).top));
+    // 找出在路徑 Y 軸區間附近實際阻擋的中間機台群 (避免誤納入遠在下方數百像素外的獨立電網)
+    const pathTop = Math.min(start.y, end.y) - 40;
+    const pathBottom = Math.max(start.y, end.y) + 40;
+    const blockingObstacles = intermediateObstacles.filter(n => {
+      const b = getNodeBounds(n);
+      return b.bottom >= pathTop && b.top <= pathBottom;
+    });
 
-    // 計算上方與下方走道的總垂直折返距離
-    const distAbove = Math.abs(start.y - minTop) + Math.abs(end.y - minTop);
-    const distBelow = Math.abs(start.y - maxBottom) + Math.abs(end.y - maxBottom);
+    const relevantObstacles = blockingObstacles.length > 0 ? blockingObstacles : intermediateObstacles;
+    const blockBottom = Math.max(...relevantObstacles.map(n => getNodeBounds(n).bottom));
+    const blockTop = Math.min(...relevantObstacles.map(n => getNodeBounds(n).top));
 
-    const preferBelow = distBelow <= distAbove;
+    // 判斷走線通道：
+    // 1. 若為虛空 (Void) 流體或明確指定 preferBelow，優先走機台群下方安全通道 (直接就近銜接機台下方的虛空輸入端口)
+    // 2. 否則依折返垂直距離遠近選取上方或下方通道
+    const isVoid = opts.fluidName === '虛空' || (fromNode?.recipeName === '虛空' || fromNode?.title.includes('虛空'));
+    const distAbove = Math.abs(start.y - blockTop) + Math.abs(end.y - blockTop);
+    const distBelow = Math.abs(start.y - blockBottom) + Math.abs(end.y - blockBottom);
+
+    const preferBelow = opts.preferBelow ?? (isVoid ? true : distBelow < distAbove - 50);
+
+    const trackGap = 18; // 多線並行獨立軌道間距 (徹底杜絕同向線條重疊)
     const corridorY = preferBelow
-      ? maxBottom + 20 + Math.abs(slotOffset)
-      : Math.max(20, minTop - 20 - Math.abs(slotOffset));
+      ? blockBottom + 22 + corridorTrack * trackGap
+      : Math.max(20, blockTop - 22 - corridorTrack * trackGap);
 
-    // 起點右側安全出線槽與終點左側安全入線槽 (限制邊距，嚴禁切入機台)
+    // 起點右側安全出線槽與終點左側安全入線槽 (依軌道微調展開，杜絕垂直段重疊)
     const x1 = Math.max(
       start.x + 16,
-      (fromNode ? getNodeBounds(fromNode).right + 14 : start.x + 24) + slotOffset * 0.4
+      (fromNode ? getNodeBounds(fromNode).right + 14 : start.x + 24) + slotOffset * 0.4 + corridorTrack * 6
     );
     const x2 = Math.min(
       end.x - 16,
-      (toNode ? getNodeBounds(toNode).left - 14 : end.x - 24) + slotOffset * 0.4
+      (toNode ? getNodeBounds(toNode).left - 14 : end.x - 24) + slotOffset * 0.4 + corridorTrack * 6
     );
 
     return pointsToSvgPath([
@@ -200,7 +227,7 @@ export function computeOrthogonalPath(
       { x: x2, y: corridorY },
       { x: x2, y: end.y },
       end
-    ], 14);
+    ], 16);
   }
 
   // 4. 同欄位垂直連線或逆向回補 (Target 在 Source 左方、或同欄位垂直向下/向上)
