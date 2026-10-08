@@ -48,13 +48,17 @@ export function applyHierarchicalLayout(
         pump.y = curEnvY;
 
         if (sludgeManip) {
-          sludgeManip.x = 60 + COL_WIDTH;
-          sludgeManip.y = curEnvY + 245;
+          // 將物質操縱機置於第 1 欄 (pool 正下方)，形成優雅的並聯回路：
+          // 1. pool (左) ➔ pump (右)：水平直通
+          // 2. sludgeManip (左) ➔ pump (右)：順向直供汙泥 (由左至右)，徹底消除同欄逆向繞線
+          // 3. pump (右上) ➔ sludgeManip (左下)：流體自耗回饋線經由下方外側走廊清晰注入
+          sludgeManip.x = 60;
+          sludgeManip.y = curEnvY + 280;
         }
       }
 
-      const poolHeight = sludgeManip ? (245 * 2 + 30) : 245;
-      curEnvY += poolHeight + 30;
+      const poolHeight = sludgeManip ? (280 + 220) : 220;
+      curEnvY += poolHeight + 60;
     });
 
     envMaxX = 60 + COL_WIDTH * 2;
