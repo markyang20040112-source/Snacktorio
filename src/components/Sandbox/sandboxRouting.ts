@@ -6,121 +6,253 @@ export interface Point {
 }
 
 /**
+ * 取得節點實體碰撞邊界（AABB 帶安全邊距）
+ */
+function getNodeBounds(node: SandboxNodeData) {
+  const width = 288;
+  let estimatedHeight = 220;
+  if (node.machineName === '自動廚師機') {
+    estimatedHeight = 350;
+  } else if (node.type === 'splitter') {
+    estimatedHeight = node.splitterMode === 'custom' ? 260 : 190;
+  } else if (node.type === 'pump' || node.type === 'environment_pool') {
+    estimatedHeight = 220;
+  } else {
+    const portCount = Math.max(node.inputs.length, node.outputs.length);
+    estimatedHeight = 210 + portCount * 26 + (node.efficiency < 1 ? 55 : 0);
+  }
+
+  return {
+    left: node.x - 8,
+    right: node.x + width + 8,
+    top: node.y - 8,
+    bottom: node.y + estimatedHeight + 8
+  };
+}
+
+/**
+ * 將正交折線點陣列轉換為圓角 SVG 路徑 (Quadratic Bezier 圓弧導角)
+ */
+function pointsToSvgPath(points: Point[], maxR = 12): string {
+  if (points.length < 2) return '';
+  if (points.length === 2) {
+    return `M ${points[0].x} ${points[0].y} L ${points[1].x} ${points[1].y}`;
+  }
+
+  // 移除相鄰重複點或微小共線冗餘點
+  const pts: Point[] = [points[0]];
+  for (let i = 1; i < points.length; i++) {
+    const prev = pts[pts.length - 1];
+    const curr = points[i];
+    if (Math.abs(prev.x - curr.x) > 0.5 || Math.abs(prev.y - curr.y) > 0.5) {
+      pts.push(curr);
+    }
+  }
+
+  if (pts.length < 2) return '';
+  if (pts.length === 2) {
+    return `M ${pts[0].x} ${pts[0].y} L ${pts[1].x} ${pts[1].y}`;
+  }
+
+  let d = `M ${pts[0].x} ${pts[0].y}`;
+
+  for (let i = 1; i < pts.length - 1; i++) {
+    const pPrev = pts[i - 1];
+    const pCurr = pts[i];
+    const pNext = pts[i + 1];
+
+    const dIn = Math.hypot(pCurr.x - pPrev.x, pCurr.y - pPrev.y);
+    const dOut = Math.hypot(pNext.x - pCurr.x, pNext.y - pCurr.y);
+
+    const r = Math.min(maxR, dIn / 2, dOut / 2);
+
+    if (r < 2) {
+      d += ` L ${pCurr.x} ${pCurr.y}`;
+      continue;
+    }
+
+    const vxIn = (pCurr.x - pPrev.x) / dIn;
+    const vyIn = (pCurr.y - pPrev.y) / dIn;
+
+    const vxOut = (pNext.x - pCurr.x) / dOut;
+    const vyOut = (pNext.y - pCurr.y) / dOut;
+
+    const tBeforeX = pCurr.x - vxIn * r;
+    const tBeforeY = pCurr.y - vyIn * r;
+
+    const tAfterX = pCurr.x + vxOut * r;
+    const tAfterY = pCurr.y + vyOut * r;
+
+    d += ` L ${tBeforeX.toFixed(1)} ${tBeforeY.toFixed(1)}`;
+    d += ` Q ${pCurr.x.toFixed(1)} ${pCurr.y.toFixed(1)}, ${tAfterX.toFixed(1)} ${tAfterY.toFixed(1)}`;
+  }
+
+  const last = pts[pts.length - 1];
+  d += ` L ${last.x.toFixed(1)} ${last.y.toFixed(1)}`;
+
+  return d;
+}
+
+/**
  * 智慧正交圓角走線引擎 (Smart Orthogonal Conduit Routing)
  * 解決痛點：
- * 1. 跨階層長距離連線切穿中間方塊背面
- * 2. 同欄位上下直供（如骨粉直供下方蜘蛛蛋）從右上斜切穿透下方機台
+ * 1. 跨階層長距離連線切穿中間方塊肚子（如流體水管橫穿中間多台機器）
+ * 2. 多條線垂直槽位重疊（如多台採掘機直供廚師機時共用同條 midX 垂直線）
+ * 3. 同欄位上下直供斜切穿透下方機台
  * 
- * 核心原理：
- * • 在欄位間的走線槽（Gutter，寬約 92px）與行間通道（Gap，高約 40px）中穿行
- * • 所有轉折處具備 10px ~ 14px 的平滑圓弧導角 (Quadratic Bezier Q)
- * • 100% 絕對不穿透任何方塊
+ * @param slotOffset 槽位分流偏移量（依目標端口索引分配，避免多線重疊）
  */
 export function computeOrthogonalPath(
   start: Point,
   end: Point,
   fromNode?: SandboxNodeData,
   toNode?: SandboxNodeData,
-  allNodes?: SandboxNodeData[]
+  allNodes?: SandboxNodeData[],
+  slotOffset: number = 0
 ): string {
-  const nodeWidth = 288;
-  const nodeHeight = 220; // 預設平均節點高度估算
-  const R = 12; // 轉角圓弧半徑
-
-  // 1. 水平微差 (同水平高度直接連線)
-  if (Math.abs(start.y - end.y) < 3 && end.x >= start.x) {
-    return `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
+  // 1. 同水平高度且無任何障礙
+  if (Math.abs(start.y - end.y) < 2 && end.x >= start.x) {
+    const hasObstacle = (allNodes || []).some(n => {
+      if (n.id === fromNode?.id || n.id === toNode?.id) return false;
+      const b = getNodeBounds(n);
+      return b.left < end.x && b.right > start.x && start.y >= b.top && start.y <= b.bottom;
+    });
+    if (!hasObstacle) {
+      return `M ${start.x} ${start.y} L ${end.x} ${end.y}`;
+    }
   }
 
-  // 2. 常規順向左至右 (Target 在 Source 右方且距離充裕)
-  if (end.x >= start.x + 36) {
-    // 預設中線為起訖中點
-    let midX = (start.x + end.x) / 2;
+  // 2. 收集位於 start 與 end 水平跨度之間的中間節點障礙物
+  const minX = Math.min(start.x, end.x);
+  const maxX = Math.max(start.x, end.x);
+  const intermediateObstacles = (allNodes || []).filter(n => {
+    if (n.id === fromNode?.id || n.id === toNode?.id) return false;
+    const b = getNodeBounds(n);
+    // 橫向重疊於路徑中段
+    return b.right > minX + 16 && b.left < maxX - 16;
+  });
 
-    // 檢查預設 midX 是否剛好切穿某個中間節點的身體
-    if (allNodes && allNodes.length > 0) {
+  // 3. 常規順向由左至右 (Target 在 Source 右側且距離充裕)
+  if (end.x >= start.x + 36) {
+    const midX = Math.max(
+      start.x + 16,
+      Math.min(end.x - 16, (start.x + end.x) / 2 + slotOffset)
+    );
+
+    // 檢查簡單 2-Bend 路徑（start.y 橫向 -> midX 直向 -> end.y 橫向）是否會切穿任何中間機台
+    const hitsObstacle = intermediateObstacles.some(n => {
+      const b = getNodeBounds(n);
+      // 檢查橫向段 1 [start.x, midX] at start.y
+      if (start.y >= b.top && start.y <= b.bottom && Math.max(start.x, b.left) <= Math.min(midX, b.right)) {
+        return true;
+      }
+      // 檢查橫向段 2 [midX, end.x] at end.y
+      if (end.y >= b.top && end.y <= b.bottom && Math.max(midX, b.left) <= Math.min(end.x, b.right)) {
+        return true;
+      }
+      // 檢查垂直段 at midX
       const minY = Math.min(start.y, end.y);
       const maxY = Math.max(start.y, end.y);
-      const obstacle = allNodes.find(n =>
-        n.id !== fromNode?.id &&
-        n.id !== toNode?.id &&
-        midX >= n.x - 8 &&
-        midX <= n.x + nodeWidth + 8 &&
-        n.y <= maxY &&
-        n.y + nodeHeight >= minY
-      );
-
-      if (obstacle) {
-        // 如果中線會切穿中間機台，優先改走該機台左側或右側的走線槽
-        const leftGutter = obstacle.x - 24;
-        const rightGutter = obstacle.x + nodeWidth + 24;
-        if (leftGutter > start.x + 20) {
-          midX = leftGutter;
-        } else if (rightGutter < end.x - 20) {
-          midX = rightGutter;
-        }
+      if (midX >= b.left && midX <= b.right && Math.max(minY, b.top) <= Math.min(maxY, b.bottom)) {
+        return true;
       }
+      return false;
+    });
+
+    if (!hitsObstacle) {
+      // 無障礙物直通：採用帶槽位偏移的乾淨 2-Bend 圓角折線（消除同欄多線重疊）
+      return pointsToSvgPath([
+        start,
+        { x: midX, y: start.y },
+        { x: midX, y: end.y },
+        end
+      ], 14);
     }
 
-    const r = Math.min(R, Math.abs(midX - start.x), Math.abs(end.x - midX), Math.abs(end.y - start.y) / 2);
-    if (r < 2) {
-      return `M ${start.x} ${start.y} H ${midX} V ${end.y} H ${end.x}`;
-    }
+    // ★ 有障礙物阻擋（如水管長距橫越中間整排機台）：
+    // 啟動 4-Bend 行間安全通道避障繞道 (Safe Corridor Detour)！
+    const maxBottom = Math.max(...intermediateObstacles.map(n => getNodeBounds(n).bottom));
+    const minTop = Math.min(...intermediateObstacles.map(n => getNodeBounds(n).top));
 
-    const isDown = end.y > start.y;
-    const sy1 = isDown ? start.y + r : start.y - r;
-    const ey1 = isDown ? end.y - r : end.y + r;
+    // 計算上方與下方走道的總垂直折返距離
+    const distAbove = Math.abs(start.y - minTop) + Math.abs(end.y - minTop);
+    const distBelow = Math.abs(start.y - maxBottom) + Math.abs(end.y - maxBottom);
 
-    return `M ${start.x} ${start.y} ` +
-      `H ${midX - r} ` +
-      `Q ${midX} ${start.y}, ${midX} ${sy1} ` +
-      `V ${ey1} ` +
-      `Q ${midX} ${end.y}, ${midX + r} ${end.y} ` +
-      `H ${end.x}`;
+    const preferBelow = distBelow <= distAbove;
+    const corridorY = preferBelow
+      ? maxBottom + 20 + Math.abs(slotOffset)
+      : Math.max(20, minTop - 20 - Math.abs(slotOffset));
+
+    // 起點右側安全出線槽與終點左側安全入線槽 (限制邊距，嚴禁切入機台)
+    const x1 = Math.max(
+      start.x + 16,
+      (fromNode ? getNodeBounds(fromNode).right + 14 : start.x + 24) + slotOffset * 0.4
+    );
+    const x2 = Math.min(
+      end.x - 16,
+      (toNode ? getNodeBounds(toNode).left - 14 : end.x - 24) + slotOffset * 0.4
+    );
+
+    return pointsToSvgPath([
+      start,
+      { x: x1, y: start.y },
+      { x: x1, y: corridorY },
+      { x: x2, y: corridorY },
+      { x: x2, y: end.y },
+      end
+    ], 14);
   }
 
-  // 3. 同欄位垂直連線或逆向回補 (Target 在 Source 左方、或同欄位垂直向下/向上)
-  // 此時輸出端在右，輸入端在左，直線必定穿透方塊，必須繞經右走線槽與橫向通道！
-  const fromRight = (fromNode ? fromNode.x + nodeWidth : start.x) + 24;
-  const toLeft = (toNode ? toNode.x : end.x) - 24;
+  // 4. 同欄位垂直連線或逆向回補 (Target 在 Source 左方、或同欄位垂直向下/向上)
+  const fromRight = (fromNode ? getNodeBounds(fromNode).right + 14 : start.x + 24) + slotOffset * 0.4;
+  const toLeft = (toNode ? getNodeBounds(toNode).left - 14 : end.x - 24) - slotOffset * 0.4;
 
   let gapY: number;
   if (end.y > start.y) {
-    // 向下走線：優先走兩台機台之間的行間空隙
-    const fromBottom = fromNode ? (fromNode.y + nodeHeight) : (start.y + 30);
-    const toTop = toNode ? toNode.y : (end.y - 30);
+    // 向下走線：走兩機台間的行間空隙
+    const fromBottom = fromNode ? getNodeBounds(fromNode).bottom : (start.y + 30);
+    const toTop = toNode ? getNodeBounds(toNode).top : (end.y - 30);
     if (toTop > fromBottom) {
-      gapY = (fromBottom + toTop) / 2;
+      gapY = (fromBottom + toTop) / 2 + slotOffset * 0.3;
     } else {
-      gapY = Math.max(start.y + 30, (start.y + end.y) / 2);
+      gapY = Math.max(start.y + 30, (start.y + end.y) / 2) + slotOffset * 0.3;
     }
   } else {
-    // 向上走線 (逆向回饋)：繞經上方通道
-    const toBottom = toNode ? (toNode.y + nodeHeight) : (end.y + 30);
-    const fromTop = fromNode ? fromNode.y : (start.y - 30);
+    // 向上走線 (逆向回補)：繞經上方通道
+    const toBottom = toNode ? getNodeBounds(toNode).bottom : (end.y + 30);
+    const fromTop = fromNode ? getNodeBounds(fromNode).top : (start.y - 30);
     if (fromTop > toBottom) {
-      gapY = (fromTop + toBottom) / 2;
+      gapY = (fromTop + toBottom) / 2 + slotOffset * 0.3;
     } else {
-      gapY = Math.min(start.y - 30, (start.y + end.y) / 2);
+      gapY = Math.min(start.y - 30, (start.y + end.y) / 2) + slotOffset * 0.3;
     }
   }
 
-  const r = Math.min(R, Math.abs(fromRight - start.x) / 2, Math.abs(end.x - toLeft) / 2, Math.abs(gapY - start.y) / 2, Math.abs(end.y - gapY) / 2);
-  if (r < 2) {
-    return `M ${start.x} ${start.y} H ${fromRight} V ${gapY} H ${toLeft} V ${end.y} H ${end.x}`;
+  // 檢查橫向跨越段是否會切穿同欄中的其它中間機台
+  const hasMiddleObstacle = (allNodes || []).some(n => {
+    if (n.id === fromNode?.id || n.id === toNode?.id) return false;
+    const b = getNodeBounds(n);
+    return gapY >= b.top && gapY <= b.bottom && Math.max(toLeft, b.left) <= Math.min(fromRight, b.right);
+  });
+
+  if (hasMiddleObstacle) {
+    const sameColObs = (allNodes || []).filter(n =>
+      n.id !== fromNode?.id &&
+      n.id !== toNode?.id &&
+      Math.max(toLeft, getNodeBounds(n).left) <= Math.min(fromRight, getNodeBounds(n).right)
+    );
+    if (sameColObs.length > 0) {
+      const maxColBottom = Math.max(...sameColObs.map(n => getNodeBounds(n).bottom));
+      gapY = maxColBottom + 20 + Math.abs(slotOffset);
+    }
   }
 
-  const isDownGap = gapY > start.y;
-  const isDownEnd = end.y > gapY;
-
-  return `M ${start.x} ${start.y} ` +
-    `H ${fromRight - r} ` +
-    `Q ${fromRight} ${start.y}, ${fromRight} ${isDownGap ? start.y + r : start.y - r} ` +
-    `V ${isDownGap ? gapY - r : gapY + r} ` +
-    `Q ${fromRight} ${gapY}, ${fromRight - r} ${gapY} ` +
-    `H ${toLeft + r} ` +
-    `Q ${toLeft} ${gapY}, ${toLeft} ${isDownEnd ? gapY + r : gapY - r} ` +
-    `V ${isDownEnd ? end.y - r : end.y + r} ` +
-    `Q ${toLeft} ${end.y}, ${toLeft + r} ${end.y} ` +
-    `H ${end.x}`;
+  return pointsToSvgPath([
+    start,
+    { x: fromRight, y: start.y },
+    { x: fromRight, y: gapY },
+    { x: toLeft, y: gapY },
+    { x: toLeft, y: end.y },
+    end
+  ], 12);
 }

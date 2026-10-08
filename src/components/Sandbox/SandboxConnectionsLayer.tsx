@@ -64,8 +64,24 @@ export const SandboxConnectionsLayer: React.FC<SandboxConnectionsLayerProps> = (
         const fromNode = nodeMap?.get(c.fromNodeId);
         const toNode = nodeMap?.get(c.toNodeId);
 
+        // 多線分流槽位偏移量：依目標端口與來源端口索引分散，杜絕同欄或同機台多線完全重疊
+        let slotOffset = 0;
+        if (toNode && toNode.inputs.length > 1) {
+          const inIdx = toNode.inputs.findIndex(p => p.id === c.toPortId);
+          if (inIdx >= 0) {
+            slotOffset += (inIdx - (toNode.inputs.length - 1) / 2) * 14;
+          }
+        }
+        if (fromNode && fromNode.outputs.length > 1) {
+          const outIdx = fromNode.outputs.findIndex(p => p.id === c.fromPortId);
+          if (outIdx >= 0) {
+            slotOffset += (outIdx - (fromNode.outputs.length - 1) / 2) * 10;
+          }
+        }
+        slotOffset = Math.max(-28, Math.min(28, slotOffset));
+
         // 智慧正交圓角走線 (不切穿方塊，全走在走線槽與行間通道中)
-        const pathD = computeOrthogonalPath(start, end, fromNode, toNode, allNodes);
+        const pathD = computeOrthogonalPath(start, end, fromNode, toNode, allNodes, slotOffset);
 
         // 懸停與焦點狀態判斷
         const isDirectlyHovered = hoveredConnId === c.id;
@@ -85,9 +101,23 @@ export const SandboxConnectionsLayer: React.FC<SandboxConnectionsLayerProps> = (
 
         const opacityClass = isDimmed ? 'opacity-20' : 'opacity-100';
 
-        // 標籤座標：取兩端平均位置微調
-        const badgeX = (start.x + end.x) / 2 - 40;
-        const badgeY = (start.y + end.y) / 2 - 12;
+        // 流量標籤座標：置於出料橫向線段旁 (靠起點右側 8px)，避免遮擋垂直主走線槽與其它並行線條
+        let badgeX: number;
+        let badgeY: number;
+
+        if (Math.abs(start.y - end.y) < 15) {
+          // 水平直線：置於起訖中點
+          badgeX = (start.x + end.x) / 2 - 27;
+          badgeY = (start.y + end.y) / 2 - 12;
+        } else if (end.x >= start.x + 36) {
+          // 順向走線：緊貼出料端右側出線段，各機台出料標籤清楚對齊自己的出料口
+          badgeX = start.x + 8;
+          badgeY = start.y - 12;
+        } else {
+          // 逆向或特殊走線：緊貼目標入料端左側
+          badgeX = end.x - 62;
+          badgeY = end.y - 12;
+        }
 
         return (
           <g
@@ -124,12 +154,12 @@ export const SandboxConnectionsLayer: React.FC<SandboxConnectionsLayerProps> = (
             <foreignObject
               x={badgeX}
               y={badgeY}
-              width={80}
-              height={26}
+              width={54}
+              height={24}
               className="overflow-visible pointer-events-none"
             >
               <div
-                className={`px-1.5 py-0.5 rounded text-[10px] text-center font-mono font-bold whitespace-nowrap shadow-md transition-all duration-200 ${
+                className={`px-1 py-0.5 rounded text-[9px] text-center font-mono font-bold whitespace-nowrap shadow-md transition-all duration-200 ${
                   isActive
                     ? 'bg-slate-950/95 border-2 border-emerald-400 text-emerald-200 scale-110 shadow-[0_0_12px_rgba(16,185,129,0.5)]'
                     : 'bg-slate-950/80 border border-slate-700 text-slate-300'
