@@ -292,13 +292,37 @@ export function buildEnvFluidsModule(
 }
 
 /**
+ * 檢查在當前拓撲中是否存在從 fromId 到 toId 的有向路徑（用於防止循環死鎖）
+ */
+function hasDirectedPath(fromId: string, toId: string, conns: SandboxConnection[]): boolean {
+  if (fromId === toId) return true;
+  const visited = new Set<string>();
+  const queue = [fromId];
+  while (queue.length > 0) {
+    const curr = queue.shift()!;
+    if (curr === toId) return true;
+    if (visited.has(curr)) continue;
+    visited.add(curr);
+    for (let i = 0; i < conns.length; i++) {
+      const c = conns[i];
+      if (c.fromNodeId === curr && !visited.has(c.toNodeId)) {
+        queue.push(c.toNodeId);
+      }
+    }
+  }
+  return false;
+}
+
+/**
  * 智慧底料分配器 (Smart Base Material Allocator)：
  * 優先以產線內部中間機台之副產物或多餘產能（如研磨機富餘骨粉）直供物質操縱機底料，消滅冗餘收割機；
+ * 嚴禁以【自動廚師機】（終端出餐料理）作為底料，並嚴格防禦循環依賴死鎖。
  * 若無內部多餘產能，則在全廠共用最少台數之底料收割機。
  */
 export function allocateSmartBaseMaterials(
   dishIndex: number,
   nodes: SandboxNodeData[],
+  connections: SandboxConnection[],
   portUsedCapacity: Map<string, number>,
   baseCropItemName: string,
   isInputConnected: (nodeId: string, portId: string) => boolean,
@@ -317,9 +341,18 @@ export function allocateSmartBaseMaterials(
     if (!inBasePort) return;
 
     // 優先級 1：產線中已有且產能過剩的中間加工機台 (例如研磨機富餘產能)
+    // 嚴格排除自動廚師機（終端料理絕不可作底料）、原料機台，並防禦循環依賴
     const donorNode = nodes.find(cand => {
       if (cand.id === m.id || cand.type !== 'machine') return false;
-      if (cand.machineName === '收割機' || cand.machineName === '採掘機' || cand.machineName === '物質操縱機') return false;
+      if (
+        cand.machineName === '自動廚師機' ||
+        cand.machineName === '收割機' ||
+        cand.machineName === '採掘機' ||
+        cand.machineName === '物質操縱機'
+      ) return false;
+      // 避免死鎖閉環：若 m 已經是 cand 的上游祖先，則 cand 不能反向供給 m 作為底料
+      if (hasDirectedPath(m.id, cand.id, connections)) return false;
+
       const outP = cand.outputs[0];
       if (!outP || outP.type !== 'solid') return false;
       const portKey = `${cand.id}_${outP.id}`;

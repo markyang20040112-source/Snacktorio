@@ -633,6 +633,7 @@ export function buildDishBlueprint(
   allocateSmartBaseMaterials(
     dishIndex,
     nodes,
+    connections,
     portUsedCapacity,
     baseCropItemName,
     isInputConnected,
