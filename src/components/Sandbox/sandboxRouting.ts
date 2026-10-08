@@ -102,6 +102,25 @@ export interface RoutingOptions {
 }
 
 /**
+ * 檢查水平線段 [x1, x2] 在高度 y 是否與任何非忽略節點發生碰撞
+ */
+function isHorizontalSegmentClear(
+  y: number,
+  x1: number,
+  x2: number,
+  allNodes: SandboxNodeData[],
+  ignoreIds: Set<string>
+): boolean {
+  const minX = Math.min(x1, x2);
+  const maxX = Math.max(x1, x2);
+  return !allNodes.some(n => {
+    if (ignoreIds.has(n.id)) return false;
+    const b = getNodeBounds(n);
+    return y >= b.top && y <= b.bottom && maxX >= b.left && minX <= b.right;
+  });
+}
+
+/**
  * 智慧正交圓角走線引擎 (Smart Orthogonal Conduit Routing)
  * 解決痛點：
  * 1. 跨階層長距離連線切穿中間方塊肚子（如流體水管橫穿中間多台機器）
@@ -123,10 +142,14 @@ export function computeOrthogonalPath(
   const slotOffset = opts.slotOffset || 0;
   const corridorTrack = opts.corridorTrack || 0;
 
+  const ignoreIds = new Set<string>();
+  if (fromNode) ignoreIds.add(fromNode.id);
+  if (toNode) ignoreIds.add(toNode.id);
+
   // 1. 同水平高度且無任何障礙
   if (Math.abs(start.y - end.y) < 2 && end.x >= start.x) {
     const hasObstacle = (allNodes || []).some(n => {
-      if (n.id === fromNode?.id || n.id === toNode?.id) return false;
+      if (ignoreIds.has(n.id)) return false;
       const b = getNodeBounds(n);
       return b.left < end.x && b.right > start.x && start.y >= b.top && start.y <= b.bottom;
     });
@@ -139,7 +162,7 @@ export function computeOrthogonalPath(
   const minX = Math.min(start.x, end.x);
   const maxX = Math.max(start.x, end.x);
   const intermediateObstacles = (allNodes || []).filter(n => {
-    if (n.id === fromNode?.id || n.id === toNode?.id) return false;
+    if (ignoreIds.has(n.id)) return false;
     const b = getNodeBounds(n);
     // 橫向重疊於路徑中段
     return b.right > minX + 16 && b.left < maxX - 16;
@@ -182,7 +205,7 @@ export function computeOrthogonalPath(
       ], 16);
     }
 
-    // ★ 有障礙物阻擋（如水管/虛空管長距橫越中間整排機台）：
+    // ★ 有障礙物阻擋（如水管/紅油/虛空管長距橫越中間整排機台）：
     // 啟動 4-Bend 行間安全通道避障繞道 (Safe Corridor Detour)！
     // 找出在路徑 Y 軸區間附近實際阻擋的中間機台群 (避免誤納入遠在下方數百像素外的獨立電網)
     const pathTop = Math.min(start.y, end.y) - 40;
@@ -196,19 +219,18 @@ export function computeOrthogonalPath(
     const blockBottom = Math.max(...relevantObstacles.map(n => getNodeBounds(n).bottom));
     const blockTop = Math.min(...relevantObstacles.map(n => getNodeBounds(n).top));
 
-    // 判斷走線通道：
-    // 1. 若為虛空 (Void) 流體或明確指定 preferBelow，優先走機台群下方安全通道 (直接就近銜接機台下方的虛空輸入端口)
-    // 2. 否則依折返垂直距離遠近選取上方或下方通道
-    const isVoid = opts.fluidName === '虛空' || (fromNode?.recipeName === '虛空' || fromNode?.title.includes('虛空'));
-    const distAbove = Math.abs(start.y - blockTop) + Math.abs(end.y - blockTop);
-    const distBelow = Math.abs(start.y - blockBottom) + Math.abs(end.y - blockBottom);
+    const allObstacleBottom = Math.max(...intermediateObstacles.map(n => getNodeBounds(n).bottom));
+    const allObstacleTop = Math.min(...intermediateObstacles.map(n => getNodeBounds(n).top));
 
-    const preferBelow = opts.preferBelow ?? (isVoid ? true : distBelow < distAbove - 50);
+    const factoryTop = (allNodes && allNodes.length > 0)
+      ? Math.min(...allNodes.map(n => getNodeBounds(n).top))
+      : 80;
+    const factoryBottom = (allNodes && allNodes.length > 0)
+      ? Math.max(...allNodes.map(n => getNodeBounds(n).bottom))
+      : 1200;
 
     const trackGap = 18; // 多線並行獨立軌道間距 (徹底杜絕同向線條重疊)
-    const corridorY = preferBelow
-      ? blockBottom + 22 + corridorTrack * trackGap
-      : Math.max(20, blockTop - 22 - corridorTrack * trackGap);
+    const offset = 22 + corridorTrack * trackGap;
 
     // 起點右側安全出線槽與終點左側安全入線槽 (依軌道微調展開，杜絕垂直段重疊)
     const x1 = Math.max(
@@ -219,6 +241,30 @@ export function computeOrthogonalPath(
       end.x - 16,
       (toNode ? getNodeBounds(toNode).left - 14 : end.x - 24) + slotOffset * 0.4 + corridorTrack * 6
     );
+
+    // 依序測試安全走線高度，100% 嚴格排除任何切穿機台身體的通道：
+    const isVoid = opts.fluidName === '虛空' || (fromNode?.recipeName === '虛空' || fromNode?.title.includes('虛空'));
+    const distAbove = Math.abs(start.y - blockTop) + Math.abs(end.y - blockTop);
+    const distBelow = Math.abs(start.y - blockBottom) + Math.abs(end.y - blockBottom);
+
+    const candidateAboveRow = Math.max(20, blockTop - offset);
+    const candidateBelowRow = blockBottom + offset;
+    const candidateAboveAll = Math.max(20, allObstacleTop - offset);
+    const candidateBelowAll = allObstacleBottom + offset;
+    const candidateAboveFactory = Math.max(20, factoryTop - offset);
+    const candidateBelowFactory = factoryBottom + offset;
+
+    const candidateList = (isVoid || opts.preferBelow)
+      ? [candidateBelowRow, candidateBelowAll, candidateBelowFactory, candidateAboveRow, candidateAboveAll, candidateAboveFactory]
+      : (distAbove <= distBelow + 40
+          ? [candidateAboveRow, candidateBelowRow, candidateAboveAll, candidateBelowAll, candidateAboveFactory, candidateBelowFactory]
+          : [candidateBelowRow, candidateAboveRow, candidateBelowAll, candidateAboveAll, candidateBelowFactory, candidateAboveFactory]);
+
+    // 嚴格碰撞檢驗：選取第一個水平無任何障礙物切穿的安全通道
+    let corridorY = candidateList.find(y => isHorizontalSegmentClear(y, x1, x2, allNodes || [], ignoreIds));
+    if (corridorY === undefined) {
+      corridorY = candidateAboveFactory;
+    }
 
     return pointsToSvgPath([
       start,
@@ -256,21 +302,13 @@ export function computeOrthogonalPath(
   }
 
   // 檢查橫向跨越段是否會切穿同欄中的其它中間機台
-  const hasMiddleObstacle = (allNodes || []).some(n => {
-    if (n.id === fromNode?.id || n.id === toNode?.id) return false;
-    const b = getNodeBounds(n);
-    return gapY >= b.top && gapY <= b.bottom && Math.max(toLeft, b.left) <= Math.min(fromRight, b.right);
-  });
-
-  if (hasMiddleObstacle) {
-    const sameColObs = (allNodes || []).filter(n =>
-      n.id !== fromNode?.id &&
-      n.id !== toNode?.id &&
-      Math.max(toLeft, getNodeBounds(n).left) <= Math.min(fromRight, getNodeBounds(n).right)
-    );
-    if (sameColObs.length > 0) {
-      const maxColBottom = Math.max(...sameColObs.map(n => getNodeBounds(n).bottom));
-      gapY = maxColBottom + 20 + Math.abs(slotOffset);
+  if (!isHorizontalSegmentClear(gapY, toLeft, fromRight, allNodes || [], ignoreIds)) {
+    const candidateGapTop = Math.min(start.y, end.y) - 30;
+    const candidateGapBottom = Math.max(start.y, end.y) + 30;
+    if (isHorizontalSegmentClear(candidateGapTop, toLeft, fromRight, allNodes || [], ignoreIds)) {
+      gapY = candidateGapTop;
+    } else {
+      gapY = candidateGapBottom;
     }
   }
 
