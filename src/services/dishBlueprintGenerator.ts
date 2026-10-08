@@ -17,6 +17,7 @@ import {
 import { Recipe, IntermediateRecipe, Machine, Item } from '../types';
 import { ENV_FLUIDS, rawSourceMachine } from '../utils/itemTraits';
 import { buildPowerModule, buildEnvFluidsModule, allocateSmartBaseMaterials } from './dishBlueprintPower';
+import { applyHierarchicalLayout } from './dishBlueprintLayout';
 
 /**
  * 為指定終端料理全自動推導並建置完整 100% 滿載且無虛假產能之真實沙盒產線藍圖
@@ -695,6 +696,9 @@ export function buildDishBlueprint(
   const powerMod = buildPowerModule(dishIndex, totalFurnaceCount, totalCoalMinerCount, '煤炭', '虛空熔爐', '採掘機');
   nodes.push(...powerMod.nodes);
   pushConn(...powerMod.connections);
+
+  // 6.8. 全自動階層與端口通道佈局排版 (Processing Tier & Port-Lane Layout)
+  applyHierarchicalLayout(nodes, connections);
 
   // 7. Physics Simulation Verification
   const sim = simulateSandboxPhysics(nodes, connections);
