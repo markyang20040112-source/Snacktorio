@@ -45,44 +45,63 @@ export function applyHierarchicalLayout(
     });
 
     // 1) 加工層級推導 (決定 X 軸欄位)
-    // 無製程輸入原料機（採收、開採、原位轉化源）為 Tier 0；下游設備 tier = 1 + max(上游設備 tier)
-    const tierMap = new Map<string, number>();
-
-    const getTier = (nodeId: string, visited: Set<string> = new Set()): number => {
-      if (tierMap.has(nodeId)) return tierMap.get(nodeId)!;
-      if (visited.has(nodeId)) return 0;
-      visited.add(nodeId);
-
-      const inConns = (inConnsMap.get(nodeId) || []).filter(c => nodeMap.has(c.fromNodeId));
-      if (inConns.length === 0) {
-        tierMap.set(nodeId, 0);
-        return 0;
-      }
-
-      let maxUpTier = -1;
-      inConns.forEach(c => {
-        const upTier = getTier(c.fromNodeId, visited);
-        if (upTier > maxUpTier) maxUpTier = upTier;
-      });
-
-      const t = maxUpTier + 1;
-      tierMap.set(nodeId, t);
-      return t;
-    };
-
-    prodNodes.forEach(n => getTier(n.id));
-
-    let maxProdTier = 0;
-    prodNodes.forEach(n => {
-      if (n !== chefNode) {
-        const t = tierMap.get(n.id) || 0;
-        if (t > maxProdTier) maxProdTier = t;
+    // 依設備離終端組合機台（自動廚師機）的逆向加工距離推導層級：
+    // 終端廚師機距離為 0；直接供給廚師機之設備距離為 1；更上游原料或中間品依消費鏈路遞增。
+    // 層級公式：Tier = MaxDistance - DistanceFromChef
+    // 若設備產出有多個下游去向，為保證輸送帶一律由左向右流動 (col_from < col_to)，其距離取下游去向之最大值 + 1。
+    const outConnsMap = new Map<string, string[]>();
+    prodNodes.forEach(n => outConnsMap.set(n.id, []));
+    connections.forEach(c => {
+      if (nodeMap.has(c.fromNodeId) && nodeMap.has(c.toNodeId)) {
+        outConnsMap.get(c.fromNodeId)!.push(c.toNodeId);
       }
     });
 
+    const distMap = new Map<string, number>();
     if (chefNode) {
-      tierMap.set(chefNode.id, maxProdTier + 1);
+      distMap.set(chefNode.id, 0);
     }
+
+    const visiting = new Set<string>();
+
+    const getDistFromSink = (nodeId: string): number => {
+      if (distMap.has(nodeId)) return distMap.get(nodeId)!;
+      if (visiting.has(nodeId)) return 1; // 破除環路防禦
+      visiting.add(nodeId);
+
+      const outs = outConnsMap.get(nodeId) || [];
+      if (outs.length === 0) {
+        visiting.delete(nodeId);
+        distMap.set(nodeId, 0);
+        return 0;
+      }
+
+      let maxDist = 0;
+      for (const nextId of outs) {
+        const d = getDistFromSink(nextId);
+        if (d + 1 > maxDist) maxDist = d + 1;
+      }
+
+      visiting.delete(nodeId);
+      distMap.set(nodeId, maxDist);
+      return maxDist;
+    };
+
+    prodNodes.forEach(n => getDistFromSink(n.id));
+
+    let maxDist = 0;
+    prodNodes.forEach(n => {
+      const d = distMap.get(n.id) || 0;
+      if (d > maxDist) maxDist = d;
+    });
+
+    const tierMap = new Map<string, number>();
+    prodNodes.forEach(n => {
+      const d = distMap.get(n.id) || 0;
+      tierMap.set(n.id, maxDist - d);
+    });
+
+    const maxProdTier = maxDist;
 
     // 2) 依下游機器輸入端口順序分配 Y 軸通道 (Port-Lanes)
     // 每個終端廚師機輸入端口定義獨立橫向帶狀通道 (Lane 0, Lane 1...)
@@ -173,7 +192,7 @@ export function applyHierarchicalLayout(
     }
 
     // 終端廚師機置於最右側欄位，垂直置中於各通道中央
-    const maxProdX = START_X + (maxProdTier + 1) * COL_WIDTH;
+    const maxProdX = START_X + maxProdTier * COL_WIDTH;
     if (chefNode) {
       chefNode.x = maxProdX;
       chefNode.y = Math.max(80, Math.round((80 + curLaneY - ROW_HEIGHT) / 2));
