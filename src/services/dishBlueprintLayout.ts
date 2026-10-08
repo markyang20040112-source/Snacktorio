@@ -53,8 +53,8 @@ export function applyHierarchicalLayout(
     // 2. 產能回補不列入分級：連向重構底料/任意物品 (in-base) 之產能回補或副產物回輸屬額外彈性分配，
     //    不應使供給機台被迫提前至更早階層（例如研磨骨粉與重構蜘蛛蛋均直供混和麵團，維持在同一 X 坐標）。
     const COL_WIDTH = 380;
-    const ROW_HEIGHT = 270;
-    const LANE_GAP = 40;
+    const ROW_HEIGHT = 360;
+    const LANE_GAP = 60;
 
     // ─────────────────────────────────────────────────────────────
     // 1. 【泵機系統】(左側縱向側欄 / 後端補給區，方便主產線與胃復慘共用)
@@ -261,7 +261,7 @@ export function applyHierarchicalLayout(
     const coalMiners = powerNodes.filter(n => n.id.startsWith('pwr-coal'));
     const furnaces = powerNodes.filter(n => n.type === 'generator');
 
-    const pwrStartY = Math.max(maxProdY, envMaxY) + 50;
+    const pwrStartY = Math.max(maxProdY, envMaxY) + 60;
     const pwrStartX = prodStartX;
 
     // 每排最多並排單元數 (依產線欄寬自適應，每單元佔 2 欄)

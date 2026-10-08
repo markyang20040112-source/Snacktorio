@@ -19,14 +19,15 @@ function getNodeBounds(node: SandboxNodeData) {
     estimatedHeight = 220;
   } else {
     const portCount = Math.max(node.inputs.length, node.outputs.length);
-    estimatedHeight = 210 + portCount * 26 + (node.efficiency < 1 ? 55 : 0);
+    const hasWarnings = (node.efficiency < 1.0) || node.inputs.some(p => p.isDeficit) || !!node.statusNote;
+    estimatedHeight = 175 + portCount * 24 + (hasWarnings ? 50 : 0);
   }
 
   return {
-    left: node.x - 8,
-    right: node.x + width + 8,
-    top: node.y - 8,
-    bottom: node.y + estimatedHeight + 8
+    left: node.x - 6,
+    right: node.x + width + 6,
+    top: node.y - 6,
+    bottom: node.y + estimatedHeight + 6
   };
 }
 
@@ -207,29 +208,8 @@ export function computeOrthogonalPath(
 
     // ★ 有障礙物阻擋（如水管/紅油/虛空管長距橫越中間整排機台）：
     // 啟動 4-Bend 行間安全通道避障繞道 (Safe Corridor Detour)！
-    // 找出在路徑 Y 軸區間附近實際阻擋的中間機台群 (避免誤納入遠在下方數百像素外的獨立電網)
-    const pathTop = Math.min(start.y, end.y) - 40;
-    const pathBottom = Math.max(start.y, end.y) + 40;
-    const blockingObstacles = intermediateObstacles.filter(n => {
-      const b = getNodeBounds(n);
-      return b.bottom >= pathTop && b.top <= pathBottom;
-    });
-
-    const relevantObstacles = blockingObstacles.length > 0 ? blockingObstacles : intermediateObstacles;
-    const blockBottom = Math.max(...relevantObstacles.map(n => getNodeBounds(n).bottom));
-    const blockTop = Math.min(...relevantObstacles.map(n => getNodeBounds(n).top));
-
-    const allObstacleBottom = Math.max(...intermediateObstacles.map(n => getNodeBounds(n).bottom));
-    const allObstacleTop = Math.min(...intermediateObstacles.map(n => getNodeBounds(n).top));
-
-    const factoryTop = (allNodes && allNodes.length > 0)
-      ? Math.min(...allNodes.map(n => getNodeBounds(n).top))
-      : 80;
-    const factoryBottom = (allNodes && allNodes.length > 0)
-      ? Math.max(...allNodes.map(n => getNodeBounds(n).bottom))
-      : 1200;
-
-    const trackGap = 18; // 多線並行獨立軌道間距 (徹底杜絕同向線條重疊)
+    // 1. 取得在 [x1, x2] 跨度內真正會阻擋的中介節點
+    const trackGap = 16;
     const offset = 22 + corridorTrack * trackGap;
 
     // 起點右側安全出線槽與終點左側安全入線槽 (依軌道微調展開，杜絕垂直段重疊)
@@ -242,29 +222,85 @@ export function computeOrthogonalPath(
       (toNode ? getNodeBounds(toNode).left - 14 : end.x - 24) + slotOffset * 0.4 + corridorTrack * 6
     );
 
-    // 依序測試安全走線高度，100% 嚴格排除任何切穿機台身體的通道：
-    const isVoid = opts.fluidName === '虛空' || (fromNode?.recipeName === '虛空' || fromNode?.title.includes('虛空'));
-    const distAbove = Math.abs(start.y - blockTop) + Math.abs(end.y - blockTop);
-    const distBelow = Math.abs(start.y - blockBottom) + Math.abs(end.y - blockBottom);
+    const minSpanX = Math.min(x1, x2);
+    const maxSpanX = Math.max(x1, x2);
+    const blockingObstacles = intermediateObstacles
+      .filter(n => {
+        const b = getNodeBounds(n);
+        return b.right >= minSpanX && b.left <= maxSpanX;
+      })
+      .sort((a, b) => getNodeBounds(a).top - getNodeBounds(b).top);
 
-    const candidateAboveRow = Math.max(20, blockTop - offset);
-    const candidateBelowRow = blockBottom + offset;
-    const candidateAboveAll = Math.max(20, allObstacleTop - offset);
-    const candidateBelowAll = allObstacleBottom + offset;
-    const candidateAboveFactory = Math.max(20, factoryTop - offset);
-    const candidateBelowFactory = factoryBottom + offset;
+    const candidateList: number[] = [];
 
-    const candidateList = (isVoid || opts.preferBelow)
-      ? [candidateBelowRow, candidateBelowAll, candidateBelowFactory, candidateAboveRow, candidateAboveAll, candidateAboveFactory]
-      : (distAbove <= distBelow + 40
-          ? [candidateAboveRow, candidateBelowRow, candidateAboveAll, candidateBelowAll, candidateAboveFactory, candidateBelowFactory]
-          : [candidateBelowRow, candidateAboveRow, candidateBelowAll, candidateAboveAll, candidateBelowFactory, candidateAboveFactory]);
-
-    // 嚴格碰撞檢驗：選取第一個水平無任何障礙物切穿的安全通道
-    let corridorY = candidateList.find(y => isHorizontalSegmentClear(y, x1, x2, allNodes || [], ignoreIds));
-    if (corridorY === undefined) {
-      corridorY = candidateAboveFactory;
+    // 2. 優先探索「機台之間的水平行間通道」(Inter-row Gaps)
+    //    如採收辣椒與烘烤灰燼之間的間隙，直接走最短橫向通道，杜絕無謂折返！
+    for (let i = 0; i < blockingObstacles.length - 1; i++) {
+      const b1 = getNodeBounds(blockingObstacles[i]);
+      const b2 = getNodeBounds(blockingObstacles[i + 1]);
+      const gapHeight = b2.top - b1.bottom;
+      if (gapHeight >= 16) {
+        const gapCenter = (b1.bottom + b2.top) / 2;
+        const trackY = Math.max(
+          b1.bottom + 8,
+          Math.min(b2.top - 8, gapCenter + corridorTrack * 8)
+        );
+        candidateList.push(trackY);
+      }
     }
+
+    // 3. 障礙物群頂部與底部外緣通道
+    if (blockingObstacles.length > 0) {
+      const blockTop = Math.min(...blockingObstacles.map(n => getNodeBounds(n).top));
+      const blockBottom = Math.max(...blockingObstacles.map(n => getNodeBounds(n).bottom));
+      candidateList.push(Math.max(20, blockTop - offset));
+      candidateList.push(blockBottom + offset);
+    }
+
+    // 4. 全廠外緣通道 (安全兜底)
+    const allObstacleTop = intermediateObstacles.length > 0
+      ? Math.min(...intermediateObstacles.map(n => getNodeBounds(n).top))
+      : 80;
+    const allObstacleBottom = intermediateObstacles.length > 0
+      ? Math.max(...intermediateObstacles.map(n => getNodeBounds(n).bottom))
+      : 1200;
+    const factoryTop = (allNodes && allNodes.length > 0)
+      ? Math.min(...allNodes.map(n => getNodeBounds(n).top))
+      : 80;
+    const factoryBottom = (allNodes && allNodes.length > 0)
+      ? Math.max(...allNodes.map(n => getNodeBounds(n).bottom))
+      : 1200;
+
+    candidateList.push(Math.max(20, allObstacleTop - offset));
+    candidateList.push(allObstacleBottom + offset);
+    candidateList.push(Math.max(20, factoryTop - offset));
+    candidateList.push(factoryBottom + offset);
+
+    // 5. 嚴格碰撞檢驗：只保留 100% 水平不穿透任何機台的安全通道
+    const clearCandidates = candidateList.filter(y =>
+      isHorizontalSegmentClear(y, x1, x2, allNodes || [], ignoreIds)
+    );
+
+    // 6. 評分排序：尋找總垂直位移最小、路徑最直接的美觀通道 (虛空優先走下方通道)
+    const isVoid = opts.fluidName === '虛空' || (fromNode?.recipeName === '虛空' || fromNode?.title.includes('虛空'));
+    const midY = (start.y + end.y) / 2;
+
+    clearCandidates.sort((a, b) => {
+      const detourA = Math.abs(a - start.y) + Math.abs(a - end.y);
+      const detourB = Math.abs(b - start.y) + Math.abs(b - end.y);
+
+      const voidPenaltyA = (isVoid || opts.preferBelow) && a < midY ? 800 : 0;
+      const voidPenaltyB = (isVoid || opts.preferBelow) && b < midY ? 800 : 0;
+
+      const scoreA = detourA * 10 + Math.abs(a - midY) + voidPenaltyA;
+      const scoreB = detourB * 10 + Math.abs(b - midY) + voidPenaltyB;
+
+      return scoreA - scoreB;
+    });
+
+    const corridorY = clearCandidates.length > 0
+      ? clearCandidates[0]
+      : (isVoid || opts.preferBelow ? factoryBottom + offset : Math.max(20, factoryTop - offset));
 
     return pointsToSvgPath([
       start,
