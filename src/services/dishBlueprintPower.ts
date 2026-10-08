@@ -340,8 +340,8 @@ export function allocateSmartBaseMaterials(
     const inBasePort = m.inputs.find(inp => (inp.name === '重構底料' || inp.name === '任意物品' || inp.name === baseCropItemName || inp.id === 'in-base') && !isInputConnected(m.id, inp.id));
     if (!inBasePort) return;
 
-    // 優先級 1：產線中已有且產能過剩的中間加工機台 (例如研磨機富餘產能)
-    // 嚴格排除自動廚師機（終端料理絕不可作底料）、原料機台，並防禦循環依賴
+    // 優先級 1：產線中已有且產能過剩的「真正副產物 / 碎屑 / 骨粉」
+    // 嚴格排除：自動廚師機、原料機台、消耗流體之機台、精緻熟食/醬料/麵糰，並防禦循環依賴
     const donorNode = nodes.find(cand => {
       if (cand.id === m.id || cand.type !== 'machine') return false;
       if (
@@ -350,11 +350,30 @@ export function allocateSmartBaseMaterials(
         cand.machineName === '採掘機' ||
         cand.machineName === '物質操縱機'
       ) return false;
-      // 避免死鎖閉環：若 m 已經是 cand 的上游祖先，則 cand 不能反向供給 m 作為底料
-      if (hasDirectedPath(m.id, cand.id, connections)) return false;
+
+      // 嚴格排除消耗流體之機台（凡消耗水/油/紅油等珍貴流體製成之產物，絕不可作重構底料）
+      if (cand.inputs.some(inp => inp.type === 'fluid' && (inp.rateRequired || 0) > 0)) {
+        return false;
+      }
 
       const outP = cand.outputs[0];
       if (!outP || outP.type !== 'solid') return false;
+
+      // 嚴格排除醬料、熟食、主食半成品（醬、油、熟、炸、烤、皮、團、飯、肉等）
+      const bannedKeywords = ['醬', '油', '熟', '炸', '烤', '皮', '團', '糰', '麵', '糕', '飯', '肉', '酪', '奶', '汁', '泥'];
+      if (bannedKeywords.some(kw => outP.name.includes(kw))) {
+        return false;
+      }
+
+      // 嚴格限定為合法的副產物/無機粉碎物（名帶 骨、粉、渣、屑、灰、石）
+      const allowedKeywords = ['骨', '粉', '渣', '屑', '灰', '石'];
+      if (!allowedKeywords.some(kw => outP.name.includes(kw))) {
+        return false;
+      }
+
+      // 避免死鎖閉環：若 m 已經是 cand 的上游祖先，則 cand 不能反向供給 m 作為底料
+      if (hasDirectedPath(m.id, cand.id, connections)) return false;
+
       const portKey = `${cand.id}_${outP.id}`;
       const used = portUsedCapacity.get(portKey) || 0;
       const surplus = (outP.rateProvided || 0.2) - used;
