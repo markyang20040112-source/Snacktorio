@@ -7,6 +7,27 @@ import { SandboxNodeData, SandboxConnection } from '../components/Sandbox/sandbo
  * 2. 機器輸入端口順序決定後方供給機器的 Y 軸位置 (每個輸入端口定義獨立專屬橫向 Lane，內部嚴格遞迴對齊)
  * 3. 生成時方塊 100% 零重疊 (每列、每通道、環境流體與電網均具備充足防碰撞間距)
  */
+/**
+ * 精確估算節點實體渲染卡片高度 (確保自訂比例分流器、帶警告機台與多端口設備具備充足防重疊間距)
+ */
+export function getNodeVisualHeight(node: SandboxNodeData): number {
+  if (node.type === 'splitter') {
+    return node.splitterMode === 'custom' ? 440 : 280;
+  }
+  if (node.machineName === '自動廚師機') {
+    return 380;
+  }
+  if (node.type === 'generator') {
+    return 245;
+  }
+  if (node.type === 'pump' || node.type === 'environment_pool') {
+    return 220;
+  }
+  const portCount = Math.max(node.inputs.length, node.outputs.length);
+  const hasWarnings = (node.efficiency < 1.0) || node.inputs.some(p => p.isDeficit) || !!node.statusNote;
+  return Math.max(260, 200 + portCount * 28 + (hasWarnings ? 55 : 0));
+}
+
 export function applyHierarchicalLayout(
   nodes: SandboxNodeData[],
   connections: SandboxConnection[]
@@ -215,15 +236,29 @@ export function applyHierarchicalLayout(
       colsInLane.forEach(colNodes => {
         if (colNodes.length > maxRowsInLane) maxRowsInLane = colNodes.length;
       });
-      const laneHeight = maxRowsInLane * ROW_HEIGHT;
+
+      // 先對每欄節點依 Y 軸次序 (ySubRank) 排序，使第 r 列精確對應到實際渲染之節點
+      colsInLane.forEach(colNodes => {
+        colNodes.sort((a, b) => (ySubRankMap.get(a.id) || 0) - (ySubRankMap.get(b.id) || 0));
+      });
+
+      // 自適應計算該通道內每一排 (Row) 的 Y 座標與高度（保證高卡片如自訂分流器 440px 不壓到下方卡片，留足 60px 間距）
+      const rowYOffsets: number[] = [];
+      let accumulatedY = curLaneY;
+      for (let r = 0; r < maxRowsInLane; r++) {
+        rowYOffsets.push(accumulatedY);
+        const rowNodes = Array.from(colsInLane.values()).map(col => col[r]).filter(Boolean);
+        const maxRowH = Math.max(ROW_HEIGHT - 60, ...rowNodes.map(n => getNodeVisualHeight(n)));
+        accumulatedY += maxRowH + 60;
+      }
+      const laneHeight = accumulatedY - curLaneY;
 
       colsInLane.forEach((colNodes, t) => {
-        colNodes.sort((a, b) => (ySubRankMap.get(a.id) || 0) - (ySubRankMap.get(b.id) || 0));
         const colX = startX + t * COL_WIDTH;
 
         colNodes.forEach((node, rIdx) => {
           node.x = colX;
-          node.y = curLaneY + rIdx * ROW_HEIGHT;
+          node.y = rowYOffsets[rIdx];
         });
       });
 

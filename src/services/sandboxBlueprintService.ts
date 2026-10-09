@@ -7,7 +7,7 @@ import { dataService } from './dataService';
 
 const STORAGE_KEY = 'snacktorio_sandbox_blueprints_v1';
 const DELETED_KEY = 'snacktorio_sandbox_deleted_builtins_v1';
-const BUILTIN_VERSION = '20261009_v21_max_efficiency_consolidated_splitters';
+const BUILTIN_VERSION = '20261009_v22_spacious_splitter_card_height';
 const VERSION_KEY = 'snacktorio_sandbox_builtin_version';
 
 

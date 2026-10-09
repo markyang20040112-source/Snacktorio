@@ -14,7 +14,7 @@ function getNodeBounds(node: SandboxNodeData) {
   if (node.machineName === '自動廚師機') {
     estimatedHeight = 360;
   } else if (node.type === 'splitter') {
-    estimatedHeight = node.splitterMode === 'custom' ? 260 : 190;
+    estimatedHeight = node.splitterMode === 'custom' ? 440 : 280;
   } else if (node.type === 'pump' || node.type === 'environment_pool') {
     estimatedHeight = 220;
   } else {
