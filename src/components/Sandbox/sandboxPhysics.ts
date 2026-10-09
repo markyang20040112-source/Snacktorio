@@ -185,9 +185,7 @@ function updatePumpNode(
     p.rateProvided = actualOutRate;
   });
 }
-
 const EMPTY_CONNS: SandboxConnection[] = [];
-
 /** 依鍵值將連線分桶 (桶內保留原陣列順序；Map 依首次出現順序迭代) */
 function groupConnections(
   connList: SandboxConnection[],
@@ -302,10 +300,11 @@ function evaluateInputPorts(
     }
 
     const receivedRate = validConns.reduce((sum, c) => sum + c.actualFlowRate, 0);
-    const defaultReq = isFluid ? 1.0 : (node.baseCycleTime > 0 ? 1 / node.baseCycleTime : 0.2);
+    const defaultReq = isFluid ? (node.machineName === '混合機' ? 0.5 : 1.0) : (node.baseCycleTime > 0 ? 1 / node.baseCycleTime : 0.2);
     const reqRate = p.rateRequired !== undefined ? p.rateRequired : defaultReq;
     p.rateReceived = Number(receivedRate.toFixed(2));
-    p.isDeficit = (reqRate > 0 && receivedRate < reqRate - 0.005) || invalidConns.length > 0;
+    const isTerm = node.machineName === '自動廚師機';
+    p.isDeficit = (isTerm ? (reqRate > 0 && receivedRate < reqRate - 0.005) : (reqRate > 0 && receivedRate <= 0.001)) || invalidConns.length > 0;
     const sat = invalidConns.length > 0 ? 0 : (reqRate > 0 ? (receivedRate >= reqRate - 0.005 ? 1.0 : Math.min(1.0, receivedRate / reqRate)) : 1.0);
     if (sat < minSat) {
       minSat = sat;
@@ -376,7 +375,9 @@ function evaluateMachineNode(
   } else if (minSolidSat < 1.0) {
     node.actualCycleTime = node.baseCycleTime;
     node.efficiency = Number(minSolidSat.toFixed(3));
-    node.statusNote = `⚠️ 產能跟不上！${solid.missingName} 不足 (${(minSolidSat * 100).toFixed(0)}%)：${solid.missingDetail}，產能降載至 ${(node.efficiency * 100).toFixed(0)}%`;
+    node.statusNote = node.machineName === '自動廚師機'
+      ? `⚠️ 產能跟不上！${solid.missingName} 不足 (${(minSolidSat * 100).toFixed(0)}%)：${solid.missingDetail}，產能降載至 ${(node.efficiency * 100).toFixed(0)}%`
+      : `正常運轉中 (稼動率 ${(node.efficiency * 100).toFixed(0)}%)`;
   } else {
     node.actualCycleTime = node.baseCycleTime;
     node.efficiency = 1.0;

@@ -1,8 +1,8 @@
-import { Recipe, ProcessNode, FeederStrategy, DownstreamTarget, IntermediateRecipe, CalculationResult } from '../types';
+import { Recipe, ProcessNode, FeederStrategy, DownstreamTarget, IntermediateRecipe, CalculationResult, Item } from '../types';
 import { calculateSingleDish, settlePlantInfrastructure, isScorchingDish, getProcessRealSurplusRate, sortProcessesDownstreamToUpstream, computeIntegerRatio } from './solver';
 import { dataService } from './dataService';
 import { formatFractionOrDecimal, gcdArray } from '../utils/math';
-import { isUpstreamAncestor } from '../utils/itemTraits';
+import { isUpstreamAncestor, initReachabilityMap, canAddDependency, recordDependency } from '../utils/itemTraits';
 
 /**
  * 產線平衡計算機（單道速查 / 多料理並聯）純運算層。
@@ -24,7 +24,8 @@ function consolidatePlan(
   effectivePlannedList: PlannedDish[],
   powerMode: PowerMode,
   feederStrategy: FeederStrategy,
-  intermediateRecipes: IntermediateRecipe[]
+  intermediateRecipes: IntermediateRecipe[],
+  items: Item[] = dataService.getItems()
 ) {
   interface ProcessDemandItem {
     dishName: string;
@@ -274,15 +275,23 @@ function consolidatePlan(
           const mProduct = m.processName.replace('重構', '').replace('物質操縱', '').trim();
           return list.some(c => {
             if (nonDonorMachines.includes(c.machine)) return false;
-            return isUpstreamAncestor(c.processName, mProduct, intermediateRecipes);
+            return isUpstreamAncestor(c.processName, mProduct, intermediateRecipes, items);
           });
         });
 
+        const externalDonors = list.filter(p => {
+          if (p.isBaseFeeder || nonDonorMachines.includes(p.machine)) return false;
+          if (getProcessRealSurplusRate(p, list, intermediateRecipes) < 0.199) return false;
+          return !baseConsumerProcs.some(m => isUpstreamAncestor(p.processName, m.processName.replace('重構', '').replace('物質操縱', '').trim(), intermediateRecipes, items));
+        });
+        const extSlots = externalDonors.reduce((s, d) => s + Math.floor((getProcessRealSurplusRate(d, list, intermediateRecipes) + 0.001) / 0.2), 0);
+        const needProgenitor = progenitorProcs.length > 0 && extSlots < feederRow.parallelRounded;
         const rootConsumer = progenitorProcs[0] || baseConsumerProcs[0];
-        const maxOffsetAllowed = progenitorProcs.length > 0 ? Math.max(0, feederRow.parallelRounded - 1) : feederRow.parallelRounded;
+        const maxOffsetAllowed = needProgenitor ? Math.max(0, feederRow.parallelRounded - 1) : feederRow.parallelRounded;
 
         let totalOffsetsAllocated = 0;
-        const eligibleRecipients = progenitorProcs.length > 0
+        const reachMap = initReachabilityMap(baseConsumerProcs.map(m => m.processName));
+        const eligibleRecipients = needProgenitor
           ? baseConsumerProcs.filter(m => m !== rootConsumer)
           : baseConsumerProcs;
 
@@ -290,6 +299,11 @@ function consolidatePlan(
         list.forEach(proc => {
           if (proc.isBaseFeeder || nonDonorMachines.includes(proc.machine)) return;
           if (totalOffsetsAllocated >= maxOffsetAllowed) return;
+
+          const supplier = baseConsumerProcs.find(m => {
+            const mProduct = m.processName.replace('重構', '').replace('物質操縱', '').trim();
+            return isUpstreamAncestor(proc.processName, mProduct, intermediateRecipes, items);
+          });
 
           const surplusFlow = getProcessRealSurplusRate(proc, list, intermediateRecipes); // 考慮上游供料限流約束之真實物理淨產出流率 (items/second)
 
@@ -301,13 +315,18 @@ function consolidatePlan(
               const unassignedRecipient = eligibleRecipients.find(rec => {
                 if (rec.feederRoles.some(fr => fr.role === 'recipient')) return false;
                 const recProduct = rec.processName.replace('重構', '').replace('物質操縱', '').trim();
-                return !isUpstreamAncestor(proc.processName, recProduct, intermediateRecipes);
+                if (isUpstreamAncestor(proc.processName, recProduct, intermediateRecipes, items)) return false;
+                if (supplier && !canAddDependency(supplier.processName, rec.processName, reachMap)) return false;
+                return true;
               });
               if (!unassignedRecipient) break;
 
               availableSlots--;
               totalOffsetsAllocated++;
               assignedRecipients.push(unassignedRecipient as any);
+              if (supplier) {
+                recordDependency(supplier.processName, unassignedRecipient.processName, reachMap);
+              }
 
               unassignedRecipient.feederRoles.push({
                 dishName: '全廠',
@@ -516,7 +535,7 @@ export function runParallelPlan(
     });
   });
 
-  const consolidated = consolidatePlan(individualResults, effectivePlannedList, powerMode, feederStrategy, intermediateRecipes);
+  const consolidated = consolidatePlan(individualResults, effectivePlannedList, powerMode, feederStrategy, intermediateRecipes, items);
 
   return { scorchingDishes, totalScorchingRateMin, effectivePlannedList, individualResults, combinedBiochemicalWarnings, consolidated };
 }

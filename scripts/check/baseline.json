@@ -1,7 +1,8 @@
 {
   "placeholders": [
     "任意物品",
-    "無(空載)"
+    "無(空載)",
+    "粉塵底料"
   ],
   "iconAliases": [
     "鷹身女妖肉",
@@ -24,7 +25,7 @@
   "lineCounts": {
     "src/components/DataManager/IntermediateManager.tsx": 945,
     "src/components/Sandbox/SandboxSimulator.tsx": 1396,
-    "src/services/solver.ts": 1540
+    "src/services/solver.ts": 1536
   },
   "hardcodedNames": {
     "src/components/DataManager/IntermediateManager.tsx": [
@@ -131,7 +132,6 @@
       "生鷹身女妖肉",
       "發酵麵糰",
       "硬質奶酪",
-      "粉塵",
       "粉塵",
       "粉塵",
       "粉塵",

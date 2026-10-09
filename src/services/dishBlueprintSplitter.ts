@@ -56,9 +56,6 @@ export function routeSolidOutputs(
     subId: string,
     flowRate: number
   ) => {
-    if (target.toPort && flowRate > 0) {
-      target.toPort.rateRequired = flowRate;
-    }
     const decayPath = target.decayPath || [];
     if (decayPath.length === 0) {
       connections.push({

@@ -616,7 +616,7 @@
       "dish": "煉獄魔蛋",
       "processName": "採收日桂葉",
       "machine": "收割機",
-      "baseRate": 0.2,
+      "baseRate": 0.1,
       "power": 1,
       "goblins": 1,
       "order": 0
@@ -679,7 +679,7 @@
       "dish": "驚魂北非蛋",
       "processName": "採收塔瑪茄",
       "machine": "收割機",
-      "baseRate": 0.2,
+      "baseRate": 0.1,
       "power": 1,
       "goblins": 1,
       "order": 0
@@ -1327,7 +1327,7 @@
       "dish": "咒語餃子",
       "processName": "混和蟑螂奶油",
       "machine": "混合機",
-      "baseRate": 0.2,
+      "baseRate": 0.1666666667,
       "power": 1,
       "goblins": 2,
       "order": 0
@@ -1513,6 +1513,15 @@
       "order": 0
     },
     {
+      "dish": "墳墓茄包",
+      "processName": "開採鹽",
+      "machine": "採掘機",
+      "baseRate": 0.2,
+      "power": 1,
+      "goblins": 1,
+      "order": 0
+    },
+    {
       "dish": "暴徒烤麵包",
       "processName": "終端組裝",
       "machine": "自動廚師機",
@@ -1624,7 +1633,7 @@
       "dish": "爛蛋約翰",
       "processName": "終端組裝",
       "machine": "自動廚師機",
-      "baseRate": 0.1,
+      "baseRate": 0.2,
       "power": 1,
       "goblins": 3,
       "order": 0
@@ -1660,9 +1669,18 @@
       "dish": "爛蛋約翰",
       "processName": "重構巫妖骸骨",
       "machine": "物質操縱機",
-      "baseRate": 0.1,
+      "baseRate": 0.4,
       "power": 1,
       "goblins": 1,
+      "order": 0
+    },
+    {
+      "dish": "爛蛋約翰",
+      "processName": "研磨粉塵",
+      "machine": "研磨機",
+      "baseRate": 1,
+      "power": 1,
+      "goblins": 2,
       "order": 0
     },
     {
@@ -1748,7 +1766,16 @@
     },
     {
       "dish": "怪物庫克先生",
-      "processName": "攪拌蟑螂奶",
+      "processName": "攪拌蟑螂奶(奶酪專線)",
+      "machine": "攪拌機",
+      "baseRate": 0.2,
+      "power": 1,
+      "goblins": 2,
+      "order": 0
+    },
+    {
+      "dish": "怪物庫克先生",
+      "processName": "攪拌蟑螂奶(奶油專線)",
       "machine": "攪拌機",
       "baseRate": 0.2,
       "power": 1,
@@ -2191,7 +2218,7 @@
       "dish": "殺戮芝士麵",
       "processName": "攪拌蟑螂奶",
       "machine": "攪拌機",
-      "baseRate": 0.3333333333,
+      "baseRate": 0.1333333333,
       "power": 1,
       "goblins": 2,
       "order": 0
@@ -2740,7 +2767,7 @@
       "dish": "撒旦紅燴飯",
       "processName": "攪拌蟑螂奶(奶酪專線)",
       "machine": "攪拌機",
-      "baseRate": 0.5,
+      "baseRate": 0.2,
       "power": 1,
       "goblins": 2,
       "order": 0
@@ -2767,7 +2794,7 @@
       "dish": "撒旦紅燴飯",
       "processName": "攪拌蟑螂奶(黃油專線)",
       "machine": "攪拌機",
-      "baseRate": 0.25,
+      "baseRate": 0.2,
       "power": 1,
       "goblins": 2,
       "order": 0

@@ -53,6 +53,7 @@ export function isUpstreamAncestor(
   donorItemOrProc: string,
   targetProduct: string,
   intermediateRecipes: IntermediateRecipe[],
+  items?: Item[],
   visited = new Set<string>()
 ): boolean {
   if (!donorItemOrProc || !targetProduct) return false;
@@ -62,6 +63,14 @@ export function isUpstreamAncestor(
   const clean = donorItemOrProc.replace(PROCESS_ACTION_VERBS, '').trim();
   if (clean === targetProduct || clean.includes(targetProduct) || targetProduct.includes(clean)) {
     return true;
+  }
+
+  // 變質熟成 (Decay / Spoil) 逆向溯源：若此物品為某物之熟成變質產物 (如中等熟成奶酪來自軟質奶酪)
+  if (items) {
+    const parent = items.find(it => it.spoilProduct === clean);
+    if (parent && isUpstreamAncestor(parent.name, targetProduct, intermediateRecipes, items, visited)) {
+      return true;
+    }
   }
 
   // 搜尋產出此物品或工序之中間配方
@@ -79,7 +88,7 @@ export function isUpstreamAncestor(
       if (inp.name === targetProduct || inp.name.includes(targetProduct) || targetProduct.includes(inp.name)) {
         return true;
       }
-      if (isUpstreamAncestor(inp.name, targetProduct, intermediateRecipes, visited)) {
+      if (isUpstreamAncestor(inp.name, targetProduct, intermediateRecipes, items, visited)) {
         return true;
       }
     }
@@ -88,10 +97,44 @@ export function isUpstreamAncestor(
       if (r.fluidType === targetProduct || r.fluidType.includes(targetProduct) || targetProduct.includes(r.fluidType)) {
         return true;
       }
-      if (isUpstreamAncestor(r.fluidType, targetProduct, intermediateRecipes, visited)) {
+      if (isUpstreamAncestor(r.fluidType, targetProduct, intermediateRecipes, items, visited)) {
         return true;
       }
     }
   }
   return false;
 }
+
+/** 建立節點可達性追蹤集合 (用於動態副產物連線防閉環檢查) */
+export function initReachabilityMap(nodeNames: string[]): Map<string, Set<string>> {
+  const map = new Map<string, Set<string>>();
+  nodeNames.forEach(name => map.set(name, new Set([name])));
+  return map;
+}
+
+/** 檢查將 supplier 連至 recipient 是否會造成有向圖閉環死鎖 */
+export function canAddDependency(
+  supplierName: string,
+  recName: string,
+  reachMap: Map<string, Set<string>>
+): boolean {
+  if (supplierName === recName) return false;
+  const recReachable = reachMap.get(recName);
+  return !recReachable || !recReachable.has(supplierName);
+}
+
+/** 記錄 supplier 連至 recipient 之依賴邊，並刷新遞移閉包 (Transitive Closure) */
+export function recordDependency(
+  supplierName: string,
+  recName: string,
+  reachMap: Map<string, Set<string>>
+): void {
+  const recReachable = reachMap.get(recName) || new Set([recName]);
+  reachMap.forEach((targets, src) => {
+    if (src === supplierName || targets.has(supplierName)) {
+      targets.add(recName);
+      recReachable.forEach(t => targets.add(t));
+    }
+  });
+}
+

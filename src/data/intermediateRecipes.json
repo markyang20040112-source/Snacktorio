@@ -438,6 +438,29 @@
     "notes": "將1個巫妖骸骨研磨成2個骨粉"
   },
   {
+    "name": "粉塵",
+    "machine": "研磨機",
+    "fluidType": "無",
+    "fluidRate": 0,
+    "inputs": [
+      {
+        "name": "粉塵底料",
+        "count": 1
+      },
+      {
+        "name": "無",
+        "count": 0
+      },
+      {
+        "name": "無",
+        "count": 0
+      }
+    ],
+    "cycleTime": 2,
+    "outputCount": 2,
+    "notes": "將除巫妖骸骨外的物品放入研磨機形成，用於合成麵團"
+  },
+  {
     "name": "義大利麵團",
     "machine": "混合機",
     "fluidType": "無",

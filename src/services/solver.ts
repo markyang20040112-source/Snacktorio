@@ -2,7 +2,7 @@ import { dataService } from './dataService';
 import { CalculationResult, ProcessNode, Item, FeederStrategy, Recipe, IntermediateRecipe, Machine, CalculatorProcess, DownstreamTarget } from '../types';
 import { parseFractionOrNumber, formatFractionOrDecimal, gcdArray } from '../utils/math';
 import { PROCESS_ACTION_VERBS, ITEM_ACTION_PREFIX } from '../utils/actionVerbs';
-import { isUpstreamAncestor } from '../utils/itemTraits';
+import { isUpstreamAncestor, initReachabilityMap, canAddDependency, recordDependency } from '../utils/itemTraits';
 import { settlePlantInfrastructure } from './plantInfrastructure';
 
 export {
@@ -31,7 +31,6 @@ const COOKED_GROUPS = [
   ['炸薯條', '薯條'],
   ['炸多林多滋', '多林多滋', '玉米片'],
   ['軟質奶酪', '中等熟成奶酪', '硬質奶酪'],
-  ['粉塵底料', '粉塵'],
   ['蟑螂黃油', '黃油'],
   ['蟑螂奶油', '奶油', '酸奶油'],
   ['香豆蔻', '豆肉蔻'],
@@ -499,13 +498,10 @@ export function getProcessItemOutputRate(
     const cycle = inter.cycleTime || 5;
     return outCnt / cycle;
   }
-  // Default extraction rates for 5s cycle machines
   if (machine === '物質操縱機') {
-    if (['蟑螂', '史萊姆', '骸骨'].some(k => processName.includes(k))) {
-      return 2 / 5; // 0.4 items/s
-    }
-    return 1 / 5; // 0.2 items/s
+    return ['蟑螂', '史萊姆', '骸骨'].some(k => processName.includes(k)) ? 0.4 : 0.2;
   }
+  if (machine === '研磨機') return 1.0; // 2 items / 2s
   return 1 / 5; // 0.2 items/s for 採掘機, 收割機, etc.
 }
 
@@ -657,9 +653,9 @@ export function sortProcessesDownstreamToUpstream<T extends {
       });
 
       if (reachableTiers.length > 0) {
-        const minT = Math.min(...reachableTiers);
-        const calculatedTier = minT + 1;
-        if (currentTier === undefined || calculatedTier < currentTier) {
+        const maxT = Math.max(...reachableTiers);
+        const calculatedTier = maxT + 1;
+        if (currentTier === undefined || calculatedTier > currentTier) {
           tierMap.set(p.processName, calculatedTier);
           changed = true;
         }
@@ -846,7 +842,8 @@ export function calculateSingleDish(
           if (match) {
             const hint = match[1];
             const isMatch = other.node.machine.includes(hint) ||
-                            other.node.processName.includes(hint);
+                            other.node.processName.includes(hint) ||
+                            (hint === '黃油' && other.node.processName.includes('奶油'));
             if (!isMatch) return;
           }
         }
@@ -887,7 +884,7 @@ export function calculateSingleDish(
     } else if (consumers.length === 1) {
       const c = consumers[0];
       const targetCycle = getTargetCycle(c.target.processName, c.target.machine);
-      const perMachineRate = (c.reqCount || 1) / targetCycle;
+      const perMachineRate = c.isFluid ? (c.reqCount || (c.target.machine === '混合機' ? 0.5 : 1.0)) : (c.reqCount || 1) / targetCycle;
       const flowRate = (c.target.demandRate || c.target.countRounded) * perMachineRate;
       const mCount = c.target.countRounded || 1;
 
@@ -935,7 +932,7 @@ export function calculateSingleDish(
     } else {
       const flowRates = consumers.map(c => {
         const targetCycle = getTargetCycle(c.target.processName, c.target.machine);
-        const perMachineRate = (c.reqCount || 1) / targetCycle;
+        const perMachineRate = c.isFluid ? (c.reqCount || (c.target.machine === '混合機' ? 0.5 : 1.0)) : (c.reqCount || 1) / targetCycle;
         return (c.target.demandRate || c.target.countRounded) * perMachineRate;
       });
       const intRatios = computeIntegerRatio(flowRates);
@@ -1012,28 +1009,27 @@ export function calculateSingleDish(
       // 若依賴某台設備，該設備即為「起始啟動機 (Progenitor)」，必須保留其專屬底料收割機啟動鏈條
       const progenitorManipulators = manipulators.filter(m => {
         const mProduct = m.processName.replace('重構', '').replace('物質操縱', '').trim();
-        return donorNodes.some(c => isUpstreamAncestor(c.processName, mProduct, intermediateRecipes));
+        return donorNodes.some(c => isUpstreamAncestor(c.processName, mProduct, intermediateRecipes, items));
       });
 
-      const hasManipulatorChain = progenitorManipulators.length > 0;
-      const maxAllowed = hasManipulatorChain ? Math.max(0, baseConsumerCount - 1) : baseConsumerCount;
+      const externalDonors = donorNodes.filter(d => !manipulators.some(m => isUpstreamAncestor(d.processName, m.processName.replace('重構', '').replace('物質操縱', '').trim(), intermediateRecipes, items)));
+      const extSlots = externalDonors.reduce((s, d) => s + Math.floor((getProcessRealSurplusRate(d, processNodes, intermediateRecipes) + 0.001) / 0.2), 0);
+      const needProgenitor = progenitorManipulators.length > 0 && extSlots < baseConsumerCount;
+      const maxAllowed = needProgenitor ? Math.max(0, baseConsumerCount - 1) : baseConsumerCount;
 
       const canDonate = (donorNode: ProcessNode, recNode: ProcessNode) => {
         const recProduct = recNode.processName.replace('重構', '').replace('物質操縱', '').trim();
-        const dependsOnRec = isUpstreamAncestor(donorNode.processName, recProduct, intermediateRecipes);
-        return !dependsOnRec;
+        return !isUpstreamAncestor(donorNode.processName, recProduct, intermediateRecipes, items);
       };
 
       const getDonorSupplier = (donorNode: ProcessNode) => {
         return manipulators.find(m => {
           const mProduct = m.processName.replace('重構', '').replace('物質操縱', '').trim();
-          return isUpstreamAncestor(donorNode.processName, mProduct, intermediateRecipes);
+          return isUpstreamAncestor(donorNode.processName, mProduct, intermediateRecipes, items);
         });
       };
 
-      // 遍歷所有候選起始機 (若有祖源依賴則限定於 progenitorManipulators，否則為全體 manipulators)
-      // 透過二分圖約束排序，挑選能達成最多折抵、且最順暢正向拓撲之最佳分配方案
-      const candidateRoots = hasManipulatorChain ? progenitorManipulators : (manipulators.length > 0 ? [manipulators[0]] : []);
+      const candidateRoots = needProgenitor ? progenitorManipulators : (manipulators.length > 0 ? [manipulators[0]] : []);
       let bestMatching: {
         root: ProcessNode;
         matchedCount: number;
@@ -1042,7 +1038,7 @@ export function calculateSingleDish(
       } | null = null;
 
       for (const candRoot of candidateRoots) {
-        const recipients = manipulators.filter(m => m !== candRoot).slice(0, maxAllowed);
+        const recipients = (needProgenitor ? manipulators.filter(m => m !== candRoot) : manipulators).slice(0, maxAllowed);
         const donorSlots = donorNodes.map(d => {
           const surplusRate = getProcessRealSurplusRate(d, processNodes, intermediateRecipes);
           return {
@@ -1054,25 +1050,25 @@ export function calculateSingleDish(
           };
         });
 
-        recipients.sort((a, b) => {
-          const countA = donorSlots.filter(ds => canDonate(ds.donor, a)).length;
-          const countB = donorSlots.filter(ds => canDonate(ds.donor, b)).length;
-          return countA - countB;
-        });
+        const reachMap = initReachabilityMap(manipulators.map(m => m.processName));
+        recipients.sort((a, b) => donorSlots.filter(ds => canDonate(ds.donor, a)).length - donorSlots.filter(ds => canDonate(ds.donor, b)).length);
 
         let matchedCount = 0;
         for (const rec of recipients) {
-          const available = donorSlots.filter(ds => ds.available > 0 && canDonate(ds.donor, rec));
+          const available = donorSlots.filter(ds => {
+            if (ds.available <= 0 || !canDonate(ds.donor, rec)) return false;
+            if (ds.supplier && !canAddDependency(ds.supplier.processName, rec.processName, reachMap)) return false;
+            return true;
+          });
           if (available.length > 0) {
-            available.sort((d1, d2) => {
-              const t1 = recipients.filter(r => canDonate(d1.donor, r)).length;
-              const t2 = recipients.filter(r => canDonate(d2.donor, r)).length;
-              return t1 - t2;
-            });
+            available.sort((d1, d2) => recipients.filter(r => canDonate(d1.donor, r)).length - recipients.filter(r => canDonate(d2.donor, r)).length);
             const chosen = available[0];
             chosen.recipients.push(rec);
             chosen.available--;
             matchedCount++;
+            if (chosen.supplier) {
+              recordDependency(chosen.supplier.processName, rec.processName, reachMap);
+            }
           }
         }
 
