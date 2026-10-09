@@ -243,7 +243,7 @@ export function buildDishBlueprint(
       const isFluidMach = outputInfo.isFluid;
       const machOutputCount = interDef?.outputCount || (outputInfo.name === '泥沼蟑螂' ? 2 : 1);
       const defaultMachRate = p.machine === '注入機' ? 999 : (isFluidMach ? 1.0 : Number((machOutputCount / machCycleTime).toFixed(3)));
-      const machRate = Math.max(defaultMachRate, p.totalDemandRate / instancesCount);
+      const machRate = defaultMachRate;
 
       const mObj = machines.find(m => m.name === p.machine);
       const machPower = mObj?.power || p.powerPerUnit || 1.0;
@@ -259,7 +259,7 @@ export function buildDishBlueprint(
         x: 400 + pIdx * 100,
         y: 100 + instIdx * 250,
         baseCycleTime: machCycleTime,
-        baseOutputCount: Number((machRate * machCycleTime).toFixed(2)),
+        baseOutputCount: machOutputCount,
         basePowerConsumption: machPower,
         baseGoblins: machGoblins,
         inputs,
@@ -394,7 +394,6 @@ export function buildDishBlueprint(
           allocatedInputs.add(inputKey(tn.id, pInp.id));
 
           const reqRate = Number((dt.flowRate || pInp.rateRequired || 0.2).toFixed(3));
-          pInp.rateRequired = reqRate;
 
           if (pInp.type === 'fluid') {
             fluidTargets.push({ toNode: tn, toPort: pInp, flowRate: reqRate });

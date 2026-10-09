@@ -12,7 +12,7 @@ function getNodeBounds(node: SandboxNodeData) {
   const width = 288;
   let estimatedHeight = 220;
   if (node.machineName === '自動廚師機') {
-    estimatedHeight = 350;
+    estimatedHeight = 360;
   } else if (node.type === 'splitter') {
     estimatedHeight = node.splitterMode === 'custom' ? 260 : 190;
   } else if (node.type === 'pump' || node.type === 'environment_pool') {
@@ -20,14 +20,14 @@ function getNodeBounds(node: SandboxNodeData) {
   } else {
     const portCount = Math.max(node.inputs.length, node.outputs.length);
     const hasWarnings = (node.efficiency < 1.0) || node.inputs.some(p => p.isDeficit) || !!node.statusNote;
-    estimatedHeight = 175 + portCount * 24 + (hasWarnings ? 50 : 0);
+    estimatedHeight = Math.max(220, 180 + portCount * 28 + (hasWarnings ? 55 : 0));
   }
 
   return {
-    left: node.x - 6,
-    right: node.x + width + 6,
-    top: node.y - 6,
-    bottom: node.y + estimatedHeight + 6
+    left: node.x - 12,
+    right: node.x + width + 12,
+    top: node.y - 12,
+    bottom: node.y + estimatedHeight + 16
   };
 }
 
@@ -173,7 +173,7 @@ export function computeOrthogonalPath(
   if (end.x >= start.x + 36) {
     const midX = Math.max(
       start.x + 16,
-      Math.min(end.x - 16, (start.x + end.x) / 2 + slotOffset)
+      Math.min(end.x - 24, (start.x + end.x) / 2 + slotOffset)
     );
 
     // 檢查簡單 2-Bend 路徑（start.y 橫向 -> midX 直向 -> end.y 橫向）是否會切穿任何中間機台
@@ -219,8 +219,8 @@ export function computeOrthogonalPath(
       (fromNode ? getNodeBounds(fromNode).right + 16 : start.x + 24) + corridorTrack * TRACK_GAP_X + slotOffset * 0.5
     );
     const x2 = Math.min(
-      end.x - 16,
-      (toNode ? getNodeBounds(toNode).left - 16 : end.x - 24) - corridorTrack * TRACK_GAP_X - slotOffset * 0.5
+      end.x - 24,
+      (toNode ? getNodeBounds(toNode).left - 16 : end.x - 28) - corridorTrack * TRACK_GAP_X - slotOffset * 0.5
     );
 
     const minSpanX = Math.min(x1, x2);
@@ -316,7 +316,7 @@ export function computeOrthogonalPath(
   // 4. 同欄位垂直連線或逆向回補 (Target 在 Source 左方、或同欄位垂直向下/向上)
   const TRACK_GAP_X = 20;
   const fromRight = (fromNode ? getNodeBounds(fromNode).right + 16 : start.x + 24) + corridorTrack * TRACK_GAP_X + slotOffset * 0.5;
-  const toLeft = (toNode ? getNodeBounds(toNode).left - 16 : end.x - 24) - corridorTrack * TRACK_GAP_X - slotOffset * 0.5;
+  const toLeft = (toNode ? getNodeBounds(toNode).left - 16 : end.x - 28) - corridorTrack * TRACK_GAP_X - slotOffset * 0.5;
 
   const fromBottom = fromNode ? getNodeBounds(fromNode).bottom : (start.y + 30);
   const fromTop = fromNode ? getNodeBounds(fromNode).top : (start.y - 30);

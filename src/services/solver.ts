@@ -1,135 +1,15 @@
 import { dataService } from './dataService';
-import { CalculationResult, ProcessNode, FluidTierInfo, Item, FeederStrategy, Recipe, IntermediateRecipe, Machine, CalculatorProcess, DownstreamTarget } from '../types';
+import { CalculationResult, ProcessNode, Item, FeederStrategy, Recipe, IntermediateRecipe, Machine, CalculatorProcess, DownstreamTarget } from '../types';
 import { parseFractionOrNumber, formatFractionOrDecimal, gcdArray } from '../utils/math';
 import { PROCESS_ACTION_VERBS, ITEM_ACTION_PREFIX } from '../utils/actionVerbs';
+import { settlePlantInfrastructure } from './plantInfrastructure';
 
-/**
- * Autonomous pump sizing ladder matching Excel formulas
- * Capacity: Overclock 8 fl/s (requires 1 sludge manipulator), Regular 2 fl/s (0 sludge)
- * Threshold: if plant has void, threshold > 2.0 fl/s; else > 6.0 fl/s
- */
-export function sizeAutonomousPump(demand: number, hasVoid: boolean): FluidTierInfo {
-  if (demand <= 0) {
-    return { demand: 0, regularPumps: 0, overclockPumps: 0, sludgeManipulators: 0, pumpPower: 0 };
-  }
-
-  const threshold = hasVoid ? 2.0 : 6.0;
-  const remainder = demand % 8;
-  const ocPumps = Math.floor(demand / 8) + (remainder > threshold ? 1 : 0);
-  const regDemandRemainder = remainder > threshold ? 0 : remainder;
-  const regPumps = Math.ceil(regDemandRemainder / 2.0);
-  const sludgeManipulators = ocPumps; // 1 sludge manipulator per overclock pump
-  const pumpPower = (ocPumps + regPumps + sludgeManipulators) * 1.0;
-
-  return {
-    demand: Number(demand.toFixed(2)),
-    regularPumps: regPumps,
-    overclockPumps: ocPumps,
-    sludgeManipulators,
-    pumpPower
-  };
-}
-
-export interface PlantInfrastructureInput {
-  powerMode: 'regular' | 'overclock';
-  waterDemand: number;          // 外採水需量 (fl/s)
-  oilDemand: number;            // 外採油需量 (fl/s)
-  processVoid: number;          // 工序物質操縱機虛空需量 (fl/s)
-  transformations: { name: string; fluid: string; demand: number }[]; // 原位轉化抽取需量（已依流體合併）
-  mainPower: number;            // 主要生產設備負載 (FV/s)
-  feederPower?: number;         // 底料收割機負載 (FV/s)，若已含於 mainPower 則省略
-  forceVoidFacility?: boolean;  // 其他使全廠視為有虛空設施之條件（如食譜直接耗用虛空）
-}
-
-/**
- * 全廠基建結算（單一事實來源）：流體泵機自主超頻階梯、虛空閉環（工序 + 泵自耗 + 發電自耗）、
- * 發電熔爐 2:1（常規 4 FV/s）/ 2:1:1（超頻 16 FV/s）配置與電網盈餘。
- * 單料理求解（calculateSingleDish）與多料理並聯（parallelPlanner）共用此函式。
- */
-export function settlePlantInfrastructure(input: PlantInfrastructureInput) {
-  const { powerMode, waterDemand, oilDemand, processVoid, mainPower, feederPower = 0 } = input;
-
-  // 超頻門檻：全廠有任何虛空設施時 > 2 fl/s，否則 > 6 fl/s
-  const hasVoidFacility = !!input.forceVoidFacility ||
-                          processVoid > 0 ||
-                          powerMode === 'overclock' ||
-                          waterDemand > 6.0 ||
-                          oilDemand > 6.0 ||
-                          input.transformations.some(t => t.demand > 6.0);
-
-  const water = sizeAutonomousPump(waterDemand, hasVoidFacility);
-  const oil = sizeAutonomousPump(oilDemand, hasVoidFacility);
-  const transformations = input.transformations.map(t => ({
-    ...t,
-    ...sizeAutonomousPump(t.demand, hasVoidFacility)
-  }));
-
-  // 虛空需量 2) 超頻泵機汙泥操縱機自耗：每台超頻泵 1.0 fl/s
-  const transSludge = transformations.reduce((sum, t) => sum + t.sludgeManipulators, 0);
-  const pumpSludgeVoid = (water.sludgeManipulators + oil.sludgeManipulators + transSludge) * 1.0;
-
-  // 虛空需量 3) 超頻發電 2:1:1 汙泥操縱機：以初估負載推算熔爐數
-  const prelimPumpPower = water.pumpPower + oil.pumpPower + transformations.reduce((sum, t) => sum + t.pumpPower, 0);
-  const prelimBaseLoad = mainPower + prelimPumpPower + feederPower;
-  let genSludgeManipulators = 0;
-  let generatorSludgeVoid = 0;
-  if (powerMode === 'overclock') {
-    const prelimFurnaces = Math.max(1, Math.ceil(prelimBaseLoad / 14.0));
-    genSludgeManipulators = Math.ceil(prelimFurnaces / 2.0);
-    generatorSludgeVoid = genSludgeManipulators * 1.0;
-  }
-
-  // 虛空泵階梯（超頻淨 7 fl/s = 毛 8 扣自耗 1；常規 2 fl/s）
-  const totalVoidDemand = Number((processVoid + pumpSludgeVoid + generatorSludgeVoid).toFixed(2));
-  let voidOverclockPumps = 0;
-  let voidRegularPumps = 0;
-  if (totalVoidDemand > 0) {
-    const rem7 = totalVoidDemand % 7;
-    voidOverclockPumps = Math.floor(totalVoidDemand / 7) + (rem7 > 2.0 ? 1 : 0);
-    voidRegularPumps = (rem7 > 0 && rem7 <= 2.0) ? 1 : 0;
-  }
-  const voidSludgeManipulators = voidOverclockPumps;
-  const voidInfo: FluidTierInfo & { breakdown: { processVoid: number; generatorSludgeVoid: number; pumpSludgeVoid: number } } = {
-    demand: totalVoidDemand,
-    regularPumps: voidRegularPumps,
-    overclockPumps: voidOverclockPumps,
-    sludgeManipulators: voidSludgeManipulators,
-    pumpPower: (voidOverclockPumps + voidRegularPumps + voidSludgeManipulators) * 1.0,
-    breakdown: { processVoid, generatorSludgeVoid, pumpSludgeVoid }
-  };
-
-  // 全廠泵機與操縱機總計
-  const totalRegularPumps = water.regularPumps + oil.regularPumps + voidInfo.regularPumps +
-                            transformations.reduce((sum, t) => sum + t.regularPumps, 0);
-  const totalOverclockPumps = water.overclockPumps + oil.overclockPumps + voidInfo.overclockPumps +
-                              transformations.reduce((sum, t) => sum + t.overclockPumps, 0);
-  const totalSludgeManipulators = water.sludgeManipulators + oil.sludgeManipulators + voidInfo.sludgeManipulators +
-                                  transformations.reduce((sum, t) => sum + t.sludgeManipulators, 0) +
-                                  genSludgeManipulators;
-  const totalPumpManipulatorPower = (totalRegularPumps + totalOverclockPumps + totalSludgeManipulators) * 1.0;
-
-  // 電網平衡：常規淨 3.5 FV/s/爐（2 爐 : 1 採煤）；超頻淨 14 FV/s/爐（2 爐 : 1 採煤 : 1 汙泥操縱機）
-  const baseForFurnace = mainPower + totalPumpManipulatorPower + feederPower;
-  const isOverclock = powerMode === 'overclock';
-  const furnaces = Math.max(1, Math.ceil(baseForFurnace / (isOverclock ? 14.0 : 3.5)));
-  const coalMiners = Math.ceil(furnaces / 2.0);
-  if (isOverclock) genSludgeManipulators = Math.ceil(furnaces / 2.0);
-  const grossPower = furnaces * (isOverclock ? 16.0 : 4.0);
-  const coalRate = Number((furnaces * 0.1).toFixed(2));
-  const coalMinerPower = coalMiners * 1.0;
-  const totalLoad = baseForFurnace + coalMinerPower;
-  const netPower = isOverclock
-    ? grossPower - (coalMinerPower + genSludgeManipulators * 1.0)
-    : grossPower - coalMinerPower;
-  const surplusPower = Number((netPower - totalLoad).toFixed(2));
-
-  return {
-    hasVoidFacility, water, oil, transformations, voidInfo,
-    totalRegularPumps, totalOverclockPumps, totalSludgeManipulators, totalPumpManipulatorPower,
-    baseForFurnace, furnaces, coalMiners, genSludgeManipulators, coalRate,
-    grossPower, netPower, surplusPower, coalMinerPower, totalLoad
-  };
-}
+export {
+  sizeAutonomousPump,
+  settlePlantInfrastructure,
+  type PlantInfrastructureInput,
+  type PlantInfrastructureResult
+} from './plantInfrastructure';
 
 export function computeIntegerRatio(rates: number[]): number[] {
   if (rates.length === 0) return [];
@@ -605,10 +485,13 @@ export function getProcessItemOutputRate(
   const stripped = processName.replace(ACTION_VERBS, '').trim();
   let inter = intermediateRecipes.find(r => (r.name === stripped || r.name === processName) && r.machine === machine);
   if (!inter) {
+    inter = intermediateRecipes.find(r => r.machine === machine && (r.name.includes(stripped) || stripped.includes(r.name)));
+  }
+  if (!inter) {
     inter = intermediateRecipes.find(r => r.machine === machine && processName.endsWith(r.name));
   }
   if (!inter) {
-    inter = intermediateRecipes.find(r => processName.endsWith(r.name));
+    inter = intermediateRecipes.find(r => processName.endsWith(r.name) || r.name.includes(stripped));
   }
   if (inter) {
     const outCnt = inter.outputCount || 1;
@@ -647,6 +530,9 @@ function getProcessMaxOutputRate(
   const stripped = proc.processName.replace(ACTION_VERBS, '').trim();
   let inter = intermediateRecipes.find(r => (r.name === stripped || r.name === proc.processName) && r.machine === proc.machine)
     || intermediateRecipes.find(r => r.name === stripped || r.name === proc.processName);
+  if (!inter) {
+    inter = intermediateRecipes.find(r => r.machine === proc.machine && (r.name.includes(stripped) || stripped.includes(r.name)));
+  }
   if (!inter) {
     inter = intermediateRecipes.find(r => r.machine === proc.machine && proc.processName.endsWith(r.name))
       || intermediateRecipes.find(r => proc.processName.endsWith(r.name));
@@ -1088,6 +974,9 @@ export function calculateSingleDish(
     }
   });
 
+  // 先行計算拓撲層級 (tier)，以利底料起始啟動機依層級深度進行最優評選
+  sortProcessesDownstreamToUpstream(processNodes);
+
   // 3. 泛用底料收割機 (Base Feeder Harvesters - 物質操縱機或任何需「任意物品/底料」之設備)
   let offsetCount = 0;
   let offsetSource = '';
@@ -1100,18 +989,21 @@ export function calculateSingleDish(
       p.countRounded > p.demandRate
     );
 
+    // 標記提供過剩產能的供給設備 (Donor)
+    const donorNodes = candidateNodes.filter(p => {
+      const surplusRate = getProcessRealSurplusRate(p, processNodes, intermediateRecipes);
+      return surplusRate >= 0.199;
+    });
+
     let totalOffsetAvailable = 0;
     const sources: string[] = [];
 
-    candidateNodes.forEach(p => {
-      const surplusRate = getProcessRealSurplusRate(p, processNodes, intermediateRecipes); // 考慮上游供料限流之真實物理過剩流率 (items/second)
-      // 每 0.20 items/s 過剩流率等同於 1 台底料收割機之供給能力 (每 5 秒消耗 1 份底料)
-      if (surplusRate >= 0.199) {
-        const potential = Math.floor((surplusRate + 0.001) / 0.2);
-        if (potential > 0) {
-          totalOffsetAvailable += potential;
-          sources.push(`【${p.processName}】過剩 ${surplusRate.toFixed(2)}/s`);
-        }
+    donorNodes.forEach(p => {
+      const surplusRate = getProcessRealSurplusRate(p, processNodes, intermediateRecipes);
+      const potential = Math.floor((surplusRate + 0.001) / 0.2);
+      if (potential > 0) {
+        totalOffsetAvailable += potential;
+        sources.push(`【${p.processName}】過剩 ${surplusRate.toFixed(2)}/s`);
       }
     });
 
@@ -1122,57 +1014,98 @@ export function calculateSingleDish(
       // 若依賴某台設備，該設備即為「起始啟動機 (Progenitor)」，必須保留其專屬底料收割機啟動鏈條
       const progenitorManipulators = manipulators.filter(m => {
         const mProduct = m.processName.replace('重構', '').replace('物質操縱', '').trim();
-        return candidateNodes.some(c => {
-          const rec = intermediateRecipes.find(r => 
-            r.name === c.processName || c.processName.includes(r.name) || r.name.includes(c.processName)
-          );
+        return donorNodes.some(c => {
+          const cStripped = c.processName.replace(ACTION_VERBS, '').trim();
+          const rec = intermediateRecipes.find(r => r.machine === c.machine && (r.name === c.processName || r.name === cStripped || r.name.includes(cStripped) || cStripped.includes(r.name)))
+            || intermediateRecipes.find(r => r.name === c.processName || r.name === cStripped || r.name.includes(cStripped) || cStripped.includes(r.name));
           return rec ? rec.inputs.some(inp => inp.name.includes(mProduct) || mProduct.includes(inp.name)) : false;
         });
       });
 
       const hasManipulatorChain = progenitorManipulators.length > 0;
-      const rootManipulator = progenitorManipulators[0] || manipulators[0];
       const maxAllowed = hasManipulatorChain ? Math.max(0, baseConsumerCount - 1) : baseConsumerCount;
-      offsetCount = Math.min(totalOffsetAvailable, maxAllowed);
 
-      if (offsetCount > 0) {
-        // 標記提供過剩產能的供給設備 (Donor) 與接收底料的操縱機 (Recipient)
-        const donorNodes = candidateNodes.filter(p => {
-          const surplusRate = getProcessRealSurplusRate(p, processNodes, intermediateRecipes);
-          return surplusRate >= 0.199;
+      const canDonate = (donorNode: ProcessNode, recNode: ProcessNode) => {
+        const recProduct = recNode.processName.replace('重構', '').replace('物質操縱', '').trim();
+        const donorStripped = donorNode.processName.replace(ACTION_VERBS, '').trim();
+        const donorRec = intermediateRecipes.find(r => (r.name === donorNode.processName || r.name === donorStripped || r.name.includes(donorStripped)) && r.machine === donorNode.machine)
+          || intermediateRecipes.find(r => r.name === donorNode.processName || r.name.includes(donorStripped));
+        const dependsOnRec = donorRec?.inputs?.some(inp => inp.name.includes(recProduct) || recProduct.includes(inp.name));
+        return !dependsOnRec;
+      };
+
+      const getDonorSupplier = (donorNode: ProcessNode) => {
+        const donorStripped = donorNode.processName.replace(ACTION_VERBS, '').trim();
+        const donorRec = intermediateRecipes.find(r => (r.name === donorNode.processName || r.name === donorStripped || r.name.includes(donorStripped)) && r.machine === donorNode.machine)
+          || intermediateRecipes.find(r => r.name === donorNode.processName || r.name.includes(donorStripped));
+        return manipulators.find(m => {
+          const mProduct = m.processName.replace('重構', '').replace('物質操縱', '').trim();
+          return donorRec?.inputs?.some(inp => inp.name.includes(mProduct) || mProduct.includes(inp.name));
         });
+      };
 
-        // 接收端優先分配給非起始操縱機 (若無起始依賴，則可分配給任意操縱機)
-        const recipientManipulators = hasManipulatorChain
-          ? manipulators.filter(m => m !== rootManipulator).slice(0, offsetCount)
-          : manipulators.slice(0, offsetCount);
+      // 遍歷所有候選起始機 (若有祖源依賴則限定於 progenitorManipulators，否則為全體 manipulators)
+      // 透過二分圖約束排序，挑選能達成最多折抵、且最順暢正向拓撲之最佳分配方案
+      const candidateRoots = hasManipulatorChain ? progenitorManipulators : (manipulators.length > 0 ? [manipulators[0]] : []);
+      let bestMatching: {
+        root: ProcessNode;
+        matchedCount: number;
+        donorSlots: { donor: ProcessNode; surplusRate: number; available: number; recipients: ProcessNode[] }[];
+        score: number;
+      } | null = null;
 
-        // 依據各供給設備 (Donor) 之可用過剩容量，輪流 (Round-robin) 1:1 分配接收端操縱機 (Recipient)
+      for (const candRoot of candidateRoots) {
+        const recipients = manipulators.filter(m => m !== candRoot).slice(0, maxAllowed);
         const donorSlots = donorNodes.map(d => {
           const surplusRate = getProcessRealSurplusRate(d, processNodes, intermediateRecipes);
           return {
             donor: d,
-            available: Math.floor((surplusRate + 0.001) / 0.2),
+            supplier: getDonorSupplier(d),
             surplusRate,
+            available: Math.floor((surplusRate + 0.001) / 0.2),
             recipients: [] as ProcessNode[]
           };
         });
 
-        let rIndex = 0;
-        while (rIndex < recipientManipulators.length) {
-          let assignedInRound = false;
-          for (const ds of donorSlots) {
-            if (rIndex >= recipientManipulators.length) break;
-            if (ds.available > 0) {
-              ds.recipients.push(recipientManipulators[rIndex]);
-              ds.available--;
-              rIndex++;
-              assignedInRound = true;
-            }
+        recipients.sort((a, b) => {
+          const countA = donorSlots.filter(ds => canDonate(ds.donor, a)).length;
+          const countB = donorSlots.filter(ds => canDonate(ds.donor, b)).length;
+          return countA - countB;
+        });
+
+        let matchedCount = 0;
+        for (const rec of recipients) {
+          const available = donorSlots.filter(ds => ds.available > 0 && canDonate(ds.donor, rec));
+          if (available.length > 0) {
+            available.sort((d1, d2) => {
+              const t1 = recipients.filter(r => canDonate(d1.donor, r)).length;
+              const t2 = recipients.filter(r => canDonate(d2.donor, r)).length;
+              return t1 - t2;
+            });
+            const chosen = available[0];
+            chosen.recipients.push(rec);
+            chosen.available--;
+            matchedCount++;
           }
-          if (!assignedInRound) break;
         }
 
+        const candRootSuppliesDonor = donorSlots.some(ds => ds.supplier === candRoot && ds.recipients.length > 0);
+        const score = matchedCount * 100 + (candRootSuppliesDonor ? 10 : 0) + (50 - (candRoot.tier ?? 50));
+
+        if (!bestMatching || score > bestMatching.score) {
+          bestMatching = {
+            root: candRoot,
+            matchedCount,
+            donorSlots,
+            score
+          };
+        }
+      }
+
+      const donorSlots = bestMatching ? bestMatching.donorSlots : [];
+      offsetCount = bestMatching ? Math.min(bestMatching.matchedCount, maxAllowed) : 0;
+
+      if (offsetCount > 0) {
         const actualSources: string[] = [];
         donorSlots.forEach(ds => {
           const d = ds.donor;
