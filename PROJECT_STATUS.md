@@ -55,7 +55,7 @@
 | `scripts/regression/` | 黃金快照回歸測試：`cases.ts`（案例定義，solver 1008 + 沙盒 378）、`snapshot.ts` / `sandboxSnapshot.ts`（輸出完整快照）、`compare.mjs` |
 | `scripts/check/` | 品質閘門 `npm run check`：`index.ts`（資料 lint + 程式守門 + 回歸指紋）、`fingerprints.json`（每案例雜湊 + 資料雜湊）、`baseline.json`（佔位名、既有資料問題、已審核相似名、大檔行數、既有硬編碼名稱；只能縮減）、`installHooks.mjs`；hook 在 `.githooks/pre-commit` |
 | `scripts/generateAllDishBlueprints.ts` | 以 `buildDishBlueprint` 生成全部料理藍圖並逐道回報缺料（預設只檢查，不寫入資料檔） |
-| `docs/` | 知識庫（README、01 物理、02 公式、03 登錄 SOP、CHANGELOG 決策日誌） |
+| `docs/` | 知識庫（README、01 物理、02 公式、03 登錄 SOP、04 診斷手冊、CHANGELOG 決策日誌） |
 
 ---
 
@@ -100,6 +100,7 @@
 - [x] 品質閘門：`npm run check` + pre-commit hook + GitHub Actions 部署前檢查（讓任何 AI 的修改自動受檢）
 - [x] ★ 沙盒正交圓角走線 (零切穿方塊)、懸停發光流向動畫與 500ms 延遲焦點過濾實裝
 - [x] ★ 產線計算機與沙盒模擬器邏輯全面統一、副產物拓撲直連、全廠 42 道食譜 100% 稼動率滿載與自癒機台清零達成
+- [ ] 【架構規劃中】數位雙生閉環檢查機制：第一關計算機與沙盒 1:1 靜態鏡像審計 + 第二關快進物理體檢（HealNodes=0 / 100% 滿載）+ 🟢/🔴 二元健康報警與病因診斷卡 + SOP 文件落地
 - [ ] 依遊戲推進持續登錄後半段新島嶼與高階配方
 - [ ] 【冰塊 → 糊糊】糊糊未登錄（目前無食譜使用，使用者需要時自行登錄；`npm run check` 僅警告）
 

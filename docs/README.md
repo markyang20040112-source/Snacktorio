@@ -13,7 +13,9 @@ docs/
 ├── README.md                                  # 系統知識庫總覽與核心原則（本文件）
 ├── 01_production_logic_and_physics.md         # 產線物理機制與平衡推導規範
 ├── 02_spreadsheet_architecture_and_formulas.md# 試算表架構與動態公式手冊
-└── 03_recipe_ingestion_sop_and_case_studies.md# 食譜登錄 SOP 與實戰範本
+├── 03_recipe_ingestion_sop_and_case_studies.md# 食譜登錄 SOP 與實戰範本
+├── 04_production_health_and_diagnostics.md    # 數位雙生閉環檢查與二元健康診斷手冊
+└── CHANGELOG.md                               # 開發決策歷史紀錄
 ```
 
 ### 各文件核心職責與查閱時機
@@ -23,6 +25,7 @@ docs/
 | **01** | [產線物理機制與平衡推導規範](01_production_logic_and_physics.md) | 定義傳送帶物流、即時連續流體、雙階泵機階梯、虛空閉環、發電熔爐 2:1:1 平衡、食材生化屬性（腐壞、發酵、過敏原隔離）與終端自動廚師機組裝極限。 | 規劃新產線拓撲、推導設備台數、計算水/油/虛空流量、排查管網混流或生化污染時。 |
 | **02** | [試算表架構與動態公式手冊](02_spreadsheet_architecture_and_formulas.md) | 詳解試算表八大分頁結構、純資料庫驅動模型、儀表板標準四區看板（Row 7~13）、動態工序展開區（Row 16+）、動態公式（FILTER/UNIQUE/GCD）與分數化精度鐵律。 | 維護、修改試算表公式、排查前台看板展開異常、調整欄位結構或優化試算表效能時。 |
 | **03** | [食譜登錄 SOP 與實戰範本](03_recipe_ingestion_sop_and_case_studies.md) | 規範 Zero-Surprise Protocol（寫入前強制授權）、三階段逆向登錄 SOP（剖析提問、六大資料庫依序寫入、六重校驗標準）、核心防呆鐵律與經典實戰案例。 | 接收到玩家解鎖之新食譜截圖/文字、準備向試算表寫入全新料理與原料前。 |
+| **04** | [數位雙生閉環檢查與二元健康診斷手冊](04_production_health_and_diagnostics.md) | 規範雙關卡審計流程、純二元健康燈號判定（🟢/🔴）、物質操縱機雙槽湊滿 0.20/s 物理約束、與五大物理故障診斷字典。 | 執行全廠產線健康大體檢、排查沙盒斷流/欠壓、升級副產物折抵演算法時。 |
 | **—** | [開發決策日誌 (CHANGELOG)](CHANGELOG.md) | 自 `PROJECT_STATUS.md` 移出之完整歷史決策逐字紀錄（最新在上）。 | 追溯某項物理規則或演算法的修改原因與來龍去脈時。 |
 
 ---
