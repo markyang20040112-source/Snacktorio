@@ -39,6 +39,7 @@
 | 路徑 | 職責 |
 |---|---|
 | `src/services/solver.ts` | 核心解算引擎：配方樹展開、`calculateSingleDish`、`sizeAutonomousPump`、`settlePlantInfrastructure`（泵機階梯 + 虛空閉環 + 電網，單一實作供單料理與並聯共用） |
+| `src/services/byproductMatching.ts` | 泛用底料副產物折抵匹配（`matchByproductFeeders`）：二分圖槽位匹配 + 動態有向圖防死鎖 + 拓撲層級啟動鏈條 |
 | `src/services/parallelPlanner.ts` | 多料理並聯純運算層（無 React）：`runParallelPlan`、`consolidatePlan` |
 | `src/services/dataService.ts` | JSON 載入 / localStorage 快取 / 匯出 |
 | `src/services/githubSync.ts` | Git Data API 單一原子 Commit 同步 5 份資料檔 + 沙盒藍圖庫（只推送自訂/修改過的藍圖；本機無藍圖時不推送該檔；無變更則略過） |
@@ -46,7 +47,7 @@
 | `src/services/builtInBlueprints.ts` | 官方料理藍圖執行期生成（依 `dataService.getRevision()` 快取）＋同步時剔除可重建藍圖 |
 | `src/services/sandboxBlueprintService.ts` | 沙盒專案庫存取（官方藍圖與本機自訂專案合併、刪除/恢復/匯入匯出） |
 | `src/components/ParallelPlanner/` | `ParallelPlanner.tsx`（控制台）+ `FluidStation` / `PowerStation` / `ProcessTable` / `KpiSummary` 顯示元件 |
-| `src/components/Sandbox/` | `SandboxSimulator.tsx`（畫布狀態與互動）、`sandboxPhysics.ts`（物理引擎）、`sandboxNodeUtils.ts`（`makeNode` 節點工廠、校準、子圖複製、存檔）、`SandboxNode.tsx`、`SandboxBlueprintModal.tsx`（專案庫）、顯示元件 `SandboxCatalogSidebar` / `SandboxMetricsPanel` / `SandboxToolbar` / `SandboxConnectionsLayer`、`sandboxTypes.ts` |
+| `src/components/Sandbox/` | `SandboxSimulator.tsx`（畫布狀態與互動）、`sandboxPhysics.ts`（物理引擎）、`sandboxDevicePhysics.ts`（分流器與緩衝發酵物理）、`sandboxNodeUtils.ts`（`makeNode` 節點工廠、校準、子圖複製、存檔）、`SandboxNode.tsx`、`SandboxBlueprintModal.tsx`（專案庫）、顯示元件 `SandboxCatalogSidebar` / `SandboxMetricsPanel` / `SandboxToolbar` / `SandboxConnectionsLayer`、`sandboxTypes.ts` |
 | `src/components/DataManager/` | 資料工作台各管理分頁與同步設定 |
 | `src/utils/itemTraits.ts` | 物品特性資料驅動判定：流體（食譜 `fluidType` 引用推導）、原料機台（`source`）、可發酵物品（`isPerishable`） |
 | `src/utils/actionVerbs.ts` | 工序動作動詞共用正則（solver 與 iconHelper 共用） |
@@ -107,6 +108,11 @@
 ## 7. 近期決策摘要 (Recent Decisions)
 > 完整原文見 [`docs/CHANGELOG.md`](docs/CHANGELOG.md)。新紀錄請先追加詳細內容至 CHANGELOG 頂端，再於此更新摘要（保留最近約 10 筆）。
 
+* **2026-10-10｜核心超大檔案模組化拆分重構：抽離 sandboxDevicePhysics 與 byproductMatching，大幅釋放 solver 與 sandboxPhysics 維護空間**：
+  - 物理與解算解耦：抽離 [`sandboxDevicePhysics.ts`](src/components/Sandbox/sandboxDevicePhysics.ts)（分流器與緩衝發酵物理，163 行）與 [`byproductMatching.ts`](src/services/byproductMatching.ts)（副產物折抵與二分圖槽位匹配，229 行）。
+  - 維護餘裕大幅釋放：[`solver.ts`](src/services/solver.ts) 由 1536 行降至 **1389 行**（獲得 147 行餘裕）；[`sandboxPhysics.ts`](src/components/Sandbox/sandboxPhysics.ts) 由 798 行降至 **661 行**（獲得 139 行餘裕）。
+  - 零回歸與守門員全量驗證：抽離模組不含任何硬編碼食材名稱，品質閘門（1008 solver / 378 sandbox 案例）100% 通過。
+
 * **2026-10-10｜產線計算機與沙盒拓撲完全統一、全廠 42 道食譜 100% 滿載運轉、自癒機台清零與動態可達性防閉環機制實裝**：
   - 核心邏輯完全統一：沙盒藍圖生成（`dishBlueprintGenerator.ts`）完全由 `runParallelPlan` 與 `downstreamTargets` 拓撲驅動，拔除全廠自癒補丁機台（全 42 道食譜 `HealNodes = 0`），副產物過剩產能直連重構機 `in-base`。
   - 動態有向圖可達性防死鎖與遞移閉包 (`canAddDependency`, `recordDependency`)：在 `itemTraits.ts` 實裝可達性檢查與遞移閉包，徹底杜絕多重構產線間 cross-donation 導致的 8 階長震盪互鎖循環死鎖，【殺手薄餅】達成 100% 滿載線性級聯。
@@ -164,19 +170,3 @@
   - 機台縱向間距放寬 (`dishBlueprintLayout.ts`)：將主產線行高 `ROW_HEIGHT` 由 270px 調升至 360px、通道間距 `LANE_GAP` 由 40px 調升至 60px。全廠 42 套藍圖實體驗算：帶 3 輸入端口與警告標籤之機台（高度約 295~325px）卡片重疊數降為 0，每台機台垂直方向皆擁有至少 65px+ 的安全距離與清爽排版。
   - 行間縫隙直接走線 (`sandboxRouting.ts`)：避障管廊演算法升級，自動自中介欄位萃取相鄰機台間之「水平行間縫隙」（如 `採收辣椒 #1` 與 `烘烤灰燼 #3` 之間）並依位移代價最優選取。管線直接自最近的行間縫隙優雅平整穿過，消除所有冗餘折返，兼顧 100% 零切穿與最短路徑美學。
   - 藍圖快取自動升級：版本標記升級至 `20261009_v16_spacious_layout_and_inter_row_conduits`。
-* **2026-10-09｜全通道 AABB 碰撞驗證避障 (`isHorizontalSegmentClear`) 實裝，徹底終結相鄰機台頂部橫切**：
-  - 全通道 AABB 碰撞驗證 (`isHorizontalSegmentClear`)：走線 Y 座標在敲定前強制檢驗整條橫向線段 $[x_1, x_2]$ 是否與任何相鄰機台（如烤箱頭頂）發生 AABB 碰撞，任何不安全通道一律剔除淘汰。
-  - 同列優先走天際線：當起訖點均位於第一列（如【惡魔鷹身女妖肉】中紅油泵機直供油炸鍋），上方空間完全淨空時，系統直接選取第一列上方天際線（$y = 50$）作為高空安全管廊，線路優雅向上爬升橫越、再下降直達油炸鍋，100% 絕對不碰觸第二列的任何機台頭頂。
-* **2026-10-09｜同欄多線無交叉並行分流 (契合手繪草圖)、虛空流體優先地下通道 (走底下) 與高空/地下獨立雙軌防疊實裝**：
-  - 無交叉並行分流 (`portDirection`)：依流向動態反轉軌道順序——由上至下供料時上方端口配於最右側（緊鄰目標機台）、下方端口依序向左展開，上方線條抵達端口時直接右轉切入，完全不與下方線條交叉（100% 契合使用者手繪草圖）。
-  - 虛空流體優先走機台下方安全通道 (`preferBelow = true`)：虛空管線自泵機出線後，優先沿機台群下方通道（$y = \text{blockBottom} + 22$）平整橫貫，就近直接自下方直連機台底部的虛空輸入端，大幅縮短管路長度，完全不與上方水管競爭。
-  - 高空 / 地下通道多管獨立分軌 (`corridorTrack`)：流體管線預先依上方/下方通道分配獨立軌道索引（每軌間距 18px，垂直出入槽間距 6px）。即便多條水管同時走上方或多條虛空管同時走下方，亦全部分散於專屬平行軌道，絕對 100% 零重疊。
-* **2026-10-09｜正交圓角走線同欄多線槽位分流 (消滅疊線)、4-Bend 安全通道避障繞道 (杜絕切穿機台) 與出料標籤校準**：
-  - 同欄多線槽位分流 (`slotOffset`)：依目標與來源端口索引動態分配走線槽位偏移量（-28px ~ +28px），同欄多台機台直供同設備時在 92px 走線槽內均勻展開為獨立並行軌道，徹底消除垂直疊線。
-  - 4-Bend 行間安全通道避障繞道 (Safe Corridor Detour)：跨欄長距連線（如左側抽水泵直供最右側料理鍋）檢測到中間橫向機台阻擋時，自動啟動 4 彎折避障通道，自機台群上方或下方乾淨走道平整繞行，100% 絕對不切穿任何機台腹部。
-  - 實體節點碰撞邊界強化 (`getNodeBounds`)：精確納入機台警告標籤、多端口與自動廚師機按鈕高度，四向預留安全裕度，杜絕碰撞漏網。
-  - 出料口流量標籤對齊：流量標籤由垂直段中央移至緊貼各機台出料端橫向段（靠起點右側 8px），標籤明確歸屬各自機台，不再遮擋或被垂直主走線切穿。
-* **2026-10-09｜智慧正交圓角走線 (零切穿方塊)、懸停發光流向動畫與 500ms 延遲焦點過濾實裝**：
-  - 正交圓角走線 (`sandboxRouting.ts`，方案 A)：線路自輸出端出線向右進入 92px 走線槽 (Gutter)，於行間 40px 通道 (Gap) 橫向穿行，轉角配置 10~14px 平滑二次貝茲圓弧倒角 (Q 曲線)。徹底終結同欄上下直供（如骨粉供蜘蛛蛋）斜穿方塊腹部之問題，100% 零穿透，展現工廠輸送帶秩序美學。
-  - 連線與兩端機台聯動發光：懸停連線即時增粗並點亮微光（固體翠晶綠 #34d399、流體霓虹青 #38bdf8），兩端機台邊框亮起綠色（供料端）與青色（接收端）霓虹光圈與身分標籤；線上虛線實裝 0.8s 循環流向粒子動畫，直覺辨識傳輸方向。
-  - 500ms 停留延遲焦點過濾 (`useSandboxHover.ts`)：游標停留於連線上滿 500ms 自動啟動焦點過濾，全廠無關機台與管線淡化至 20%~25% 透明度，移開立即還原；機台反向關聯懸停同步套用 500ms 延遲，徹底消除滑鼠快速移動閃爍。

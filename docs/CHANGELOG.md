@@ -3,7 +3,19 @@
 > 本檔案收錄自 `PROJECT_STATUS.md` 移出之完整歷史決策紀錄（原文逐字保留，未做任何改寫）。
 > 最新條目置於最上方；新的詳細紀錄請追加於「最新紀錄」區塊頂端，`PROJECT_STATUS.md` 僅保留精簡摘要。
 
----
+* **2026-10-10｜核心超大檔案模組化拆分重構：抽離 sandboxDevicePhysics 與 byproductMatching，大幅釋放 solver 與 sandboxPhysics 維護空間**：
+  - **使用者需求**：使用者詢問「800 行限制是否太小會造成困擾？」經專業評估推薦「方案 A（主動模組化重構拆分）」並獲使用者授權同意（「好，拆分」）。
+  - **重構內容**：
+    1. **沙盒物理引擎拆分 (`sandboxPhysics.ts` → `sandboxDevicePhysics.ts`)**：
+       - 將分流器均分與自訂比例演算法（`updateSplitterNode`）以及發酵變質緩衝物理（`updateBufferDecayNode`）抽離至全新模組 [`src/components/Sandbox/sandboxDevicePhysics.ts`](src/components/Sandbox/sandboxDevicePhysics.ts)（163 行）。
+       - [`src/components/Sandbox/sandboxPhysics.ts`](src/components/Sandbox/sandboxPhysics.ts) 刪除 137 行內聯邏輯，由 798 行（臨界 800 行上限）成功降至 **661 行**，釋放出 139 行之充裕呼吸空間。
+    2. **核心解算引擎副產物折抵拆分 (`solver.ts` → `byproductMatching.ts`)**：
+       - 將副產物折抵、Progenitor 分析、可達性防死鎖與二分圖槽位匹配演算法抽離至全新模組 [`src/services/byproductMatching.ts`](src/services/byproductMatching.ts)（229 行）。
+       - 將 `computeIntegerRatio` 抽整至 [`src/utils/math.ts`](src/utils/math.ts) 並於 `solver.ts` re-export，消除跨模組重複與循環依賴。
+       - [`src/services/solver.ts`](src/services/solver.ts) 由 1536 行（臨界 1536 行 baseline 上限）成功降至 **1389 行**，釋放出 147 行之充裕維護空間。
+    3. **零回歸與硬編碼守門全量驗證**：
+       - 抽離模組完全不引入任何受保護食材名稱，100% 遵從純資料驅動原則。
+       - 品質閘門 `npm run check`（1008 solver / 378 sandbox 案例指紋 100% 吻合）與生產建置 `npm run build` 順利通過。
 
 * **2026-10-10｜產線計算機與沙盒拓撲完全統一、全廠 42 道食譜 100% 滿載運轉、自癒機台清零與動態可達性防閉環機制實裝**：
   - **使用者需求**：

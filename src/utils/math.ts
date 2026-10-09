@@ -61,3 +61,11 @@ export function gcdArray(arr: number[]): number {
   }
   return result;
 }
+
+export function computeIntegerRatio(rates: number[]): number[] {
+  if (rates.length === 0) return [];
+  const ints = rates.map(r => Math.round(r * 10000));
+  const g = gcdArray(ints);
+  if (g <= 0) return rates.map(() => 1);
+  return ints.map(val => Math.round(val / g));
+}
