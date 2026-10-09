@@ -815,9 +815,16 @@ export function calculateSingleDish(
 
   const baseConsumerCount = baseConsumerNodes.reduce((sum, p) => sum + p.countRounded, 0);
   const consumerMachines = Array.from(new Set(baseConsumerNodes.map(p => p.machine)));
-  const primaryConsumerMachine = consumerMachines.length === 1
-    ? consumerMachines[0]
-    : (consumerMachines.length > 1 ? consumerMachines.join('、') : '物質操縱機');
+  const primaryConsumerMachine = consumerMachines.length === 1 ? consumerMachines[0] : (consumerMachines.length > 1 ? consumerMachines.join('、') : '物質操縱機');
+
+  const getTargetCycle = (name: string, mach: string): number => {
+    if (!name) return mach === '混合機' ? 4 : 5;
+    const stripped = name.replace(ITEM_ACTION_PREFIX, '').trim();
+    const found = recipes.find(r => r.name === name || r.name === stripped)
+      || intermediateRecipes.find(r => r.name === name || r.name === stripped)
+      || intermediateRecipes.filter(r => name.includes(r.name) || r.name.includes(stripped)).sort((a, b) => b.name.length - a.name.length)[0];
+    return found?.cycleTime || (mach === '混合機' ? 4 : 5);
+  };
 
   nodeContexts.forEach(curr => {
     if (curr.node.machine === '自動廚師機') {
@@ -879,9 +886,7 @@ export function calculateSingleDish(
       }
     } else if (consumers.length === 1) {
       const c = consumers[0];
-      const targetCycle = recipes.find(r => r.name === c.target.processName)?.cycleTime
-        || intermediateRecipes.find(r => r.name === c.target.processName || c.target.processName.includes(r.name))?.cycleTime
-        || (c.target.machine === '混合機' ? 4 : 5);
+      const targetCycle = getTargetCycle(c.target.processName, c.target.machine);
       const perMachineRate = (c.reqCount || 1) / targetCycle;
       const flowRate = (c.target.demandRate || c.target.countRounded) * perMachineRate;
       const mCount = c.target.countRounded || 1;
@@ -929,9 +934,7 @@ export function calculateSingleDish(
       }
     } else {
       const flowRates = consumers.map(c => {
-        const targetCycle = recipes.find(r => r.name === c.target.processName)?.cycleTime
-          || intermediateRecipes.find(r => r.name === c.target.processName || c.target.processName.includes(r.name))?.cycleTime
-          || (c.target.machine === '混合機' ? 4 : 5);
+        const targetCycle = getTargetCycle(c.target.processName, c.target.machine);
         const perMachineRate = (c.reqCount || 1) / targetCycle;
         return (c.target.demandRate || c.target.countRounded) * perMachineRate;
       });
@@ -981,12 +984,8 @@ export function calculateSingleDish(
   let offsetSource = '';
 
   if (feederStrategy === 'recycle' && baseConsumerCount > 0) {
-    // 檢查產線中是否有具備過剩產能的固體中間加工工序 (排除終端組裝、純流體與發電機，以及底料消耗設備自身)
-    const nonDonorMachines = ['自動廚師機', ...consumerMachines, '物質操縱機', '攪拌機', '注入機', '虛空熔爐', '虛空泵機', '收割機', '採掘機'];
-    const candidateNodes = processNodes.filter(p => 
-      !nonDonorMachines.includes(p.machine) &&
-      p.countRounded > p.demandRate
-    );
+    const nonDonorMachines = new Set(['自動廚師機', ...consumerMachines, '物質操縱機', '攪拌機', '注入機', '虛空熔爐', '虛空泵機', '收割機', '採掘機', '發酵罐', '煮鍋', '油炸鍋', '烤箱', '混合機', '擠出機']);
+    const candidateNodes = processNodes.filter(p => !nonDonorMachines.has(p.machine) && !intermediateRecipes.find(r => (r.name === p.processName || p.processName.includes(r.name)) && r.fluidType && r.fluidType !== '無') && p.countRounded > p.demandRate);
 
     // 標記提供過剩產能的供給設備 (Donor)
     const donorNodes = candidateNodes.filter(p => {

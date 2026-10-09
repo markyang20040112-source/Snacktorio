@@ -42,10 +42,10 @@ export function buildDishBlueprint(
   const remedyRecipe = recipes.find(r => r.notes?.includes('中和') && (r.notes?.includes('熾熱') || r.notes?.includes('炙熱')));
   const remedyDishName = remedyRecipe?.name || '';
 
-  // 1. 產線計算機最高效率規劃 (副產物折抵模式 recycle + 熾熱自動配產中和料理)
+  // 1. 產線計算機最高效率規劃 (超頻模式 + 副產物折抵模式 recycle + 熾熱自動配產中和料理)
   const plan = runParallelPlan(
     [{ id: 'main', dishName: dish.name, rateMin: 12 }],
-    'regular',
+    'overclock',
     'recycle',
     recipes
   );
@@ -394,6 +394,7 @@ export function buildDishBlueprint(
           allocatedInputs.add(inputKey(tn.id, pInp.id));
 
           const reqRate = Number((dt.flowRate || pInp.rateRequired || 0.2).toFixed(3));
+          pInp.rateRequired = reqRate;
 
           if (pInp.type === 'fluid') {
             fluidTargets.push({ toNode: tn, toPort: pInp, flowRate: reqRate });
@@ -437,20 +438,20 @@ export function buildDishBlueprint(
         const outPort = fn.outputs[0];
         if (!outPort) return;
 
-        fluidTargets.forEach((ft, ftIdx) => {
-          if (ftIdx % fromNodes.length === fIdx) {
-            pushConn({
-              id: `c-fl-${dishIndex}-${pIdx}-${fIdx}-${ftIdx}`,
-              fromNodeId: fn.id,
-              fromPortId: outPort.id,
-              toNodeId: ft.toNode.id,
-              toPortId: ft.toPort.id,
-              itemOrFluidName: outputInfo.name,
-              type: 'fluid',
-              actualFlowRate: ft.flowRate
-            });
-          }
-        });
+        // 連續流體 1:1 獨立專線直供 (GEMINI.md 規則 2 與 5：嚴禁一機多管混分稀釋)
+        if (fIdx < fluidTargets.length) {
+          const ft = fluidTargets[fIdx];
+          pushConn({
+            id: `c-fl-${dishIndex}-${pIdx}-${fIdx}-${fIdx}`,
+            fromNodeId: fn.id,
+            fromPortId: outPort.id,
+            toNodeId: ft.toNode.id,
+            toPortId: ft.toPort.id,
+            itemOrFluidName: outputInfo.name,
+            type: 'fluid',
+            actualFlowRate: ft.flowRate
+          });
+        }
       });
       return;
     }
@@ -579,6 +580,8 @@ export function buildDishBlueprint(
       const { isRecon, machName } = classifyRawSource(targetRawName);
       const machCycle = 5;
       const neededRate = inPort.rateRequired || 0.2;
+      const machOutputCount = Math.max(1, Number((neededRate * machCycle).toFixed(2)));
+      const actualProvidedRate = Number((machOutputCount / machCycle).toFixed(3));
       const healNodeId = `heal-mach-${dishIndex}-${healCounter}`;
 
       const healNode = makeNode({
@@ -590,7 +593,7 @@ export function buildDishBlueprint(
         x: consumer.x - 300,
         y: consumer.y + 120,
         baseCycleTime: machCycle,
-        baseOutputCount: 1,
+        baseOutputCount: machOutputCount,
         basePowerConsumption: isRecon ? 2.0 : 1.0,
         baseGoblins: isRecon ? 2 : 1,
         inputs: isRecon ? reconInputs() : [],
@@ -598,7 +601,7 @@ export function buildDishBlueprint(
           id: `out-${targetRawName}`,
           name: targetRawName,
           type: 'solid',
-          rateProvided: Math.max(0.2, neededRate)
+          rateProvided: actualProvidedRate
         }]
       });
 
@@ -606,6 +609,7 @@ export function buildDishBlueprint(
         neededEnvFluids.add('虛空');
       }
 
+      inPort.rateRequired = neededRate;
       nodes.push(healNode);
       pushConn({
         id: `c-heal-${dishIndex}-${healCounter}`,
