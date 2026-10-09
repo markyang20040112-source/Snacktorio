@@ -491,7 +491,7 @@ export function getProcessItemOutputRate(
     inter = intermediateRecipes.find(r => r.machine === machine && processName.endsWith(r.name));
   }
   if (!inter) {
-    inter = intermediateRecipes.find(r => processName.endsWith(r.name) || r.name.includes(stripped));
+    inter = intermediateRecipes.find(r => r.machine === machine && (processName.includes(r.name) || r.name.includes(stripped)));
   }
   if (inter) {
     const outCnt = inter.outputCount || 1;
@@ -528,14 +528,12 @@ function getProcessMaxOutputRate(
 
   // Intermediate machines: check upstream supplier constraints
   const stripped = proc.processName.replace(ACTION_VERBS, '').trim();
-  let inter = intermediateRecipes.find(r => (r.name === stripped || r.name === proc.processName) && r.machine === proc.machine)
-    || intermediateRecipes.find(r => r.name === stripped || r.name === proc.processName);
+  let inter = intermediateRecipes.find(r => (r.name === stripped || r.name === proc.processName) && r.machine === proc.machine);
   if (!inter) {
     inter = intermediateRecipes.find(r => r.machine === proc.machine && (r.name.includes(stripped) || stripped.includes(r.name)));
   }
   if (!inter) {
-    inter = intermediateRecipes.find(r => r.machine === proc.machine && proc.processName.endsWith(r.name))
-      || intermediateRecipes.find(r => proc.processName.endsWith(r.name));
+    inter = intermediateRecipes.find(r => r.machine === proc.machine && (proc.processName.endsWith(r.name) || proc.processName.includes(r.name)));
   }
 
   if (!inter || !inter.inputs || inter.inputs.length === 0) {
@@ -983,7 +981,7 @@ export function calculateSingleDish(
 
   if (feederStrategy === 'recycle' && baseConsumerCount > 0) {
     // 檢查產線中是否有具備過剩產能的固體中間加工工序 (排除終端組裝、純流體與發電機，以及底料消耗設備自身)
-    const nonDonorMachines = ['自動廚師機', ...consumerMachines, '物質操縱機', '攪拌機', '注入機', '虛空熔爐', '虛空泵機'];
+    const nonDonorMachines = ['自動廚師機', ...consumerMachines, '物質操縱機', '攪拌機', '注入機', '虛空熔爐', '虛空泵機', '收割機', '採掘機'];
     const candidateNodes = processNodes.filter(p => 
       !nonDonorMachines.includes(p.machine) &&
       p.countRounded > p.demandRate

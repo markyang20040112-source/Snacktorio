@@ -230,7 +230,7 @@ function consolidatePlan(
     if (feederRow && feederRow.baseFeederSummary && feederRow.parallelRounded > 0) {
       const bfSummary = feederRow.baseFeederSummary;
       const consumerName = bfSummary.consumerMachine || '物質操縱機';
-      const nonDonorMachines = ['自動廚師機', consumerName, '物質操縱機', '攪拌機', '注入機', '虛空熔爐', '虛空泵機'];
+      const nonDonorMachines = ['自動廚師機', consumerName, '物質操縱機', '攪拌機', '注入機', '虛空熔爐', '虛空泵機', '收割機', '採掘機'];
 
       // If single dish mode, inherit the detailed offset from single dish solver directly
       if (effectivePlannedList.length === 1 && individualResults[0]?.calc?.baseFeeders) {
