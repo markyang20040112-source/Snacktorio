@@ -1,10 +1,9 @@
 import { 
-  calculateSingleDish, 
-  sortProcessesDownstreamToUpstream,
   getProcessOutputItem,
   getProcessInputItems,
   isScorchingDish
 } from './solver';
+import { runParallelPlan } from './parallelPlanner';
 import { dataService } from './dataService';
 import { simulateSandboxPhysics } from '../components/Sandbox/sandboxPhysics';
 import { makeNode, calculateFitView } from '../components/Sandbox/sandboxNodeUtils';
@@ -16,12 +15,13 @@ import {
 } from '../components/Sandbox/sandboxTypes';
 import { Recipe, IntermediateRecipe, Machine, Item } from '../types';
 import { ENV_FLUIDS, rawSourceMachine } from '../utils/itemTraits';
-import { buildPowerModule, buildEnvFluidsModule, allocateSmartBaseMaterials } from './dishBlueprintPower';
+import { buildPowerModule, buildEnvFluidsModule } from './dishBlueprintPower';
 import { applyHierarchicalLayout } from './dishBlueprintLayout';
+import { routeSolidOutputs, SolidTargetSpec } from './dishBlueprintSplitter';
 
 /**
- * 為指定終端料理全自動推導並建置完整 100% 滿載且無虛假產能之真實沙盒產線藍圖
- * (含採集/採礦、中間工序階層佈局、發電閉環電網、環境池抽取/超頻泵、時序發酵變質緩衝與防衰減流量校準)
+ * 為指定終端料理全自動推導並建置完整 100% 滿載且無虛假產能之最高效率沙盒產線藍圖
+ * (純資料庫驅動、副產物折抵節省機台、可調比例分流器中轉、流體獨立專線、集中供液與統一電網平衡)
  */
 export function buildDishBlueprint(
   dish: Recipe, 
@@ -38,55 +38,23 @@ export function buildDishBlueprint(
   const intermediateRecipes: IntermediateRecipe[] = context?.intermediate || dataService.getIntermediateRecipes();
   const items: Item[] = context?.items || dataService.getItems();
 
-  // Dynamic derivation of standard base crop item (defaults to crop with '底料' attribute, then basic leaf crop, then Pomora crop, then first harvester crop)
-  const baseCropItem = items.find(it => it.attributes?.includes('底料'))
-    || items.find(it => it.source === '收割機' && it.name.includes('桂'))
-    || items.find(it => it.source === '收割機' && it.island.includes('波莫拉'))
-    || items.find(it => it.source === '收割機');
-  const baseCropItemName = baseCropItem?.name || '';
-  // Dynamic derivation of remedy recipe for scorching dishes (defaults to recipe with '中和' & '熾熱/炙熱')
+  const isScorching = isScorchingDish(dish.name, items, recipes);
   const remedyRecipe = recipes.find(r => r.notes?.includes('中和') && (r.notes?.includes('熾熱') || r.notes?.includes('炙熱')));
   const remedyDishName = remedyRecipe?.name || '';
 
-  const allItemsSet = new Set<string>();
-  items.forEach(i => allItemsSet.add(i.name));
-  [...recipes, ...intermediateRecipes].forEach(r => {
-    allItemsSet.add(r.name);
-    (r.inputs || []).forEach(inp => { if (inp.name && inp.name !== '無') allItemsSet.add(inp.name); });
-    if (r.fluidType && r.fluidType !== '無') allItemsSet.add(r.fluidType);
-  });
+  // 1. 產線計算機最高效率規劃 (副產物折抵模式 recycle + 熾熱自動配產中和料理)
+  const plan = runParallelPlan(
+    [{ id: 'main', dishName: dish.name, rateMin: 12 }],
+    'regular',
+    'recycle',
+    recipes
+  );
 
-  // Map of spoil product transitions from items.json
-  const SPOIL_MAP = new Map<string, { product: string; time: number }>();
-  items.forEach(item => {
-    if (item.isPerishable && item.spoilProduct) {
-      SPOIL_MAP.set(item.name, { product: item.spoilProduct, time: Number(item.spoilTime) || 15 });
-    }
-  });
-
-  /** 自癒補料：依 items.json 物品來源判定原料機台 (物質操縱機 / 採掘機 / 收割機) */
-  const classifyRawSource = (name: string) => {
-    const machName = rawSourceMachine(items.find(it => it.name === name));
-    return { isRecon: machName === '物質操縱機', machName };
-  };
-
-  /** 物質操縱機之標準輸入端口 (虛空 + 任意物品) */
-  const reconInputs = (): PortDefinition[] => [
-    { id: 'in-fluid-虛空', name: '虛空', type: 'fluid', rateRequired: 1.0 },
-    { id: 'in-base', name: '任意物品', type: 'solid', rateRequired: 0.2 }
-  ];
-
-  const res = calculateSingleDish(dish.name, 0.2, 'regular', 'dedicated');
-  if (!res) {
-    throw new Error(`無法解算食譜：${dish.name}`);
-  }
-
-  const procs = sortProcessesDownstreamToUpstream(res.processes);
-
+  const procs = plan.consolidated.processes;
   const nodes: SandboxNodeData[] = [];
   const connections: SandboxConnection[] = [];
+  const neededEnvFluids = new Set<string>();
 
-  // 已連線之輸入端口索引 (節點 ID + 端口 ID)，與 connections 同步維護
   const connectedInputs = new Set<string>();
   const inputKey = (nodeId: string, portId: string) => `${nodeId}\u0000${portId}`;
   const pushConn = (...conns: SandboxConnection[]) => {
@@ -97,38 +65,81 @@ export function buildDishBlueprint(
   };
   const isInputConnected = (nodeId: string, portId: string) => connectedInputs.has(inputKey(nodeId, portId));
 
-  // Group processes by topological tier
-  const maxTier = Math.max(...procs.map(p => p.tier || 0));
+  const allItemsSet = new Set<string>();
+  items.forEach(i => allItemsSet.add(i.name));
+  [...recipes, ...intermediateRecipes].forEach(r => {
+    allItemsSet.add(r.name);
+    (r.inputs || []).forEach(inp => { if (inp.name && inp.name !== '無') allItemsSet.add(inp.name); });
+    if (r.fluidType && r.fluidType !== '無') allItemsSet.add(r.fluidType);
+  });
 
-  const neededEnvFluids = new Set<string>();
+  const baseCropItem = items.find(it => it.attributes?.includes('底料'))
+    || items.find(it => it.source === '收割機' && it.name.includes('桂'))
+    || items.find(it => it.source === '收割機' && it.island.includes('波莫拉'))
+    || items.find(it => it.source === '收割機');
+  const baseCropItemName = baseCropItem?.name || '';
+
+  const classifyRawSource = (name: string) => {
+    const machName = rawSourceMachine(items.find(it => it.name === name));
+    return { isRecon: machName === '物質操縱機', machName };
+  };
+
+  const reconInputs = (): PortDefinition[] => [
+    { id: 'in-fluid-虛空', name: '虛空', type: 'fluid', rateRequired: 1.0 },
+    { id: 'in-base', name: '任意物品', type: 'solid', rateRequired: 0.2 }
+  ];
+
+  const SPOIL_MAP = new Map<string, { product: string; time: number }>();
+  items.forEach(item => {
+    if (item.isPerishable && item.spoilProduct) {
+      SPOIL_MAP.set(item.name, { product: item.spoilProduct, time: Number(item.spoilTime) || 15 });
+    }
+  });
+
   const procNodesMap = new Map<string, SandboxNodeData[]>();
   const procOutputMap = new Map<string, { name: string; isFluid: boolean }>();
   const transPumpMap = new Map<string, SandboxNodeData>();
-  const columnCounts = new Map<number, number>();
+  const splitterCounter = { current: 0 };
 
-  // 2. Instantiate Process Nodes with strict physical machine counts
+  // 2. 實例化各工序之實體機台節點 (實裝精省機台數與足額產能保證)
   procs.forEach((p, pIdx) => {
-    const tier = p.tier || 0;
-    const colIndex = maxTier - tier + 1;
-    const outputInfo = getProcessOutputItem(p, dish.name, intermediateRecipes, allItemsSet);
-    procOutputMap.set(p.processName, outputInfo);
+    if (p.isBaseFeeder) {
+      const feederCount = p.parallelRounded || 1;
+      const feederList: SandboxNodeData[] = [];
+      for (let fIdx = 0; fIdx < feederCount; fIdx++) {
+        const nodeId = `base-feeder-${dishIndex}-${fIdx}`;
+        const fNode = makeNode({
+          id: nodeId,
+          type: 'machine',
+          title: `採收：${baseCropItemName} (底料專供 #${fIdx + 1})`,
+          machineName: '收割機',
+          recipeName: baseCropItemName,
+          x: 200,
+          y: 100 + fIdx * 240,
+          baseCycleTime: 5,
+          baseOutputCount: 1,
+          basePowerConsumption: 1.0,
+          baseGoblins: 1,
+          inputs: [],
+          outputs: [{ id: `out-${baseCropItemName}`, name: baseCropItemName, type: 'solid', rateProvided: 0.2 }]
+        });
+        nodes.push(fNode);
+        feederList.push(fNode);
+      }
+      procNodesMap.set(p.processName, feederList);
+      procOutputMap.set(p.processName, { name: baseCropItemName, isFluid: false });
+      return;
+    }
 
-    const instancesCount = Math.max(1, p.countRounded || 1);
-    const instanceList: SandboxNodeData[] = [];
+    if (p.machine === '自動廚師機') {
+      const instanceList: SandboxNodeData[] = [];
+      p.dishDemands.forEach((dem, dIdx) => {
+        const isPepto = Boolean(remedyDishName && dem.dishName === remedyDishName);
+        const dObj = recipes.find(r => r.name === dem.dishName) || dish;
+        const nodeId = isPepto ? `proc-pepto-chef-${dishIndex}` : `proc-main-chef-${dishIndex}`;
 
-    for (let instIdx = 0; instIdx < instancesCount; instIdx++) {
-      const rowInCol = columnCounts.get(colIndex) || 0;
-      columnCounts.set(colIndex, rowInCol + 1);
-
-      const x = 360 + colIndex * 340;
-      const y = 80 + rowInCol * 240;
-      const nodeId = `proc-${dishIndex}-${pIdx}-${instIdx}`;
-
-      let node: SandboxNodeData;
-
-      if (p.machine === '自動廚師機') {
         const inputs: PortDefinition[] = [];
-        dish.inputs.forEach(inp => {
+        (dObj.inputs || []).forEach(inp => {
           if (inp.name && inp.name !== '無' && inp.count > 0) {
             inputs.push({
               id: `in-${inp.name}`,
@@ -138,119 +149,133 @@ export function buildDishBlueprint(
             });
           }
         });
-        if (dish.fluidType && dish.fluidType !== '無') {
+        if (dObj.fluidType && dObj.fluidType !== '無') {
           inputs.push({
-            id: `in-fluid-${dish.fluidType}`,
-            name: dish.fluidType,
+            id: `in-fluid-${dObj.fluidType}`,
+            name: dObj.fluidType,
             type: 'fluid',
-            rateRequired: dish.fluidRate || 1.0
+            rateRequired: dObj.fluidRate || 1.0
           });
-          if (ENV_FLUIDS.includes(dish.fluidType)) {
-            neededEnvFluids.add(dish.fluidType);
+          if (ENV_FLUIDS.includes(dObj.fluidType)) {
+            neededEnvFluids.add(dObj.fluidType);
           }
         }
 
-        node = makeNode({
+        const chefNode = makeNode({
           id: nodeId,
           type: 'machine',
-          title: `自動廚師機 (${dish.name})`,
+          title: `自動廚師機 (${dem.dishName})`,
           machineName: '自動廚師機',
-          recipeName: dish.name,
+          recipeName: dem.dishName,
           targetRatePerMin: 12,
-          x,
-          y,
-          baseCycleTime: dish.cycleTime || 5,
-          baseOutputCount: dish.outputCount || 1,
+          x: 1200,
+          y: 100 + dIdx * 300,
+          baseCycleTime: dObj.cycleTime || 5,
+          baseOutputCount: dObj.outputCount || 1,
           basePowerConsumption: 1.0,
           baseGoblins: 3,
           inputs,
-          outputs: [
-            {
-              id: `out-${dish.name}`,
-              name: dish.name,
-              type: 'solid',
-              rateProvided: Number(((dish.outputCount || 1) / (dish.cycleTime || 5)).toFixed(3))
-            }
-          ]
-        });
-      } else {
-        const inputInfos = getProcessInputItems(p, dish.name, procs, recipes, intermediateRecipes);
-        const inputs: PortDefinition[] = [];
-
-        const interDef = intermediateRecipes.find(r => r.name === p.processName || r.name === outputInfo.name);
-        const machCycleTime = interDef?.cycleTime || 5;
-
-        inputInfos.forEach(inp => {
-          if (p.machine === '注入機' && inp.isFluid) return;
-          if (!inp.name || inp.name === '無') return;
-          const solidReq = Number(((inp.count || 1) / machCycleTime).toFixed(3));
-          inputs.push({
-            id: inp.isFluid ? `in-fluid-${inp.name}` : `in-${inp.name}`,
-            name: inp.name,
-            type: inp.isFluid ? 'fluid' : 'solid',
-            rateRequired: inp.isFluid ? 1.0 : solidReq
-          });
-          if (inp.isFluid && ENV_FLUIDS.includes(inp.name)) {
-            neededEnvFluids.add(inp.name);
-          }
+          outputs: [{
+            id: `out-${dem.dishName}`,
+            name: dem.dishName,
+            type: 'solid',
+            rateProvided: Number(((dObj.outputCount || 1) / (dObj.cycleTime || 5)).toFixed(3))
+          }],
+          isAutoPepto: isPepto
         });
 
-        if (p.machine === '物質操縱機') {
-          neededEnvFluids.add('虛空');
-          if (!inputs.some(inp => inp.name === '虛空')) {
-            inputs.push({ id: 'in-fluid-虛空', name: '虛空', type: 'fluid', rateRequired: 1.0 });
-          }
-          if (!inputs.some(inp => inp.name === '任意物品' || inp.name === '重構底料' || inp.id === 'in-base')) {
-            inputs.push({ id: 'in-base', name: '任意物品', type: 'solid', rateRequired: 0.2 });
-          }
+        nodes.push(chefNode);
+        instanceList.push(chefNode);
+      });
+
+      procNodesMap.set(p.processName, instanceList);
+      procOutputMap.set(p.processName, { name: dish.name, isFluid: false });
+      return;
+    }
+
+    const outputInfo = getProcessOutputItem(p as any, dish.name, intermediateRecipes, allItemsSet);
+    procOutputMap.set(p.processName, outputInfo);
+
+    const instancesCount = Math.max(1, p.parallelRounded || 1);
+    const instanceList: SandboxNodeData[] = [];
+    const interDef = intermediateRecipes.find(r => r.name === p.processName || r.name === outputInfo.name);
+    const machCycleTime = interDef?.cycleTime || 5;
+
+    const isExclusivelyPepto = Boolean(remedyDishName && p.dishDemands.length === 1 && p.dishDemands[0].dishName === remedyDishName);
+
+    for (let instIdx = 0; instIdx < instancesCount; instIdx++) {
+      const nodeId = `proc-${dishIndex}-${pIdx}-${instIdx}`;
+      const inputInfos = getProcessInputItems(p as any, dish.name, procs as any, recipes, intermediateRecipes);
+      const inputs: PortDefinition[] = [];
+
+      inputInfos.forEach(inp => {
+        if (p.machine === '注入機' && inp.isFluid) return;
+        if (!inp.name || inp.name === '無') return;
+        const solidReq = Number(((inp.count || 1) / machCycleTime).toFixed(3));
+        inputs.push({
+          id: inp.isFluid ? `in-fluid-${inp.name}` : `in-${inp.name}`,
+          name: inp.name,
+          type: inp.isFluid ? 'fluid' : 'solid',
+          rateRequired: inp.isFluid ? 1.0 : solidReq
+        });
+        if (inp.isFluid && ENV_FLUIDS.includes(inp.name)) {
+          neededEnvFluids.add(inp.name);
         }
+      });
 
-        if (interDef && interDef.fluidType && ENV_FLUIDS.includes(interDef.fluidType) && p.machine !== '注入機') {
-          neededEnvFluids.add(interDef.fluidType);
-          if (!inputs.some(inp => inp.name === interDef.fluidType)) {
-            inputs.push({ id: `in-fluid-${interDef.fluidType}`, name: interDef.fluidType, type: 'fluid', rateRequired: interDef.fluidRate || 1.0 });
-          }
+      if (p.machine === '物質操縱機') {
+        neededEnvFluids.add('虛空');
+        if (!inputs.some(inp => inp.name === '虛空')) {
+          inputs.push({ id: 'in-fluid-虛空', name: '虛空', type: 'fluid', rateRequired: 1.0 });
         }
-
-        const isFluidMach = outputInfo.isFluid;
-        const machOutputCount = interDef?.outputCount || (outputInfo.name === '泥沼蟑螂' ? 2 : 1);
-        const machRate = p.machine === '注入機' ? 999 : (isFluidMach ? 1.0 : Number((machOutputCount / machCycleTime).toFixed(3)));
-
-        const mObj = machines.find(m => m.name === p.machine);
-        const machPower = mObj?.power || p.power || 1.0;
-        const machGoblins = mObj?.goblins || p.goblins || 1;
-
-        const subTitle = instancesCount > 1 ? ` #${instIdx + 1}` : '';
-
-        node = makeNode({
-          id: nodeId,
-          type: 'machine',
-          title: `${p.processName}${subTitle} (${p.machine})`,
-          machineName: p.machine,
-          recipeName: outputInfo.name,
-          x,
-          y,
-          baseCycleTime: machCycleTime,
-          baseOutputCount: machOutputCount,
-          basePowerConsumption: machPower,
-          baseGoblins: machGoblins,
-          inputs,
-          outputs: [
-            {
-              id: `out-${outputInfo.name}`,
-              name: outputInfo.name,
-              type: isFluidMach ? 'fluid' : 'solid',
-              rateProvided: machRate
-            }
-          ]
-        });
+        if (!inputs.some(inp => inp.name === '任意物品' || inp.name === '重構底料' || inp.id === 'in-base')) {
+          inputs.push({ id: 'in-base', name: '任意物品', type: 'solid', rateRequired: 0.2 });
+        }
       }
+
+      if (interDef && interDef.fluidType && ENV_FLUIDS.includes(interDef.fluidType) && p.machine !== '注入機') {
+        neededEnvFluids.add(interDef.fluidType);
+        if (!inputs.some(inp => inp.name === interDef.fluidType)) {
+          inputs.push({ id: `in-fluid-${interDef.fluidType}`, name: interDef.fluidType, type: 'fluid', rateRequired: interDef.fluidRate || 1.0 });
+        }
+      }
+
+      const isFluidMach = outputInfo.isFluid;
+      const machOutputCount = interDef?.outputCount || (outputInfo.name === '泥沼蟑螂' ? 2 : 1);
+      const defaultMachRate = p.machine === '注入機' ? 999 : (isFluidMach ? 1.0 : Number((machOutputCount / machCycleTime).toFixed(3)));
+      const machRate = Math.max(defaultMachRate, p.totalDemandRate / instancesCount);
+
+      const mObj = machines.find(m => m.name === p.machine);
+      const machPower = mObj?.power || p.powerPerUnit || 1.0;
+      const machGoblins = mObj?.goblins || p.goblinsPerUnit || 1;
+      const subTitle = instancesCount > 1 ? ` #${instIdx + 1}` : '';
+
+      const node = makeNode({
+        id: nodeId,
+        type: 'machine',
+        title: `${p.processName}${subTitle} (${p.machine})`,
+        machineName: p.machine,
+        recipeName: outputInfo.name,
+        x: 400 + pIdx * 100,
+        y: 100 + instIdx * 250,
+        baseCycleTime: machCycleTime,
+        baseOutputCount: Number((machRate * machCycleTime).toFixed(2)),
+        basePowerConsumption: machPower,
+        baseGoblins: machGoblins,
+        inputs,
+        outputs: [{
+          id: `out-${outputInfo.name}`,
+          name: outputInfo.name,
+          type: isFluidMach ? 'fluid' : 'solid',
+          rateProvided: machRate
+        }],
+        isAutoPepto: isExclusivelyPepto
+      });
 
       nodes.push(node);
       instanceList.push(node);
 
       if (p.machine === '注入機') {
-        // 原位轉化鐵律：注入機原位轉化液體必須由專屬抽取泵機抽取，嚴禁直接拉管直連下游設備！
         const transFluidName = outputInfo.name;
         const pumpNodeId = `pump-trans-${dishIndex}-${pIdx}-${instIdx}`;
         const transPumpNode = makeNode({
@@ -260,33 +285,17 @@ export function buildDishBlueprint(
           machineName: '泵機',
           powerMode: 'regular',
           pumpCapacity: 2.0,
-          x: x + 180,
-          y: y,
+          x: node.x + 180,
+          y: node.y,
           baseCycleTime: 1,
           baseOutputCount: 2.0,
           basePowerConsumption: 1.0,
           baseGoblins: 0,
-          inputs: [
-            {
-              id: 'in-fluid',
-              name: transFluidName,
-              type: 'fluid',
-              rateRequired: 2.0
-            }
-          ],
-          outputs: [
-            {
-              id: `out-${transFluidName}`,
-              name: transFluidName,
-              type: 'fluid',
-              rateProvided: 2.0
-            }
-          ]
+          inputs: [{ id: 'in-fluid', name: transFluidName, type: 'fluid', rateRequired: 2.0 }],
+          outputs: [{ id: `out-${transFluidName}`, name: transFluidName, type: 'fluid', rateProvided: 2.0 }],
+          isAutoPepto: isExclusivelyPepto
         });
-
         nodes.push(transPumpNode);
-
-        // 原位抽取管線：注入機 ➔ 轉化泵機
         pushConn({
           id: `c-trans-inj-${dishIndex}-${pIdx}-${instIdx}`,
           fromNodeId: node.id,
@@ -297,395 +306,366 @@ export function buildDishBlueprint(
           type: 'fluid',
           actualFlowRate: 2.0
         });
-
         transPumpMap.set(node.id, transPumpNode);
       }
     }
+
     procNodesMap.set(p.processName, instanceList);
   });
 
-  // Track port usage
-  const portUsedCapacity = new Map<string, number>();
-
-  // 3. Connect Upstream to Downstream
-  procs.forEach((p, pIdx) => {
-    const fromNodes = procNodesMap.get(p.processName)!;
-    const outputInfo = procOutputMap.get(p.processName)!;
-
-    (p.downstreamTargets || []).forEach((target, tIdx) => {
-      let targetNodeName = target.processName;
-      if (target.machine === '自動廚師機' || target.processName === dish.name) {
-        targetNodeName = procs.find(pr => pr.machine === '自動廚師機')?.processName || '';
-      }
-      const toNodes = procNodesMap.get(targetNodeName);
-      if (!toNodes || toNodes.length === 0) return;
-
-      // Match target to a fromNode instance and toNode instance
-      const rawFromNode = fromNodes[tIdx % fromNodes.length];
-      // 原位轉化鐵律：若來源機台為注入機，下游供液端口嚴格改由專屬轉化泵機提供
-      const fromNode = (rawFromNode.machineName === '注入機' && transPumpMap.get(rawFromNode.id))
-        ? transPumpMap.get(rawFromNode.id)!
-        : rawFromNode;
-
-      const outPort = fromNode.outputs[0];
-      if (!outPort) return;
-
-      // Find a toNode that still needs this input
-      const toNode = toNodes.find(tn => {
-        const pInp = tn.inputs.find(inp => 
-          inp.name === outputInfo.name || 
-          ((inp.name === '重構底料' || inp.name === '任意物品' || inp.name === baseCropItemName) && (outputInfo.name === '底料專供' || outputInfo.name === '底料' || outputInfo.name === baseCropItemName))
-        );
-        return pInp && !isInputConnected(tn.id, pInp.id);
-      }) || toNodes[0];
-
-      const toPort = toNode.inputs.find(inp => 
-        inp.name === outputInfo.name || 
-        ((inp.name === '重構底料' || inp.name === '任意物品' || inp.name === baseCropItemName) && (outputInfo.name === '底料專供' || outputInfo.name === '底料' || outputInfo.name === baseCropItemName))
-      );
-
-      let decayPath: string[] = [];
-      if (!toPort) {
-        const s1 = SPOIL_MAP.get(outputInfo.name);
-        if (s1 && toNode.inputs.some(inp => inp.name === s1.product)) {
-          decayPath = [s1.product];
-        } else if (s1) {
-          const s2 = SPOIL_MAP.get(s1.product);
-          if (s2 && toNode.inputs.some(inp => inp.name === s2.product)) {
-            decayPath = [s1.product, s2.product];
-          }
-        }
-      }
-
-      const reqRate = toPort?.rateRequired || 0.2;
-      const portKey = `${fromNode.id}_${outPort.id}`;
-      const used = portUsedCapacity.get(portKey) || 0;
-      const availableCap = Math.max(0, (outPort.rateProvided || 0.2) - used);
-      const isFluidConnection = outputInfo.isFluid || fromNode.machineName === '注入機';
-      const canServe = isFluidConnection || availableCap > 0.001;
-
-      if (toPort && canServe) {
-        const flowRate = isFluidConnection ? reqRate : Math.min(reqRate, availableCap);
-        pushConn({
-          id: `c-${dishIndex}-${pIdx}-${tIdx}`,
-          fromNodeId: fromNode.id,
-          fromPortId: outPort.id,
-          toNodeId: toNode.id,
-          toPortId: toPort.id,
-          itemOrFluidName: outputInfo.name,
-          type: outputInfo.isFluid ? 'fluid' : 'solid',
-          actualFlowRate: flowRate
-        });
-        portUsedCapacity.set(portKey, used + flowRate);
-      } else if (decayPath.length > 0 && canServe) {
-
-        let prevNode = fromNode;
-        let prevPortId = outPort.id;
-        let currentItem = outputInfo.name;
-
-        decayPath.forEach((nextItem, dStep) => {
-          const perishInfo = SPOIL_MAP.get(currentItem) || { time: 15 };
-          const bufferId = `decay-${dishIndex}-${pIdx}-${tIdx}-${dStep}`;
-          const bufNode = makeNode({
-            id: bufferId,
-            type: 'buffer_decay',
-            title: `發酵緩衝 (${currentItem} ➔ ${nextItem})`,
-            machineName: '發酵緩衝',
-            recipeName: nextItem,
-            x: (fromNode.x + toNode.x) / 2 + dStep * 140,
-            y: (fromNode.y + toNode.y) / 2 + dStep * 80,
-            baseCycleTime: perishInfo.time,
-
-            baseOutputCount: 1,
-            basePowerConsumption: 0,
-            baseGoblins: 0,
-            inputs: [{ id: `in-${currentItem}`, name: currentItem, type: 'solid' }],
-            outputs: [{ id: `out-${nextItem}`, name: nextItem, type: 'solid', rateProvided: 0.2 }]
-          });
-          nodes.push(bufNode);
-          pushConn({
-            id: `c-decay-${dishIndex}-${pIdx}-${tIdx}-${dStep}`,
-            fromNodeId: prevNode.id,
-            fromPortId: prevPortId,
-            toNodeId: bufNode.id,
-            toPortId: `in-${currentItem}`,
-            itemOrFluidName: currentItem,
-            type: 'solid',
-            actualFlowRate: 0.2
-          });
-          prevNode = bufNode;
-          prevPortId = `out-${nextItem}`;
-          currentItem = nextItem;
-        });
-
-        const targetInPort = toNode.inputs.find(inp => inp.name === currentItem);
-        if (targetInPort) {
-          pushConn({
-            id: `c-decay-final-${dishIndex}-${pIdx}-${tIdx}`,
-            fromNodeId: prevNode.id,
-            fromPortId: prevPortId,
-            toNodeId: toNode.id,
-            toPortId: targetInPort.id,
-            itemOrFluidName: currentItem,
-            type: 'solid',
-            actualFlowRate: targetInPort.rateRequired || 0.2
-          });
-          portUsedCapacity.set(portKey, used + reqRate);
+  // 3. 配對 donor -> recipient 副產物折抵關係
+  const donorRecipientPairs: { donorProc: string; recipientProc: string }[] = [];
+  procs.forEach(p => {
+    p.feederRoles?.forEach(role => {
+      if (role.role === 'donor') {
+        const match = role.note.match(/直供【(.*?)】/);
+        if (match && match[1]) {
+          donorRecipientPairs.push({ donorProc: p.processName, recipientProc: match[1] });
         }
       }
     });
   });
 
-  // 4. Fallback Auto-Healing: Dedicated 1:1 supplier for remaining inputs
-  let healCounter = 0;
-  // 動態推導原位轉化液體清單 (注入機產物)，禁止建立攪拌機替代
-  const inSituFluidNames = new Set(intermediateRecipes.filter(r => r.machine === '注入機').map(r => r.name));
+  // 3.1. 下游物料精準路由與分流器配置
+  procs.forEach((p, pIdx) => {
+    if (p.isBaseFeeder) return;
+    const fromNodes = procNodesMap.get(p.processName)!;
+    const outputInfo = procOutputMap.get(p.processName)!;
+    if (!fromNodes || fromNodes.length === 0) return;
 
-  nodes.forEach((consumer) => {
-    consumer.inputs.forEach((inPort) => {
-      // 忽略空端口或無物料端口
-      if (!inPort.name || inPort.name === '無' || inPort.name === '待分流物料') return;
+    const solidTargets: SolidTargetSpec[] = [];
+    const fluidTargets: { toNode: SandboxNodeData; toPort: PortDefinition; flowRate: number }[] = [];
+
+    // 副產物折抵直供 recipient in-base
+    const matchingPairs = donorRecipientPairs.filter(dp => dp.donorProc === p.processName);
+    matchingPairs.forEach(dp => {
+      const recipientNodes = procNodesMap.get(dp.recipientProc);
+      if (recipientNodes && recipientNodes.length > 0) {
+        for (const rn of recipientNodes) {
+          const inBasePort = rn.inputs.find(inp => 
+            (inp.id === 'in-base' || inp.name === '重構底料' || inp.name === '任意物品') &&
+            !isInputConnected(rn.id, inp.id)
+          );
+          if (inBasePort) {
+            solidTargets.push({
+              toNode: rn,
+              toPort: inBasePort,
+              flowRate: 0.20,
+              isByproduct: true
+            });
+            break;
+          }
+        }
+      }
+    });
+
+    // 常規下游目標匹配
+    const allocatedInputs = new Set<string>();
+    (p.downstreamTargets || []).forEach(group => {
+      (group.targets || []).forEach(dt => {
+        let targetProcessName = dt.processName;
+        let toNodes = procNodesMap.get(targetProcessName);
+
+        if (!toNodes || toNodes.length === 0) {
+          if (dt.machine === '自動廚師機' || dt.processName === dish.name || Boolean(remedyDishName && dt.processName === remedyDishName)) {
+            const chefNodes = procNodesMap.get('終端組裝') || [];
+            toNodes = chefNodes.filter(cn => cn.recipeName === group.dishName);
+            if (toNodes.length === 0) toNodes = chefNodes;
+          }
+        }
+
+        if (!toNodes || toNodes.length === 0) return;
+
+        const tn = toNodes.find(node => {
+          const pInp = node.inputs.find(inp => 
+            inp.name === outputInfo.name && 
+            !isInputConnected(node.id, inp.id) &&
+            !allocatedInputs.has(inputKey(node.id, inp.id))
+          );
+          return !!pInp;
+        });
+
+        if (tn) {
+          const pInp = tn.inputs.find(inp => 
+            inp.name === outputInfo.name && 
+            !isInputConnected(tn.id, inp.id) &&
+            !allocatedInputs.has(inputKey(tn.id, inp.id))
+          )!;
+          allocatedInputs.add(inputKey(tn.id, pInp.id));
+
+          const reqRate = Number((dt.flowRate || pInp.rateRequired || 0.2).toFixed(3));
+          pInp.rateRequired = reqRate;
+
+          if (pInp.type === 'fluid') {
+            fluidTargets.push({ toNode: tn, toPort: pInp, flowRate: reqRate });
+          } else {
+            solidTargets.push({ toNode: tn, toPort: pInp, flowRate: reqRate });
+          }
+        }
+      });
+    });
+
+    // 多階時序發酵尋徑 (支援 1 階、2 階、3 階...熟成產物)
+    nodes.forEach(tn => {
+      let current = outputInfo.name;
+      const path: string[] = [];
+      while (SPOIL_MAP.has(current)) {
+        const next = SPOIL_MAP.get(current)!.product;
+        path.push(next);
+        const decayInp = tn.inputs.find(inp => inp.name === next && !isInputConnected(tn.id, inp.id) && !allocatedInputs.has(inputKey(tn.id, inp.id)));
+        if (decayInp) {
+          allocatedInputs.add(inputKey(tn.id, decayInp.id));
+          const reqRate = Number((decayInp.rateRequired || 0.2).toFixed(3));
+          decayInp.rateRequired = reqRate;
+          solidTargets.push({
+            toNode: tn,
+            toPort: decayInp,
+            flowRate: reqRate,
+            decayPath: [...path]
+          });
+          break;
+        }
+        current = next;
+      }
+    });
+
+    // 連續流體 1:1 專線直供
+    if (outputInfo.isFluid || p.machine === '注入機') {
+      fromNodes.forEach((rawFn, fIdx) => {
+        const fn = (rawFn.machineName === '注入機' && transPumpMap.get(rawFn.id))
+          ? transPumpMap.get(rawFn.id)!
+          : rawFn;
+        const outPort = fn.outputs[0];
+        if (!outPort) return;
+
+        fluidTargets.forEach((ft, ftIdx) => {
+          if (ftIdx % fromNodes.length === fIdx) {
+            pushConn({
+              id: `c-fl-${dishIndex}-${pIdx}-${fIdx}-${ftIdx}`,
+              fromNodeId: fn.id,
+              fromPortId: outPort.id,
+              toNodeId: ft.toNode.id,
+              toPortId: ft.toPort.id,
+              itemOrFluidName: outputInfo.name,
+              type: 'fluid',
+              actualFlowRate: ft.flowRate
+            });
+          }
+        });
+      });
+      return;
+    }
+
+    // 固體路由分流 (呼叫 routeSolidOutputs：均等直連、比例分流器、副產物直供)
+    fromNodes.forEach((fn, fIdx) => {
+      const outPort = fn.outputs[0];
+      if (!outPort) return;
+
+      const assignedTargets = solidTargets.filter((_, idx) => idx % fromNodes.length === fIdx);
+      if (assignedTargets.length === 0) return;
+
+      const sumDemands = assignedTargets.reduce((s, t) => s + (t.flowRate || 0.2), 0);
+      fn.baseOutputCount = Math.max(fn.baseOutputCount, Number((sumDemands * fn.baseCycleTime).toFixed(2)));
+      outPort.rateProvided = Number((fn.baseOutputCount / fn.baseCycleTime).toFixed(3));
+
+      const res = routeSolidOutputs(
+        dishIndex,
+        pIdx,
+        fIdx,
+        fn,
+        outPort,
+        outputInfo.name,
+        assignedTargets,
+        splitterCounter,
+        SPOIL_MAP
+      );
+
+      nodes.push(...res.extraNodes);
+      pushConn(...res.connections);
+    });
+  });
+
+  // 3.8. 自癒補料後備機制 (防止食譜庫未記錄之基礎原料斷流)
+  let healCounter = 0;
+  nodes.forEach(consumer => {
+    consumer.inputs.forEach(inPort => {
+      if (!inPort.name || inPort.name === '無' || isInputConnected(consumer.id, inPort.id)) return;
+      if (inPort.id === 'in-base' || inPort.name === '重構底料' || inPort.name === '任意物品') return;
 
       if (inPort.type === 'fluid') {
-        if (!ENV_FLUIDS.includes(inPort.name)) {
-          if (!isInputConnected(consumer.id, inPort.id)) {
-            // 原位轉化流體：若存在轉化抽取泵機，優先接駁轉化泵機，絕不建立攪拌機！
-            const existingTransPump = nodes.find(n => n.type === 'pump' && n.outputs.some(o => o.name === inPort.name));
-            if (existingTransPump) {
-              const outPort = existingTransPump.outputs.find(o => o.name === inPort.name);
-              if (outPort) {
-                pushConn({
-                  id: `c-heal-trans-${dishIndex}-${consumer.id}-${inPort.id}`,
-                  fromNodeId: existingTransPump.id,
-                  fromPortId: outPort.id,
-                  toNodeId: consumer.id,
-                  toPortId: inPort.id,
-                  itemOrFluidName: inPort.name,
-                  type: 'fluid',
-                  actualFlowRate: inPort.rateRequired || 1.0
-                });
-                return;
-              }
-            }
+        if (ENV_FLUIDS.includes(inPort.name)) {
+          neededEnvFluids.add(inPort.name);
+        } else {
+          const transPump = nodes.find(n => n.type === 'pump' && n.outputs.some(o => o.name === inPort.name));
+          if (transPump) {
+            pushConn({
+              id: `c-heal-fl-${dishIndex}-${consumer.id}-${inPort.id}`,
+              fromNodeId: transPump.id,
+              fromPortId: transPump.outputs[0].id,
+              toNodeId: consumer.id,
+              toPortId: inPort.id,
+              itemOrFluidName: inPort.name,
+              type: 'fluid',
+              actualFlowRate: inPort.rateRequired || 1.0
+            });
+            return;
+          }
 
-            // 嚴格禁止為原位轉化流體建立任何攪拌機
-            if (inSituFluidNames.has(inPort.name)) {
-              return;
-            }
-
-            const interDef = intermediateRecipes.find(r => r.name === inPort.name);
-            // 只有當配方明確為攪拌機（且不是原位轉化液體）時才建立攪拌機
-            if (interDef && interDef.machine === '攪拌機') {
-              healCounter++;
-              const mixerId = `heal-mixer-${dishIndex}-${healCounter}`;
-              const mixerCycleTime = interDef.cycleTime || 5;
-              const mixerNode = makeNode({
-                id: mixerId,
-                type: 'machine',
-                title: `${interDef.name} (攪拌機)`,
-                machineName: '攪拌機',
-                recipeName: interDef.name,
-                x: consumer.x - 320,
-                y: consumer.y + 140,
-                baseCycleTime: mixerCycleTime,
-                baseOutputCount: interDef.outputCount || 1,
-                basePowerConsumption: 1.0,
-                baseGoblins: 1,
-                inputs: (interDef.inputs || []).filter(inp => inp.name && inp.name !== '無').map(inp => ({
-                  id: `in-${inp.name}`,
-                  name: inp.name === '任意物品' ? baseCropItemName : inp.name,
-                  type: 'solid' as const,
-                  rateRequired: Number(((inp.count || 1) / mixerCycleTime).toFixed(3))
-                })),
-                outputs: [{
-                  id: `out-${interDef.name}`,
-                  name: interDef.name,
-                  type: 'fluid',
-                  rateProvided: 1.0
-                }]
-              });
-              nodes.push(mixerNode);
-              pushConn({
-                id: `c-heal-mix-${dishIndex}-${healCounter}`,
-                fromNodeId: mixerId,
-                fromPortId: `out-${interDef.name}`,
-                toNodeId: consumer.id,
-                toPortId: inPort.id,
-                itemOrFluidName: interDef.name,
+          const interDef = intermediateRecipes.find(r => r.name === inPort.name);
+          if (interDef && interDef.machine === '攪拌機') {
+            healCounter++;
+            const mixerId = `heal-mixer-${dishIndex}-${healCounter}`;
+            const mixerNode = makeNode({
+              id: mixerId,
+              type: 'machine',
+              title: `${interDef.name} (攪拌機 自癒)`,
+              machineName: '攪拌機',
+              recipeName: interDef.name,
+              x: consumer.x - 320,
+              y: consumer.y + 140,
+              baseCycleTime: interDef.cycleTime || 5,
+              baseOutputCount: interDef.outputCount || 1,
+              basePowerConsumption: 1.0,
+              baseGoblins: 1,
+              inputs: (interDef.inputs || []).filter(inp => inp.name && inp.name !== '無').map(inp => ({
+                id: `in-${inp.name}`,
+                name: inp.name === '任意物品' ? baseCropItemName : inp.name,
+                type: 'solid' as const,
+                rateRequired: 0.2
+              })),
+              outputs: [{
+                id: `out-${interDef.name}`,
+                name: interDef.name,
                 type: 'fluid',
-                actualFlowRate: inPort.rateRequired || 1.0
-              });
-            }
+                rateProvided: 1.0
+              }]
+            });
+            nodes.push(mixerNode);
+            pushConn({
+              id: `c-heal-mix-${dishIndex}-${healCounter}`,
+              fromNodeId: mixerId,
+              fromPortId: `out-${interDef.name}`,
+              toNodeId: consumer.id,
+              toPortId: inPort.id,
+              itemOrFluidName: interDef.name,
+              type: 'fluid',
+              actualFlowRate: inPort.rateRequired || 1.0
+            });
+
+            mixerNode.inputs.forEach(mInp => {
+              const existingRawNode = nodes.find(n => n.type === 'machine' && n.recipeName === mInp.name && n.id !== mixerNode.id);
+              if (existingRawNode) {
+                const req = mInp.rateRequired || 0.2;
+                existingRawNode.baseOutputCount = Number(((existingRawNode.outputs[0].rateProvided || 0.2) * existingRawNode.baseCycleTime + req * existingRawNode.baseCycleTime).toFixed(2));
+                existingRawNode.outputs[0].rateProvided = Number((existingRawNode.baseOutputCount / existingRawNode.baseCycleTime).toFixed(3));
+                pushConn({
+                  id: `c-heal-mix-in-${dishIndex}-${mixerNode.id}-${mInp.id}`,
+                  fromNodeId: existingRawNode.id,
+                  fromPortId: existingRawNode.outputs[0].id,
+                  toNodeId: mixerNode.id,
+                  toPortId: mInp.id,
+                  itemOrFluidName: mInp.name,
+                  type: 'solid',
+                  actualFlowRate: req
+                });
+              }
+            });
           }
         }
         return;
       }
 
-      if (!isInputConnected(consumer.id, inPort.id)) {
-        // 凡需要底料（任意物品 / 重構底料）之端口，統一交由智慧分配器統籌接駁（優先副產物，根除多餘收割機）
-        if (inPort.id === 'in-base' || inPort.name === '重構底料' || inPort.name === '任意物品' || inPort.name === '底料' || inPort.name === baseCropItemName) {
-          return;
-        }
+      healCounter++;
+      const targetRawName = inPort.name;
+      const { isRecon, machName } = classifyRawSource(targetRawName);
+      const machCycle = 5;
+      const neededRate = inPort.rateRequired || 0.2;
+      const healNodeId = `heal-mach-${dishIndex}-${healCounter}`;
 
-        healCounter++;
-        const targetRawName = inPort.name === '重構底料' || inPort.name === '任意物品' ? baseCropItemName : inPort.name;
-        const { isRecon, machName } = classifyRawSource(targetRawName);
-        const machOutCount = targetRawName === '泥沼蟑螂' ? 2 : 1;
-        const machCycle = 5;
-        const machRate = Number((machOutCount / machCycle).toFixed(3));
-        const neededRate = inPort.rateRequired || 0.2;
-        const outRate = Math.max(machRate, neededRate);
-        const healNodeId = `heal-mach-${dishIndex}-${healCounter}`;
-
-        const isCondensation = items.find(i => i.name === targetRawName)?.island === '常規物資';
-        const titlePrefix = isRecon 
-          ? (isCondensation ? '空載凝結' : '重構') 
-          : (machName === '採掘機' ? '開採' : '採收');
-
-        const healNode = makeNode({
-          id: healNodeId,
-          type: 'machine',
-          title: `${titlePrefix}：${targetRawName}`,
-          machineName: machName,
-          recipeName: targetRawName,
-          x: consumer.x - 300,
-          y: consumer.y + 120 + (healCounter % 3) * 60,
-          baseCycleTime: machCycle,
-          baseOutputCount: neededRate > 0.2 ? Number((neededRate * machCycle).toFixed(2)) : machOutCount,
-          basePowerConsumption: isRecon ? 2.0 : 1.0,
-          baseGoblins: isRecon ? 2 : 1,
-          inputs: isRecon ? reconInputs() : [],
-          outputs: [{
-            id: `out-${targetRawName}`,
-            name: targetRawName,
-            type: 'solid',
-            rateProvided: outRate
-          }]
-        });
-
-        if (isRecon) {
-          neededEnvFluids.add('虛空');
-        }
-
-        nodes.push(healNode);
-        pushConn({
-          id: `c-heal-${dishIndex}-${healCounter}`,
-          fromNodeId: healNode.id,
-          fromPortId: `out-${targetRawName}`,
-          toNodeId: consumer.id,
-          toPortId: inPort.id,
-          itemOrFluidName: targetRawName,
+      const healNode = makeNode({
+        id: healNodeId,
+        type: 'machine',
+        title: `${machName}：${targetRawName} (自癒)`,
+        machineName: machName,
+        recipeName: targetRawName,
+        x: consumer.x - 300,
+        y: consumer.y + 120,
+        baseCycleTime: machCycle,
+        baseOutputCount: 1,
+        basePowerConsumption: isRecon ? 2.0 : 1.0,
+        baseGoblins: isRecon ? 2 : 1,
+        inputs: isRecon ? reconInputs() : [],
+        outputs: [{
+          id: `out-${targetRawName}`,
+          name: targetRawName,
           type: 'solid',
-          actualFlowRate: neededRate
-        });
-      }
-    });
-  });
-
-  // Second pass: heal mixer inputs if needed
-  nodes.forEach((consumer) => {
-    if (!consumer.id.startsWith('heal-mixer')) return;
-    consumer.inputs.forEach((inPort) => {
-      if (inPort.type === 'fluid') return;
-      if (!inPort.name || inPort.name === '無') return;
-      if (!isInputConnected(consumer.id, inPort.id)) {
-        healCounter++;
-        const targetRawName = inPort.name === '重構底料' || inPort.name === '任意物品' ? baseCropItemName : inPort.name;
-        const { isRecon, machName } = classifyRawSource(targetRawName);
-        const healNodeId = `heal-sub-${dishIndex}-${healCounter}`;
-
-        const isCondensation = items.find(i => i.name === targetRawName)?.island === '常規物資';
-        const titlePrefix = isRecon 
-          ? (isCondensation ? '空載凝結' : '重構') 
-          : (machName === '採掘機' ? '開採' : '採收');
-
-        nodes.push(makeNode({
-          id: healNodeId,
-          type: 'machine',
-          title: `${titlePrefix}：${targetRawName}`,
-          machineName: machName,
-          recipeName: targetRawName,
-          x: consumer.x - 280,
-          y: consumer.y + 60,
-          baseCycleTime: 5,
-          baseOutputCount: 1,
-          basePowerConsumption: isRecon ? 2.0 : 1.0,
-          baseGoblins: isRecon ? 2 : 1,
-          inputs: isRecon ? reconInputs() : [],
-          outputs: [{ id: `out-${targetRawName}`, name: targetRawName, type: 'solid', rateProvided: 0.2 }]
-        }));
-        pushConn({
-          id: `c-sub-${dishIndex}-${healCounter}`,
-          fromNodeId: healNodeId,
-          fromPortId: `out-${targetRawName}`,
-          toNodeId: consumer.id,
-          toPortId: inPort.id,
-          itemOrFluidName: targetRawName,
-          type: 'solid',
-          actualFlowRate: inPort.rateRequired || 0.2
-        });
-      }
-    });
-  });
-
-  // 4.5. 智慧底料分配器 (Smart Base Material Allocator)：
-  // 依真實物理流量平衡 (Flow-based Balance) 自適應分配任意物品/重構底料：
-  // 優先以產線內部副產物或多餘產能（如研磨機富餘骨粉）直供，消滅冗餘收割機；
-  // 若無內部多餘產能，則在全廠共用最少台數之底料收割機。
-  allocateSmartBaseMaterials(
-    dishIndex,
-    nodes,
-    connections,
-    portUsedCapacity,
-    baseCropItemName,
-    isInputConnected,
-    pushConn,
-    procs,
-    intermediateRecipes
-  );
-
-  // 4.6. 熾熱菜餚中和解毒配產模組 (胃復慘純製程產線併入全廠產線)
-  if (isScorchingDish(dish.name, items, recipes)) {
-    if (remedyRecipe) {
-      // 以子藍圖推導胃復慘之原料與中間工序
-      const remedySubIndex = dishIndex * 100 + 88;
-      const wBp = buildDishBlueprint(remedyRecipe, remedySubIndex, context);
-
-      // 嚴格僅提取胃復慘的純製程機台（環境流體與發電基建統籌由全廠統一合併建造）
-      const remedyProcNodes = wBp.nodes.filter(n =>
-        n.type !== 'environment_pool' &&
-        n.type !== 'pump' &&
-        n.type !== 'generator' &&
-        !n.id.startsWith('pool-') &&
-        !n.id.startsWith('pump-') &&
-        !n.id.startsWith('sludge-manip-') &&
-        !n.id.startsWith('pwr-coal') &&
-        !n.id.startsWith('pwr-gen')
-      );
-      const remedyProcNodeIds = new Set(remedyProcNodes.map(n => n.id));
-
-      // 僅提取胃復慘內部製程機台之間的純工序連線（兩端皆為製程機台）
-      const remedyProcConns = wBp.connections.filter(c =>
-        remedyProcNodeIds.has(c.fromNodeId) && remedyProcNodeIds.has(c.toNodeId)
-      );
-
-      remedyProcNodes.forEach(wn => {
-        nodes.push({
-          ...wn,
-          isAutoPepto: true
-        });
-        wn.inputs.forEach(inp => {
-          if (inp.type === 'fluid' && ENV_FLUIDS.includes(inp.name)) {
-            neededEnvFluids.add(inp.name);
-          }
-        });
+          rateProvided: Math.max(0.2, neededRate)
+        }]
       });
 
-      pushConn(...remedyProcConns);
-    }
-  }
+      if (isRecon) {
+        neededEnvFluids.add('虛空');
+      }
 
-  // 5. 全廠統一環境流體與泵機模組 (左側集中供液，統籌主產線與胃復慘)
+      nodes.push(healNode);
+      pushConn({
+        id: `c-heal-${dishIndex}-${healCounter}`,
+        fromNodeId: healNode.id,
+        fromPortId: `out-${targetRawName}`,
+        toNodeId: consumer.id,
+        toPortId: inPort.id,
+        itemOrFluidName: targetRawName,
+        type: 'solid',
+        actualFlowRate: neededRate
+      });
+    });
+  });
+
+  // 4. 重構機底料滿載直供 (優先專屬底料收割機，每台嚴格滿載 0.20/s)
+  const feederNodes = procNodesMap.get('底料作物採集 (收割機 底料專供)') || [];
+  const unconReconNodes = nodes.filter(n => 
+    (n.machineName === '物質操縱機' || n.machineName === '烤箱') && 
+    n.inputs.some(inp => (inp.id === 'in-base' || inp.name === '重構底料' || inp.name === '任意物品') && !isInputConnected(n.id, inp.id))
+  );
+
+  unconReconNodes.forEach((targetRecon, rIdx) => {
+    const inPort = targetRecon.inputs.find(inp => inp.id === 'in-base' || inp.name === '重構底料' || inp.name === '任意物品');
+    if (!inPort) return;
+
+    let fNode = feederNodes[rIdx];
+    if (!fNode) {
+      healCounter++;
+      fNode = makeNode({
+        id: `heal-base-feeder-${dishIndex}-${healCounter}`,
+        type: 'machine',
+        title: `採收：${baseCropItemName} (底料專供)`,
+        machineName: '收割機',
+        recipeName: baseCropItemName,
+        x: targetRecon.x - 300,
+        y: targetRecon.y + 120,
+        baseCycleTime: 5,
+        baseOutputCount: 1,
+        basePowerConsumption: 1.0,
+        baseGoblins: 1,
+        inputs: [],
+        outputs: [{ id: `out-${baseCropItemName}`, name: baseCropItemName, type: 'solid', rateProvided: 0.2 }]
+      });
+      nodes.push(fNode);
+    }
+
+    pushConn({
+      id: `c-base-feeder-${dishIndex}-${rIdx}`,
+      fromNodeId: fNode.id,
+      fromPortId: fNode.outputs[0].id,
+      toNodeId: targetRecon.id,
+      toPortId: inPort.id,
+      itemOrFluidName: baseCropItemName,
+      type: 'solid',
+      actualFlowRate: 0.20
+    });
+  });
+
+  // 5. 左側集中供液系統 (水 / 油 / 虛空統籌抽取與超頻自耗閉環)
   const envMod = buildEnvFluidsModule(
     dishIndex,
     neededEnvFluids,
@@ -698,12 +678,11 @@ export function buildDishBlueprint(
   nodes.push(...envMod.nodes);
   pushConn(...envMod.connections);
 
-  // 6. 全廠統一電網平衡模組 (下方集中供電，統籌全廠所有機台負載)
+  // 6. 下方統一集中電網平衡 (2:1 虛空熔爐與採煤機，淨盈餘 >= 0 FV/s)
   const currentTotalLoad = nodes
-    .filter(n => n.type !== 'generator' && !n.id.startsWith('pwr-coal'))
+    .filter(n => n.type !== 'generator' && !n.id.startsWith('pwr-coal') && n.type !== 'splitter')
     .reduce((sum, n) => sum + (n.basePowerConsumption || 0), 0);
 
-  // 常規虛空熔爐每台淨發電 3.5 FV/s (每2台需1台採煤機)，並嚴格防禦欠壓
   let totalFurnaceCount = Math.max(1, Math.ceil(currentTotalLoad / 3.5));
   let totalCoalMinerCount = Math.ceil(totalFurnaceCount / 2);
   while (totalFurnaceCount * 4 < currentTotalLoad + totalCoalMinerCount) {
@@ -714,21 +693,19 @@ export function buildDishBlueprint(
   nodes.push(...powerMod.nodes);
   pushConn(...powerMod.connections);
 
-  // 6.8. 全自動階層與端口通道佈局排版 (Processing Tier & Port-Lane Layout)
+  // 7. 三大區塊階層與端口通道佈局排版
   applyHierarchicalLayout(nodes, connections);
 
-  // 7. Physics Simulation Verification
+  // 8. 沙盒物理結算檢驗
   const sim = simulateSandboxPhysics(nodes, connections);
 
-  const isScorching = isScorchingDish(dish.name, items, recipes);
   const hotNote = isScorching ? `，並附帶【${remedyDishName}】自動中和解毒配產模組` : '';
-
   const initialView = calculateFitView(sim.updatedNodes, 1400, 800, 60);
 
   const blueprint: SandboxBlueprint = {
     id: `bp_dish_${dishIndex + 1}_${dish.name.replace(/\s+/g, '_')}`,
-    name: `${dish.name} (標準產能 12份/分)`,
-    description: `【${dish.island || '未知島嶼'}】${dish.name} 完整自動化產線：包含原料採集、中間加工、專屬流體輸送與獨立發電閉環${hotNote}。`,
+    name: `${dish.name} (最高效率 12份/分)`,
+    description: `【${dish.island || '未知島嶼'}】${dish.name} 完整自動化產線：依產線計算機最高效率接法，支援副產物折抵、比例分流器中轉與統一電網閉環${hotNote}。`,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     pan: initialView.pan,
