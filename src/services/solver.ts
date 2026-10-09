@@ -2,6 +2,7 @@ import { dataService } from './dataService';
 import { CalculationResult, ProcessNode, Item, FeederStrategy, Recipe, IntermediateRecipe, Machine, CalculatorProcess, DownstreamTarget } from '../types';
 import { parseFractionOrNumber, formatFractionOrDecimal, gcdArray } from '../utils/math';
 import { PROCESS_ACTION_VERBS, ITEM_ACTION_PREFIX } from '../utils/actionVerbs';
+import { isUpstreamAncestor } from '../utils/itemTraits';
 import { settlePlantInfrastructure } from './plantInfrastructure';
 
 export {
@@ -1012,12 +1013,7 @@ export function calculateSingleDish(
       // 若依賴某台設備，該設備即為「起始啟動機 (Progenitor)」，必須保留其專屬底料收割機啟動鏈條
       const progenitorManipulators = manipulators.filter(m => {
         const mProduct = m.processName.replace('重構', '').replace('物質操縱', '').trim();
-        return donorNodes.some(c => {
-          const cStripped = c.processName.replace(ACTION_VERBS, '').trim();
-          const rec = intermediateRecipes.find(r => r.machine === c.machine && (r.name === c.processName || r.name === cStripped || r.name.includes(cStripped) || cStripped.includes(r.name)))
-            || intermediateRecipes.find(r => r.name === c.processName || r.name === cStripped || r.name.includes(cStripped) || cStripped.includes(r.name));
-          return rec ? rec.inputs.some(inp => inp.name.includes(mProduct) || mProduct.includes(inp.name)) : false;
-        });
+        return donorNodes.some(c => isUpstreamAncestor(c.processName, mProduct, intermediateRecipes));
       });
 
       const hasManipulatorChain = progenitorManipulators.length > 0;
@@ -1025,20 +1021,14 @@ export function calculateSingleDish(
 
       const canDonate = (donorNode: ProcessNode, recNode: ProcessNode) => {
         const recProduct = recNode.processName.replace('重構', '').replace('物質操縱', '').trim();
-        const donorStripped = donorNode.processName.replace(ACTION_VERBS, '').trim();
-        const donorRec = intermediateRecipes.find(r => (r.name === donorNode.processName || r.name === donorStripped || r.name.includes(donorStripped)) && r.machine === donorNode.machine)
-          || intermediateRecipes.find(r => r.name === donorNode.processName || r.name.includes(donorStripped));
-        const dependsOnRec = donorRec?.inputs?.some(inp => inp.name.includes(recProduct) || recProduct.includes(inp.name));
+        const dependsOnRec = isUpstreamAncestor(donorNode.processName, recProduct, intermediateRecipes);
         return !dependsOnRec;
       };
 
       const getDonorSupplier = (donorNode: ProcessNode) => {
-        const donorStripped = donorNode.processName.replace(ACTION_VERBS, '').trim();
-        const donorRec = intermediateRecipes.find(r => (r.name === donorNode.processName || r.name === donorStripped || r.name.includes(donorStripped)) && r.machine === donorNode.machine)
-          || intermediateRecipes.find(r => r.name === donorNode.processName || r.name.includes(donorStripped));
         return manipulators.find(m => {
           const mProduct = m.processName.replace('重構', '').replace('物質操縱', '').trim();
-          return donorRec?.inputs?.some(inp => inp.name.includes(mProduct) || mProduct.includes(inp.name));
+          return isUpstreamAncestor(donorNode.processName, mProduct, intermediateRecipes);
         });
       };
 

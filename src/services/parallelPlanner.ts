@@ -2,6 +2,7 @@ import { Recipe, ProcessNode, FeederStrategy, DownstreamTarget, IntermediateReci
 import { calculateSingleDish, settlePlantInfrastructure, isScorchingDish, getProcessRealSurplusRate, sortProcessesDownstreamToUpstream, computeIntegerRatio } from './solver';
 import { dataService } from './dataService';
 import { formatFractionOrDecimal, gcdArray } from '../utils/math';
+import { isUpstreamAncestor } from '../utils/itemTraits';
 
 /**
  * 產線平衡計算機（單道速查 / 多料理並聯）純運算層。
@@ -273,8 +274,7 @@ function consolidatePlan(
           const mProduct = m.processName.replace('重構', '').replace('物質操縱', '').trim();
           return list.some(c => {
             if (nonDonorMachines.includes(c.machine)) return false;
-            const rec = intermediateRecipes.find(r => r.name === c.processName || c.processName.includes(r.name) || r.name.includes(c.processName));
-            return rec ? rec.inputs.some(inp => inp.name.includes(mProduct) || mProduct.includes(inp.name)) : false;
+            return isUpstreamAncestor(c.processName, mProduct, intermediateRecipes);
           });
         });
 
@@ -298,7 +298,11 @@ function consolidatePlan(
             const assignedRecipients: ProcessNode[] = [];
 
             while (availableSlots > 0 && totalOffsetsAllocated < maxOffsetAllowed && eligibleRecipients.length > 0) {
-              const unassignedRecipient = eligibleRecipients.find(rec => !rec.feederRoles.some(fr => fr.role === 'recipient'));
+              const unassignedRecipient = eligibleRecipients.find(rec => {
+                if (rec.feederRoles.some(fr => fr.role === 'recipient')) return false;
+                const recProduct = rec.processName.replace('重構', '').replace('物質操縱', '').trim();
+                return !isUpstreamAncestor(proc.processName, recProduct, intermediateRecipes);
+              });
               if (!unassignedRecipient) break;
 
               availableSlots--;

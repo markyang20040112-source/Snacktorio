@@ -1,4 +1,5 @@
 import type { Item, Recipe, IntermediateRecipe } from '../types';
+import { PROCESS_ACTION_VERBS } from './actionVerbs';
 
 /**
  * 物品特性判定（純資料驅動，單一事實來源）
@@ -42,4 +43,55 @@ export function rawSourceMachine(item?: Pick<Item, 'source'> | null): RawSourceM
 /** 會隨時間變質 / 發酵之物品：items.json 中 isPerishable 且有 spoilProduct 者 */
 export function perishableItems(items: Item[]): Item[] {
   return items.filter(i => i.isPerishable && i.spoilProduct);
+}
+
+/**
+ * 檢查某物品或工序在配方有向圖 (DAG) 中，是否向上依賴目標產品 (多階祖先追蹤)。
+ * 用於副產物折抵之祖源死鎖防護 (避免「產品捐給自己上游原料」之閉環死鎖)。
+ */
+export function isUpstreamAncestor(
+  donorItemOrProc: string,
+  targetProduct: string,
+  intermediateRecipes: IntermediateRecipe[],
+  visited = new Set<string>()
+): boolean {
+  if (!donorItemOrProc || !targetProduct) return false;
+  if (visited.has(donorItemOrProc)) return false;
+  visited.add(donorItemOrProc);
+
+  const clean = donorItemOrProc.replace(PROCESS_ACTION_VERBS, '').trim();
+  if (clean === targetProduct || clean.includes(targetProduct) || targetProduct.includes(clean)) {
+    return true;
+  }
+
+  // 搜尋產出此物品或工序之中間配方
+  const matching = intermediateRecipes.filter(r => 
+    r.name === clean || 
+    r.name === donorItemOrProc ||
+    r.name.includes(clean) ||
+    clean.includes(r.name)
+  );
+
+  for (const r of matching) {
+    // 1. 固體原料遞迴檢查
+    for (const inp of r.inputs || []) {
+      if (!inp.name || ['無', '任意物品', '重構底料', '底料'].includes(inp.name)) continue;
+      if (inp.name === targetProduct || inp.name.includes(targetProduct) || targetProduct.includes(inp.name)) {
+        return true;
+      }
+      if (isUpstreamAncestor(inp.name, targetProduct, intermediateRecipes, visited)) {
+        return true;
+      }
+    }
+    // 2. 流體原料 (fluidType) 遞迴檢查
+    if (r.fluidType && !['無', '水', '油', '虛空'].includes(r.fluidType)) {
+      if (r.fluidType === targetProduct || r.fluidType.includes(targetProduct) || targetProduct.includes(r.fluidType)) {
+        return true;
+      }
+      if (isUpstreamAncestor(r.fluidType, targetProduct, intermediateRecipes, visited)) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
