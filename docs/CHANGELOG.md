@@ -3,6 +3,25 @@
 > 本檔案收錄自 `PROJECT_STATUS.md` 移出之完整歷史決策紀錄（原文逐字保留，未做任何改寫）。
 > 最新條目置於最上方；新的詳細紀錄請追加於「最新紀錄」區塊頂端，`PROJECT_STATUS.md` 僅保留精簡摘要。
 
+* **2026-10-13｜雙槽物質操縱機底料湊數折抵 (Dual-Slot Byproduct Bundling) 實裝、共享庫存池需量守恆與 42 道藍圖 100% 滿載驗證**：
+  - **使用者需求**：依遊戲實體 UI（物質操縱機具備 2 個待消化物品欄與 6 格緩衝庫存），實裝雙槽底料拼湊折抵，使分散機台的碎屑產能可兩兩湊滿 $\ge 0.20$/s 直供單台重構機。沙盒生成完全依賴計算機理論推導作為單一事實來源（SSOT），零自主猜測，確保第一關靜態鏡像審計一致性。
+  - **核心架構更新**：
+    1. **型別結構擴充 (`src/types/index.ts`)**：`DownstreamTarget` 新增 `baseSlot?: 1 | 2;` 標註槽位分流指向。
+    2. **二分圖碎屑背包配對器 (`src/services/byproductMatching.ts`)**：
+       - 放寬副產物候選門檻至碎屑級別（$\ge 0.049$/s）。
+       - 第一優先（單源整台直供）：剩餘量 $\ge 0.20$/s 直供單槽（`baseSlot: 1`）。
+       - 第二優先（雙源拼湊折抵）：碎屑剩餘量兩兩配對，滿足 $r_A + r_B \ge 0.20$/s，分別綁定單台操縱機之雙槽（`baseSlot: 1` 與 `baseSlot: 2`）。
+       - 整合動態有向圖可達性與祖源防護（`canAddDependency`, `recordDependency`, `isUpstreamAncestor`），徹底防止 cross-donation 閉環死鎖。
+    3. **沙盒雙槽共享庫存池物理 (`src/components/Sandbox/sandboxPhysics.ts`)**：
+       - 實裝待消化槽共享池（Shared Inflow Pool），總底料流率累加 $\sum r_i \ge 0.195$/s 即判定滿載（`baseSat = 1.0`），免除單槽固定 0.2/s 的二次懲罰。
+       - 空載凝結免底料判定：`basePorts.length === 0` 時判定滿載。
+       - 修正超頻虛空泵啟動閉環約束（Rule 10：汙泥連線即超頻），避免初輪無泥引發死鎖。
+    4. **沙盒投影生成器精確對齊 (`src/services/dishBlueprintGenerator.ts`)**：
+       - 動態偵測雙槽需量，自動生成 `in-base-1` 與 `in-base-2` 獨立端口並綁定對應設計需量。
+    5. **全廠 42 套藍圖 100% 滿載驗證**：
+       - 實跑 `scripts/generateAllDishBlueprints.ts`，全廠 42 / 42 道料理藍圖 Deficit dishes 清零（0 缺料、0 自癒機台、100% 滿載效率）。
+       - 快取版本升級至 `20261013_v23_dual_slot_byproduct_matching`。
+
 * **2026-10-10｜架構研討：數位雙生閉環檢查機制、純二元健康警報與物質操縱機雙待消化槽湊滿 0.2/s 規範落地**：
   - **核心研討決策**：
     1. **數位雙生閉環檢查機制 (Digital Twin Verification)**：第一關計算機與沙盒 1:1 靜態鏡像審計 + 第二關快進 60 週期無 UI 物理體檢（HealNodes = 0、廚師機 100.0% 滿載）。

@@ -56,10 +56,10 @@ export function matchByproductFeeders(
       p.countRounded > p.demandRate
   );
 
-  // 標記提供過剩產能的供給設備 (Donor)
+  // 標記提供過剩產能的供給設備 (Donor) - 支援全額直供 (>= 0.199) 與碎屑拼湊 (>= 0.049)
   const donorNodes = candidateNodes.filter(p => {
     const surplusRate = getSurplusRate(p, processNodes, intermediateRecipes);
-    return surplusRate >= 0.199;
+    return surplusRate >= 0.049;
   });
 
   let totalOffsetAvailable = 0;
@@ -74,7 +74,8 @@ export function matchByproductFeeders(
     }
   });
 
-  if (totalOffsetAvailable <= 0) {
+  const totalScrapSurplus = donorNodes.reduce((sum, p) => sum + getSurplusRate(p, processNodes, intermediateRecipes), 0);
+  if (totalOffsetAvailable <= 0 && totalScrapSurplus < 0.199) {
     return { offsetCount, offsetSource };
   }
 
@@ -121,7 +122,15 @@ export function matchByproductFeeders(
   let bestMatching: {
     root: ProcessNode;
     matchedCount: number;
-    donorSlots: { donor: ProcessNode; supplier?: ProcessNode; surplusRate: number; available: number; recipients: ProcessNode[] }[];
+    donorSlots: {
+      donor: ProcessNode;
+      supplier?: ProcessNode;
+      surplusRate: number;
+      available: number;
+      remSurplus: number;
+      recipients: ProcessNode[];
+      pairDonations: { rec: ProcessNode; rate: number; slot: 1 | 2; partnerName: string; partnerRate: number }[];
+    }[];
     score: number;
   } | null = null;
 
@@ -134,7 +143,9 @@ export function matchByproductFeeders(
         supplier: getDonorSupplier(d),
         surplusRate,
         available: Math.floor((surplusRate + 0.001) / 0.2),
-        recipients: [] as ProcessNode[]
+        remSurplus: surplusRate,
+        recipients: [] as ProcessNode[],
+        pairDonations: [] as { rec: ProcessNode; rate: number; slot: 1 | 2; partnerName: string; partnerRate: number }[]
       };
     });
 
@@ -146,6 +157,9 @@ export function matchByproductFeeders(
     );
 
     let matchedCount = 0;
+    const unmatchedRecipients: ProcessNode[] = [];
+
+    // 第一優先（單源整台直供）：單一工序過剩 >= 0.20/s 者優先 1:1 直供單台操縱機 (佔用槽 1)
     for (const rec of recipients) {
       const available = donorSlots.filter(ds => {
         if (ds.available <= 0 || !canDonate(ds.donor, rec)) return false;
@@ -161,14 +175,69 @@ export function matchByproductFeeders(
         const chosen = available[0];
         chosen.recipients.push(rec);
         chosen.available--;
+        chosen.remSurplus -= 0.20;
         matchedCount++;
         if (chosen.supplier) {
           recordDependency(chosen.supplier.processName, rec.processName, reachMap);
         }
+      } else {
+        unmatchedRecipients.push(rec);
       }
     }
 
-    const candRootSuppliesDonor = donorSlots.some(ds => ds.supplier === candRoot && ds.recipients.length > 0);
+    // 第二優先（雙源拼湊折抵）：碎屑產能相互配對，滿足 rA + rB >= 0.20/s 直供單台操縱機之雙待消化槽
+    for (const rec of unmatchedRecipients) {
+      if (matchedCount >= maxAllowed) break;
+
+      const scrapDonors = donorSlots.filter(ds => {
+        if (ds.remSurplus < 0.049 || !canDonate(ds.donor, rec)) return false;
+        if (ds.supplier && !canAddDependency(ds.supplier.processName, rec.processName, reachMap)) return false;
+        return true;
+      });
+
+      let foundPair: { d1: typeof donorSlots[0]; d2: typeof donorSlots[0]; r1: number; r2: number } | null = null;
+
+      for (let i = 0; i < scrapDonors.length; i++) {
+        for (let j = i + 1; j < scrapDonors.length; j++) {
+          const d1 = scrapDonors[i];
+          const d2 = scrapDonors[j];
+
+          if (d1.remSurplus + d2.remSurplus >= 0.199) {
+            let r1 = Number(Math.min(d1.remSurplus, 0.10).toFixed(2));
+            if (r1 < 0.05) r1 = Number(d1.remSurplus.toFixed(2));
+            let r2 = Number((0.20 - r1).toFixed(2));
+
+            if (r2 <= d2.remSurplus + 0.005) {
+              foundPair = { d1, d2, r1, r2 };
+              break;
+            } else if (d1.remSurplus >= 0.20 - d2.remSurplus - 0.005) {
+              r2 = Number(Math.min(d2.remSurplus, 0.10).toFixed(2));
+              r1 = Number((0.20 - r2).toFixed(2));
+              if (r1 <= d1.remSurplus + 0.005) {
+                foundPair = { d1, d2, r1, r2 };
+                break;
+              }
+            }
+          }
+        }
+        if (foundPair) break;
+      }
+
+      if (foundPair) {
+        const { d1, d2, r1, r2 } = foundPair;
+        d1.remSurplus -= r1;
+        d2.remSurplus -= r2;
+        d1.pairDonations.push({ rec, rate: r1, slot: 1, partnerName: d2.donor.processName, partnerRate: r2 });
+        d2.pairDonations.push({ rec, rate: r2, slot: 2, partnerName: d1.donor.processName, partnerRate: r1 });
+        if (d1.supplier) recordDependency(d1.supplier.processName, rec.processName, reachMap);
+        if (d2.supplier) recordDependency(d2.supplier.processName, rec.processName, reachMap);
+        matchedCount++;
+      }
+    }
+
+    const candRootSuppliesDonor = donorSlots.some(
+      ds => ds.supplier === candRoot && (ds.recipients.length > 0 || ds.pairDonations.length > 0)
+    );
     const score = matchedCount * 100 + (candRootSuppliesDonor ? 10 : 0) + (50 - (candRoot.tier ?? 50));
 
     if (!bestMatching || score > bestMatching.score) {
@@ -188,13 +257,21 @@ export function matchByproductFeeders(
     const actualSources: string[] = [];
     donorSlots.forEach(ds => {
       const d = ds.donor;
-      if (ds.recipients.length > 0) {
+      const hasSingle = ds.recipients.length > 0;
+      const hasPair = ds.pairDonations.length > 0;
+
+      if (hasSingle || hasPair) {
         d.feederRole = 'donor';
-        const recNames = ds.recipients.map(r => `【${r.processName}】`).join('、');
-        d.feederNote = `產能過剩，分流直供${recNames}作為底料 (${ds.surplusRate.toFixed(2)}/s)`;
-        actualSources.push(`【${d.processName}】過剩直供${recNames}`);
+        const singleNames = ds.recipients.map(r => `【${r.processName}】`).join('、');
+        const pairNames = ds.pairDonations.map(pd => `【${pd.rec.processName}】(雙槽折抵 ${pd.rate.toFixed(2)}/s)`).join('、');
+        const allTargetLabels = [singleNames, pairNames].filter(Boolean).join('、');
+
+        d.feederNote = `產能過剩，分流直供${allTargetLabels}作為底料 (${ds.surplusRate.toFixed(2)}/s)`;
+        actualSources.push(`【${d.processName}】過剩直供${allTargetLabels}`);
 
         if (!d.downstreamTargets) d.downstreamTargets = [];
+
+        // 1. 單源整台直供連線
         ds.recipients.forEach(r => {
           d.downstreamTargets!.push({
             processName: r.processName,
@@ -202,10 +279,26 @@ export function matchByproductFeeders(
             ratio: 1,
             flowRate: 0.20,
             isByproduct: true,
+            baseSlot: 1,
             note: '副產物折抵'
           });
           r.feederRole = 'recipient';
           r.feederNote = `底料由【${d.processName}】過剩產能直供 (省 1 底料機)`;
+        });
+
+        // 2. 雙源拼湊折抵連線
+        ds.pairDonations.forEach(pd => {
+          d.downstreamTargets!.push({
+            processName: pd.rec.processName,
+            machine: pd.rec.machine,
+            ratio: 1,
+            flowRate: pd.rate,
+            isByproduct: true,
+            baseSlot: pd.slot,
+            note: `副產物雙槽折抵 (槽${pd.slot} ${pd.rate.toFixed(2)}/s)`
+          });
+          pd.rec.feederRole = 'recipient';
+          pd.rec.feederNote = `底料由【${d.processName}】(${pd.rate.toFixed(2)}/s) 與【${pd.partnerName}】(${pd.partnerRate.toFixed(2)}/s) 雙槽拼湊直供 (省 1 底料機)`;
         });
 
         // 依據供餐需量與底料消耗之真實物理流率，動態重算分流配比 (最簡整數比)

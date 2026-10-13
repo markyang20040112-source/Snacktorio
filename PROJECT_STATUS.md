@@ -110,6 +110,12 @@
 ## 7. 近期決策摘要 (Recent Decisions)
 > 完整原文見 [`docs/CHANGELOG.md`](docs/CHANGELOG.md)。新紀錄請先追加詳細內容至 CHANGELOG 頂端，再於此更新摘要（保留最近約 10 筆）。
 
+* **2026-10-13｜雙槽物質操縱機底料湊數折抵 (Dual-Slot Byproduct Bundling) 實裝、共享庫存池需量守恆與 42 道藍圖 100% 滿載驗證**：
+  - 雙槽背包匹配演算法 (`byproductMatching.ts`)：放寬副產物候選門檻至碎屑級別（$\ge 0.049$/s），支援碎屑剩餘量兩兩拼湊直供單台操縱機之雙槽（$r_1 + r_2 \ge 0.20$/s），並整合有向圖防環與祖源防護。
+  - 沙盒物理雙待消化槽共享庫存池 (`sandboxPhysics.ts`)：總底料流率累加 $\ge 0.195$/s 判定滿載，免除單槽二次懲罰；空載凝結免底料物理；修正 Rule 10 汙泥超頻閉環啟動防死鎖。
+  - 沙盒藍圖純投影對齊 (`dishBlueprintGenerator.ts`)：完全由計算機 SSOT 推導，動態生成 `in-base-1` 與 `in-base-2` 精準需量端口。
+  - 全量驗證：全廠 42 / 42 套料理藍圖 100% 滿載（0 缺料、0 自癒機台），品質閘門（solver 1008 / sandbox 378）全數通過。
+
 * **2026-10-10｜核心超大檔案模組化拆分重構：抽離 sandboxDevicePhysics 與 byproductMatching，大幅釋放 solver 與 sandboxPhysics 維護空間**：
   - 物理與解算解耦：抽離 [`sandboxDevicePhysics.ts`](src/components/Sandbox/sandboxDevicePhysics.ts)（分流器與緩衝發酵物理，163 行）與 [`byproductMatching.ts`](src/services/byproductMatching.ts)（副產物折抵與二分圖槽位匹配，229 行）。
   - 維護餘裕大幅釋放：[`solver.ts`](src/services/solver.ts) 由 1536 行降至 **1389 行**（獲得 147 行餘裕）；[`sandboxPhysics.ts`](src/components/Sandbox/sandboxPhysics.ts) 由 798 行降至 **661 行**（獲得 139 行餘裕）。

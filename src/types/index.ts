@@ -77,6 +77,7 @@ export interface DownstreamTarget {
   flowRate?: number;
   isFluid?: boolean;
   isByproduct?: boolean;
+  baseSlot?: 1 | 2;
   note?: string;
 }
 

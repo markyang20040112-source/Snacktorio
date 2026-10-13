@@ -43,7 +43,7 @@ export function isItemMatch(
   // 2. 特殊設備或通用端口邏輯
   if (targetNode) {
     // 物質操縱機重構底料端口或任意物品端口（如烤箱灰燼）：接受任意固體食材/物品
-    if (cleanTarget === '重構底料' || cleanTarget === '任意物品' || targetPortId === 'in-base') {
+    if (cleanTarget === '重構底料' || cleanTarget === '任意物品' || targetPortId === 'in-base' || targetPortId?.startsWith('in-base')) {
       return true;
     }
 
@@ -97,8 +97,8 @@ function updatePumpNode(
   const sludgeConns = incoming.filter(c => c.toPortId === 'in-sludge' || c.toPortId.includes('sludge'));
   const sludgeRate = sludgeConns.reduce((sum, c) => sum + c.actualFlowRate, 0);
 
-  // 只要有接虛空汙泥連線且有流量，即啟用超頻模式（若供泥不足則降載超頻）
-  const isOverclocked = sludgeConns.length > 0 && sludgeRate > 0;
+  // 依據 Rule 10：有汙泥連線或預設超頻模式即啟用超頻模式（若供泥不足則等比降載）
+  const isOverclocked = node.powerMode === 'overclock' || sludgeConns.length > 0;
 
   // 虛空汙泥滿足率 (額定需量 0.20/s，容許 0.005 浮點微差)
   const sludgeSat = isOverclocked ? Math.min(1.0, sludgeRate >= 0.195 ? 1.0 : sludgeRate / 0.20) : 1.0;
@@ -339,7 +339,65 @@ function evaluateMachineNode(
 
   // 4. 檢核固體輸入端口滿足率
   const solidInputs = node.inputs.filter(p => p.type === 'solid');
-  const solid = evaluateInputPorts(node, incoming, solidInputs, false, looseMatch);
+  let solid: { minSat: number; missingName: string; missingDetail: string; hasMismatch: boolean; mismatchDetail: string };
+
+  if (node.machineName === '物質操縱機') {
+    // 物質操縱機專屬：雙待消化槽共享庫存池 (Shared Inflow Pool)
+    // 總需量守恆定律：槽 A 流率 (r1) + 槽 B 流率 (r2) = 0.20/s
+    const basePorts = solidInputs.filter(p => p.id.startsWith('in-base') || p.name === '任意物品' || p.name === '重構底料' || p.name.includes('任意物品'));
+    const otherSolidPorts = solidInputs.filter(p => !basePorts.includes(p));
+    const otherSolid = evaluateInputPorts(node, incoming, otherSolidPorts, false, looseMatch);
+
+    let totalBaseReceived = 0;
+    let hasBaseMismatch = false;
+    let baseMismatchDetail = '';
+
+    basePorts.forEach(p => {
+      const validConns: SandboxConnection[] = [];
+      const invalidConns: SandboxConnection[] = [];
+      incoming.forEach(c => {
+        const linked = c.toPortId === p.id || (looseMatch && c.toPortId.startsWith('in-base'));
+        if (!linked) return;
+        (isItemMatch(c.itemOrFluidName, p.name, node, p.id) ? validConns : invalidConns).push(c);
+      });
+
+      if (invalidConns.length > 0) {
+        hasBaseMismatch = true;
+        const wrong = Array.from(new Set(invalidConns.map(c => normalizeItemName(c.itemOrFluidName)))).join('、');
+        baseMismatchDetail = `❌ 錯誤連入原料：${wrong}（需求：${p.name}）`;
+      }
+
+      const receivedRate = validConns.reduce((sum, c) => sum + c.actualFlowRate, 0);
+      p.rateReceived = Number(receivedRate.toFixed(2));
+      totalBaseReceived += receivedRate;
+    });
+
+    const targetBaseRate = 0.20;
+    const isBaseSatisfied = basePorts.length === 0 || totalBaseReceived >= targetBaseRate - 0.005;
+    const baseSat = hasBaseMismatch 
+      ? 0 
+      : (basePorts.length === 0 
+          ? 1.0 
+          : (totalBaseReceived > 0 
+              ? (isBaseSatisfied ? 1.0 : Math.min(1.0, totalBaseReceived / targetBaseRate)) 
+              : 0));
+
+    basePorts.forEach(p => {
+      p.isDeficit = hasBaseMismatch || (!isBaseSatisfied && (p.rateRequired ? (p.rateReceived || 0) < p.rateRequired - 0.005 : totalBaseReceived < 0.001));
+    });
+
+    const combinedSolidSat = Math.min(baseSat, otherSolid.minSat);
+    solid = {
+      minSat: combinedSolidSat,
+      missingName: baseSat < 1.0 ? '任意物品' : otherSolid.missingName,
+      missingDetail: baseSat < 1.0 ? `底料總和 ${totalBaseReceived.toFixed(2)}/s < 需求 0.20/s` : otherSolid.missingDetail,
+      hasMismatch: hasBaseMismatch || otherSolid.hasMismatch,
+      mismatchDetail: hasBaseMismatch ? baseMismatchDetail : otherSolid.mismatchDetail
+    };
+  } else {
+    solid = evaluateInputPorts(node, incoming, solidInputs, false, looseMatch);
+  }
+
   if (solidInputs.length > 0) {
     node.solidSaturation = Number(solid.minSat.toFixed(3));
   } else if (resetAbsentSaturation) {

@@ -276,8 +276,23 @@ export function buildDishBlueprint(
         if (!inputs.some(inp => inp.name === '虛空')) {
           inputs.push({ id: 'in-fluid-虛空', name: '虛空', type: 'fluid', rateRequired: 1.0 });
         }
-        if (!inputs.some(inp => inp.name === '任意物品' || inp.name === '重構底料' || inp.id === 'in-base')) {
-          inputs.push({ id: 'in-base', name: '任意物品', type: 'solid', rateRequired: 0.2 });
+
+        // 檢查是否有副產物目標指向此工序的槽位 2 (即雙槽湊數機台)
+        const allTargets = procs.flatMap(pr => 
+          (pr.downstreamTargets || []).flatMap((g: any) => g.targets ? g.targets : [g])
+        );
+        const slot2Target = allTargets.find((dt: any) => dt.isByproduct && dt.processName === p.processName && dt.baseSlot === 2);
+
+        if (slot2Target) {
+          const slot1Target = allTargets.find((dt: any) => dt.isByproduct && dt.processName === p.processName && (dt.baseSlot === 1 || !dt.baseSlot));
+          const r1 = slot1Target?.flowRate || 0.10;
+          const r2 = slot2Target.flowRate || 0.10;
+          inputs.push({ id: 'in-base-1', name: '任意物品 (槽1)', type: 'solid', rateRequired: r1 });
+          inputs.push({ id: 'in-base-2', name: '任意物品 (槽2)', type: 'solid', rateRequired: r2 });
+        } else {
+          if (!inputs.some(inp => inp.name === '任意物品' || inp.name === '重構底料' || inp.id === 'in-base')) {
+            inputs.push({ id: 'in-base', name: '任意物品', type: 'solid', rateRequired: 0.2 });
+          }
         }
       }
 
@@ -379,7 +394,9 @@ export function buildDishBlueprint(
           const toNodes = procNodesMap.get(dt.processName) || [];
           for (const rn of toNodes) {
             const inBasePort = rn.inputs.find(inp => 
-              (inp.id === 'in-base' || inp.name === '重構底料' || inp.name === '任意物品') &&
+              (dt.baseSlot === 2 
+                ? (inp.id === 'in-base-2' || inp.name.includes('槽2'))
+                : (inp.id === 'in-base' || inp.id === 'in-base-1' || inp.name === '重構底料' || inp.name === '任意物品' || inp.name.includes('槽1'))) &&
               !isInputConnected(rn.id, inp.id) &&
               !allocatedInputs.has(inputKey(rn.id, inp.id))
             );
@@ -537,11 +554,11 @@ export function buildDishBlueprint(
   const feederNodes = procNodesMap.get('底料作物採集 (收割機 底料專供)') || [];
   const unconReconNodes = nodes.filter(n => 
     (n.machineName === '物質操縱機' || n.machineName === '烤箱') && 
-    n.inputs.some(inp => (inp.id === 'in-base' || inp.name === '重構底料' || inp.name === '任意物品') && !isInputConnected(n.id, inp.id))
+    n.inputs.some(inp => (inp.id === 'in-base' || inp.id.startsWith('in-base') || inp.name === '重構底料' || inp.name === '任意物品' || inp.name.includes('任意物品')) && !isInputConnected(n.id, inp.id))
   );
 
   unconReconNodes.forEach((targetRecon, rIdx) => {
-    const inPort = targetRecon.inputs.find(inp => inp.id === 'in-base' || inp.name === '重構底料' || inp.name === '任意物品');
+    const inPort = targetRecon.inputs.find(inp => (inp.id === 'in-base' || inp.id.startsWith('in-base') || inp.name === '重構底料' || inp.name === '任意物品' || inp.name.includes('任意物品')) && !isInputConnected(targetRecon.id, inp.id));
     if (!inPort) return;
 
     const fNode = feederNodes[rIdx];
