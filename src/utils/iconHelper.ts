@@ -28,6 +28,8 @@ const DIRECT_PROCESS_ALIASES: Record<string, string> = {
   '虛空熔爐 (常規)': '虛空熔爐.png',
   '虛空熔爐 (超頻)': '虛空熔爐.png',
   '發電熔爐': '虛空熔爐.png',
+  '混和辛辣莎莎醬': '辛辣沙沙醬.png',
+  '攪拌致命莎莎醬': '致命沙沙醬.png',
 };
 
 /**
@@ -70,9 +72,9 @@ export function getItemIcon(name: string, customIcon?: string): string | undefin
     return formatUrl(itemIcons[cleanName]);
   }
 
-  // 3. Synonym / typo normalization (莎莎 <-> 沙沙, 菠蘿 <-> 波蘿, 混和 <-> 混合)
+  // 3. 異體字與錯字正規化：以資料庫官方名稱為準（水字旁「沙沙」一律扶正為草字頭「莎莎」）
   const normalized = cleanName
-    .replace(/莎莎/g, '沙沙')
+    .replace(/沙沙/g, '莎莎')
     .replace(/菠蘿/g, '波蘿')
     .replace(/混和/g, '混合');
 

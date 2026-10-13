@@ -111,6 +111,11 @@
 ## 7. 近期決策摘要 (Recent Decisions)
 > 完整原文見 [`docs/CHANGELOG.md`](docs/CHANGELOG.md)。新紀錄請先追加詳細內容至 CHANGELOG 頂端，再於此更新摘要（保留最近約 10 筆）。
 
+* **2026-10-13｜莎莎醬工序圖標解析修復：全面正名綁定草字頭「莎」、清除歷史殘留硬編碼強轉與雙向容錯直通**：
+  - 核心修復 (`iconHelper.ts`)：徹底廢除舊代碼中殘留的 `replace(/莎莎/g, '沙沙')`，反向扶正 `replace(/沙沙/g, '莎莎')`，全面以資料庫草字頭「莎」為單一事實來源。
+  - 直通別名索引：在 `DIRECT_PROCESS_ALIASES` 加入【混和辛辣莎莎醬】與【攪拌致命莎莎醬】，達成雙重保險。
+  - 全量驗證：42 道食譜所有莎莎醬工序 100% 成功取得圖標，品質閘門（solver 1008 / sandbox 378）全數通過。
+
 * **2026-10-13｜數位雙生閉環檢查機制 (Digital Twin Verification) 實裝：雙軌體檢引擎、純二元健康判定、沙盒底料精確鏡像與全廠 42 道料理 100% 滿載驗證**：
   - 核心驗證引擎實裝 (`digitalTwinAudit.ts`)：第一關靜態鏡像一致性審計 (`runMirrorAudit`，機台數與副產物直供連線對帳) + 第二關動態物理快進體檢 (`runHeadlessPhysicsAudit`，60 週期無 UI 快速收斂) + 全廠大體檢 (`runFullPlantAudit`，42 道料理僅耗時 358ms)。
   - 沙盒底料投影嚴格對齊 (`dishBlueprintGenerator.ts`)：底料收割機需量為 0 台時不再生成孤島節點，全廠 42 / 42 道食譜理論 vs 實體機台數 100% 精準吻合。
