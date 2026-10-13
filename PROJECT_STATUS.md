@@ -40,14 +40,15 @@
 |---|---|
 | `src/services/solver.ts` | 核心解算引擎：配方樹展開、`calculateSingleDish`、`sizeAutonomousPump`、`settlePlantInfrastructure`（泵機階梯 + 虛空閉環 + 電網，單一實作供單料理與並聯共用） |
 | `src/services/byproductMatching.ts` | 泛用底料副產物折抵匹配（`matchByproductFeeders`）：二分圖槽位匹配 + 動態有向圖防死鎖 + 拓撲層級啟動鏈條 |
+| `src/services/digitalTwinAudit.ts` | 數位雙生閉環驗證引擎：第一關靜態鏡像審計 (`runMirrorAudit`) + 第二關動態物理 60 週期快進 (`runHeadlessPhysicsAudit`) + 全廠 42 道料理大體檢 (`runFullPlantAudit`) |
 | `src/services/parallelPlanner.ts` | 多料理並聯純運算層（無 React）：`runParallelPlan`、`consolidatePlan` |
 | `src/services/dataService.ts` | JSON 載入 / localStorage 快取 / 匯出 |
 | `src/services/githubSync.ts` | Git Data API 單一原子 Commit 同步 5 份資料檔 + 沙盒藍圖庫（只推送自訂/修改過的藍圖；本機無藍圖時不推送該檔；無變更則略過） |
-| `src/services/dishBlueprintGenerator.ts` | `buildDishBlueprint`：由資料庫自動推導任一食譜之完整沙盒產線（新食譜自動適配） |
+| `src/services/dishBlueprintGenerator.ts` | `buildDishBlueprint`：由資料庫自動推導任一食譜之完整沙盒產線（新食譜自動適配，0 底料需求自動略過孤島收割機） |
 | `src/services/builtInBlueprints.ts` | 官方料理藍圖執行期生成（依 `dataService.getRevision()` 快取）＋同步時剔除可重建藍圖 |
 | `src/services/sandboxBlueprintService.ts` | 沙盒專案庫存取（官方藍圖與本機自訂專案合併、刪除/恢復/匯入匯出） |
 | `src/components/ParallelPlanner/` | `ParallelPlanner.tsx`（控制台）+ `FluidStation` / `PowerStation` / `ProcessTable` / `KpiSummary` 顯示元件 |
-| `src/components/Sandbox/` | `SandboxSimulator.tsx`（畫布狀態與互動）、`sandboxPhysics.ts`（物理引擎）、`sandboxDevicePhysics.ts`（分流器與緩衝發酵物理）、`sandboxNodeUtils.ts`（`makeNode` 節點工廠、校準、子圖複製、存檔）、`SandboxNode.tsx`、`SandboxBlueprintModal.tsx`（專案庫）、顯示元件 `SandboxCatalogSidebar` / `SandboxMetricsPanel` / `SandboxToolbar` / `SandboxConnectionsLayer`、`sandboxTypes.ts` |
+| `src/components/Sandbox/` | `SandboxSimulator.tsx`（畫布狀態與互動）、`DigitalTwinModal.tsx`（數位雙生體檢診斷卡）、`sandboxPhysics.ts`（物理引擎）、`useSandboxAutoPan.ts`（邊緣自動推鏡頭）、`sandboxDevicePhysics.ts`（分流器與緩衝發酵物理）、`sandboxNodeUtils.ts`（`makeNode` 節點工廠、校準、子圖複製、存檔）、`SandboxNode.tsx`、`SandboxBlueprintModal.tsx`（專案庫）、顯示元件 `SandboxCatalogSidebar` / `SandboxMetricsPanel` / `SandboxToolbar` / `SandboxConnectionsLayer`、`sandboxTypes.ts` |
 | `src/components/DataManager/` | 資料工作台各管理分頁與同步設定 |
 | `src/utils/itemTraits.ts` | 物品特性資料驅動判定：流體（食譜 `fluidType` 引用推導）、原料機台（`source`）、可發酵物品（`isPerishable`） |
 | `src/utils/actionVerbs.ts` | 工序動作動詞共用正則（solver 與 iconHelper 共用） |
@@ -109,6 +110,12 @@
 
 ## 7. 近期決策摘要 (Recent Decisions)
 > 完整原文見 [`docs/CHANGELOG.md`](docs/CHANGELOG.md)。新紀錄請先追加詳細內容至 CHANGELOG 頂端，再於此更新摘要（保留最近約 10 筆）。
+
+* **2026-10-13｜數位雙生閉環檢查機制 (Digital Twin Verification) 實裝：雙軌體檢引擎、純二元健康判定、沙盒底料精確鏡像與全廠 42 道料理 100% 滿載驗證**：
+  - 核心驗證引擎實裝 (`digitalTwinAudit.ts`)：第一關靜態鏡像一致性審計 (`runMirrorAudit`，機台數與副產物直供連線對帳) + 第二關動態物理快進體檢 (`runHeadlessPhysicsAudit`，60 週期無 UI 快速收斂) + 全廠大體檢 (`runFullPlantAudit`，42 道料理僅耗時 358ms)。
+  - 沙盒底料投影嚴格對齊 (`dishBlueprintGenerator.ts`)：底料收割機需量為 0 台時不再生成孤島節點，全廠 42 / 42 道食譜理論 vs 實體機台數 100% 精準吻合。
+  - 純二元健康判定與前端 UI：落實純二元健康狀態判定（🟢 健全 vs 🔴 故障），全面淘汰黃燈告警疲勞；新增【數位雙生體檢診斷卡】(`DigitalTwinModal.tsx`) 與沙盒工具列 (`SandboxToolbar.tsx`) 即時健康狀態徽章。
+  - 模組化解耦：抽離 `useSandboxAutoPan.ts`，`SandboxSimulator.tsx` 行數由 1396 行降至 1349 行，品質閘門（solver 1008 / sandbox 378）與建置打包 100% 全數通過。
 
 * **2026-10-13｜多料理並聯規劃雙槽底料折抵全面打通：二分圖背包演算法解耦統一、碎屑跨產線配對與零重複架構**：
   - 二分圖背包配對核心解耦 (`solveBipartiteByproductMatching`)：通用背包匹配、Progenitor 分析與 DAG 防環統一抽整，單料理與多料理並聯 100% 共享單一演算法。

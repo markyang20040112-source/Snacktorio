@@ -1,13 +1,15 @@
 import React from 'react';
-import { FolderKanban, Save, Copy, Clipboard, BoxSelect } from 'lucide-react';
+import { FolderKanban, Save, Copy, Clipboard, BoxSelect, Activity } from 'lucide-react';
 
 interface SandboxToolbarProps {
   currentBlueprintName: string;
   currentBlueprintId: string | null;
   isMarqueeMode: boolean;
   quickSaveFeedback: string | null;
+  isDigitalTwinHealthy?: boolean;
   onQuickSave: () => void;
   onOpenBlueprints: () => void;
+  onOpenDigitalTwinModal?: () => void;
   onCopy: () => void;
   onPaste: () => void;
   onToggleMarquee: () => void;
@@ -19,8 +21,10 @@ export const SandboxToolbar: React.FC<SandboxToolbarProps> = ({
   currentBlueprintId,
   isMarqueeMode,
   quickSaveFeedback,
+  isDigitalTwinHealthy = true,
   onQuickSave,
   onOpenBlueprints,
+  onOpenDigitalTwinModal,
   onCopy,
   onPaste,
   onToggleMarquee
@@ -57,6 +61,21 @@ export const SandboxToolbar: React.FC<SandboxToolbarProps> = ({
         <FolderKanban className="w-3.5 h-3.5" />
         <span>專案庫 / 藍圖</span>
       </button>
+
+      {onOpenDigitalTwinModal && (
+        <button
+          onClick={onOpenDigitalTwinModal}
+          className={`px-2.5 py-1.5 rounded-xl border transition-all flex items-center space-x-1.5 font-bold shadow-sm ${
+            isDigitalTwinHealthy
+              ? 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border-emerald-500/40'
+              : 'bg-rose-500/25 hover:bg-rose-500/35 text-rose-300 border-rose-500/60 animate-pulse'
+          }`}
+          title="點擊展開數位雙生閉環檢查與診斷卡 (靜態鏡像審計 + 動態物理 60 週期快進)"
+        >
+          <Activity className="w-3.5 h-3.5 text-teal-400" />
+          <span>{isDigitalTwinHealthy ? '🟢 100% 滿載' : '🔴 產線故障'}</span>
+        </button>
+      )}
 
       {/* 剪貼簿 複製 / 貼上 按鈕 */}
       <div className="flex items-center pl-1 border-l border-[#1e3340] space-x-1">

@@ -15,6 +15,8 @@ import { SandboxMetricsPanel } from './SandboxMetricsPanel';
 import { SandboxToolbar } from './SandboxToolbar';
 import { SandboxConnectionsLayer, ConnectingSource } from './SandboxConnectionsLayer';
 import { useSandboxHover } from './useSandboxHover';
+import { useSandboxAutoPan } from './useSandboxAutoPan';
+import { DigitalTwinModal } from './DigitalTwinModal';
 import { Compass, Maximize } from 'lucide-react';
 import { buildFluidNameSet, isFluidName, rawSourceMachine } from '../../utils/itemTraits';
 
@@ -110,74 +112,26 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
   // 拉線中狀態 (支援自輸出端口或自輸入端口雙向拉出)
   const [connectingSource, setConnectingSource] = useState<ConnectingSource | null>(null);
 
-  // 邊緣自動推鏡頭 (Auto-Pan) 與即時座標同步 Ref
-  const panRef = useRef(pan); panRef.current = pan;
-  const zoomRef = useRef(zoom); zoomRef.current = zoom;
-  const connectingSourceRef = useRef(connectingSource); connectingSourceRef.current = connectingSource;
+  // 數位雙生閉環檢查彈窗狀態
+  const [isDigitalTwinModalOpen, setIsDigitalTwinModalOpen] = useState(false);
 
-  const autoPanVelocityRef = useRef<{ vx: number; vy: number }>({ vx: 0, vy: 0 });
-  const autoPanAnimationRef = useRef<number | null>(null);
-  const lastMousePosRef = useRef<{ clientX: number; clientY: number }>({ clientX: 0, clientY: 0 });
-
-  const stopAutoPan = useCallback(() => {
-    if (autoPanAnimationRef.current) {
-      cancelAnimationFrame(autoPanAnimationRef.current);
-      autoPanAnimationRef.current = null;
-    }
-    autoPanVelocityRef.current = { vx: 0, vy: 0 };
-  }, []);
-
-  const startAutoPan = useCallback(() => {
-    if (autoPanAnimationRef.current) return;
-
-    const loop = () => {
-      const { vx, vy } = autoPanVelocityRef.current;
-      if (vx === 0 && vy === 0) {
-        autoPanAnimationRef.current = null;
-        return;
-      }
-
-      setPan(prev => {
-        const nextX = prev.x + vx;
-        const nextY = prev.y + vy;
-        panRef.current = { x: nextX, y: nextY };
-
-        // 同步刷新拉線頂端座標，確保拉線末端精準跟隨滑鼠游標
-        if (connectingSourceRef.current && canvasRef.current) {
-          const rect = canvasRef.current.getBoundingClientRect();
-          const { clientX, clientY } = lastMousePosRef.current;
-          const curX = (clientX - rect.left - nextX) / zoomRef.current;
-          const curY = (clientY - rect.top - nextY) / zoomRef.current;
-          setConnectingSource(prevSrc => prevSrc ? {
-            ...prevSrc,
-            currentX: curX,
-            currentY: curY
-          } : null);
-        }
-
-        return { x: nextX, y: nextY };
-      });
-
-      autoPanAnimationRef.current = requestAnimationFrame(loop);
-    };
-
-    autoPanAnimationRef.current = requestAnimationFrame(loop);
-  }, []);
-
-  useEffect(() => {
-    const handleGlobalMouseUp = () => {
-      stopAutoPan();
-      setIsPanning(false);
-      setDraggingNodeId(null);
-    };
-    window.addEventListener('mouseup', handleGlobalMouseUp);
-    window.addEventListener('blur', stopAutoPan);
-    return () => {
-      window.removeEventListener('mouseup', handleGlobalMouseUp);
-      window.removeEventListener('blur', stopAutoPan);
-      stopAutoPan();
-    };
-  }, [stopAutoPan]);
+  // 邊緣自動推鏡頭 (Auto-Pan) 與全域事件監聽
+  const {
+    lastMousePosRef,
+    panRef,
+    zoomRef,
+    handleEdgeAutoPan,
+    stopAutoPan
+  } = useSandboxAutoPan({
+    canvasRef,
+    pan,
+    setPan,
+    zoom,
+    connectingSource,
+    setConnectingSource,
+    setIsPanning,
+    setDraggingNodeId
+  });
 
   // ==========================================
   // 即時物理演算 (動態自適應更新)
@@ -200,6 +154,28 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
       return cur && (cur.x !== n.x || cur.y !== n.y) ? { ...n, x: cur.x, y: cur.y } : n;
     });
   }, [physics, physicsNodes, nodes]);
+
+  // 數位雙生即時二元健康狀態判定 (< 0.1ms 快速收斂)：
+  const isDigitalTwinHealthy = useMemo(() => {
+    if (updatedNodes.length === 0) return true;
+    const hasHealedNodes = updatedNodes.some(n => n.id.startsWith('heal-'));
+    if (hasHealedNodes) return false;
+    const hasStoppage = updatedNodes.some(n => n.type === 'machine' && n.efficiency === 0 && !n.id.startsWith('heal-'));
+    if (hasStoppage) return false;
+    const chefNodes = updatedNodes.filter(n => n.machineName === '自動廚師機');
+    if (chefNodes.length > 0 && chefNodes.some(n => n.efficiency < 0.999)) {
+      return false;
+    }
+    return true;
+  }, [updatedNodes]);
+
+  const currentDishName = useMemo(() => {
+    const chef = updatedNodes.find(n => n.machineName === '自動廚師機');
+    if (chef?.recipeName) return chef.recipeName;
+    const matched = recipes.find(r => currentBlueprintName.includes(r.name));
+    if (matched) return matched.name;
+    return recipes[0]?.name || '';
+  }, [updatedNodes, recipes, currentBlueprintName]);
 
   // 連線懸停發光與延遲焦點過濾 (350ms 延遲暗化無關元素，防誤觸)
   const {
@@ -847,38 +823,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     }
 
     // 邊緣自動推鏡頭 (Auto-Pan)：拉線或拖曳節點時游標靠近邊界 80px 自動平移
-    if (connectingSource || draggingNodeId) {
-      const rect = canvasRef.current?.getBoundingClientRect();
-      if (rect) {
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-        const margin = 80;
-        const maxSpeed = 15;
-
-        let vx = 0;
-        let vy = 0;
-
-        if (mouseX >= 0 && mouseX < margin) {
-          vx = maxSpeed * Math.pow((margin - mouseX) / margin, 1.2);
-        } else if (mouseX <= rect.width && mouseX > rect.width - margin) {
-          vx = -maxSpeed * Math.pow((margin - (rect.width - mouseX)) / margin, 1.2);
-        }
-
-        if (mouseY >= 0 && mouseY < margin) {
-          vy = maxSpeed * Math.pow((margin - mouseY) / margin, 1.2);
-        } else if (mouseY <= rect.height && mouseY > rect.height - margin) {
-          vy = -maxSpeed * Math.pow((margin - (rect.height - mouseY)) / margin, 1.2);
-        }
-
-        autoPanVelocityRef.current = { vx, vy };
-
-        if ((vx !== 0 || vy !== 0) && !autoPanAnimationRef.current) {
-          startAutoPan();
-        } else if (vx === 0 && vy === 0 && autoPanAnimationRef.current) {
-          stopAutoPan();
-        }
-      }
-    }
+    handleEdgeAutoPan(e, Boolean(connectingSource || draggingNodeId));
   };
 
   const handleMouseUp = () => {
@@ -1260,8 +1205,10 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
           currentBlueprintId={currentBlueprintId}
           isMarqueeMode={isMarqueeMode}
           quickSaveFeedback={quickSaveFeedback}
+          isDigitalTwinHealthy={isDigitalTwinHealthy}
           onQuickSave={handleQuickSave}
           onOpenBlueprints={() => setIsBlueprintModalOpen(true)}
+          onOpenDigitalTwinModal={() => setIsDigitalTwinModalOpen(true)}
           onCopy={handleCopy}
           onPaste={handlePaste}
           onToggleMarquee={() => setIsMarqueeMode(!isMarqueeMode)}
@@ -1389,6 +1336,13 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         onLoadBlueprint={handleLoadBlueprint}
         onAppendBlueprint={handleAppendBlueprint}
         onSaveCurrentSuccess={handleSaveCurrentSuccess}
+      />
+
+      {/* 數位雙生閉環檢查與診斷卡彈窗 */}
+      <DigitalTwinModal
+        isOpen={isDigitalTwinModalOpen}
+        onClose={() => setIsDigitalTwinModalOpen(false)}
+        currentDishName={currentDishName}
       />
     </div>
   );

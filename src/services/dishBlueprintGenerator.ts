@@ -151,7 +151,8 @@ export function buildDishBlueprint(
   // 2. 實例化各工序之實體機台節點 (實裝精省機台數與足額產能保證)
   procs.forEach((p, pIdx) => {
     if (p.isBaseFeeder) {
-      const feederCount = p.parallelRounded || 1;
+      const feederCount = p.parallelRounded ?? 0;
+      if (feederCount <= 0) return;
       const feederList: SandboxNodeData[] = [];
       for (let fIdx = 0; fIdx < feederCount; fIdx++) {
         const nodeId = `base-feeder-${dishIndex}-${fIdx}`;
