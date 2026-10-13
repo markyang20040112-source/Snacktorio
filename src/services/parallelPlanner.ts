@@ -1,8 +1,8 @@
-import { Recipe, ProcessNode, FeederStrategy, DownstreamTarget, IntermediateRecipe, CalculationResult, Item } from '../types';
+import { Recipe, ProcessNode, FeederStrategy, DownstreamTarget, IntermediateRecipe, CalculationResult, Item, ConsolidatedProcessRecord } from '../types';
 import { calculateSingleDish, settlePlantInfrastructure, isScorchingDish, getProcessRealSurplusRate, sortProcessesDownstreamToUpstream, computeIntegerRatio } from './solver';
+import { matchParallelByproductFeeders } from './byproductMatching';
 import { dataService } from './dataService';
 import { formatFractionOrDecimal, gcdArray } from '../utils/math';
-import { isUpstreamAncestor, initReachabilityMap, canAddDependency, recordDependency } from '../utils/itemTraits';
 
 /**
  * 產線平衡計算機（單道速查 / 多料理並聯）純運算層。
@@ -27,44 +27,6 @@ function consolidatePlan(
   intermediateRecipes: IntermediateRecipe[],
   items: Item[] = dataService.getItems()
 ) {
-  interface ProcessDemandItem {
-    dishName: string;
-    demand: number;
-    countRounded: number;
-    feederRole?: 'donor' | 'recipient';
-    feederNote?: string;
-    isOffset?: boolean;
-    offsetCount?: number;
-    offsetSource?: string;
-  }
-
-  interface ConsolidatedProcessRecord {
-    processName: string;
-    machine: string;
-    baseRate: number;
-    baseRateDisplay?: string;
-    integerRatio?: number;
-    dishDemands: ProcessDemandItem[];
-    totalDemandRate: number;
-    independentSum: number;
-    parallelRounded: number;
-    savedCount: number;
-    powerPerUnit: number;
-    goblinsPerUnit: number;
-    topologies: { dishName: string; text: string }[];
-    downstreamTargets: { dishName: string; targets: DownstreamTarget[] }[];
-    feederRoles: { dishName: string; role: 'donor' | 'recipient'; note: string }[];
-    isBaseFeeder?: boolean;
-    baseFeederSummary?: {
-      grossRequired: number;
-      offsetCount: number;
-      finalCount: number;
-      offsetDetails: string[];
-      consumerMachine?: string;
-    };
-    tier?: number;
-  }
-
   const processMap = new Map<string, ConsolidatedProcessRecord>();
 
   individualResults.forEach(item => {
@@ -231,8 +193,6 @@ function consolidatePlan(
     const feederRow = list.find(r => r.isBaseFeeder);
     if (feederRow && feederRow.baseFeederSummary && feederRow.parallelRounded > 0) {
       const bfSummary = feederRow.baseFeederSummary;
-      const consumerName = bfSummary.consumerMachine || '物質操縱機';
-      const nonDonorMachines = ['自動廚師機', consumerName, '物質操縱機', '攪拌機', '注入機', '虛空熔爐', '虛空泵機', '收割機', '採掘機'];
 
       // If single dish mode, inherit the detailed offset from single dish solver directly
       if (effectivePlannedList.length === 1 && individualResults[0]?.calc?.baseFeeders) {
@@ -245,146 +205,13 @@ function consolidatePlan(
           bfSummary.offsetDetails = [singleBf.offsetSource];
         }
       } else {
-        // Multi-dish parallel: clean previous feeder roles, dish demands, and byproduct downstream targets
-        // to recalculate strictly on merged physical flow
-        list.forEach(proc => {
-          proc.feederRoles = [];
-          if (proc.downstreamTargets) {
-            proc.downstreamTargets.forEach(dt => {
-              dt.targets = dt.targets.filter(t => !t.isByproduct);
-            });
-            proc.downstreamTargets = proc.downstreamTargets.filter(dt => dt.targets.length > 0);
-          }
-          if (proc.dishDemands) {
-            proc.dishDemands.forEach(dd => {
-              dd.feederRole = undefined;
-              dd.feederNote = undefined;
-            });
-          }
-        });
-
-        // Deadlock / Progenitor protection
-        const baseConsumerProcs = list.filter(p => {
-          if (p.machine === '物質操縱機') return true;
-          const matchingInter = intermediateRecipes.find(r => r.name === p.processName || p.processName.includes(r.name));
-          if (matchingInter && matchingInter.inputs?.some(inp => ['任意物品', '重構底料', '底料'].includes(inp.name))) return true;
-          return false;
-        });
-
-        const progenitorProcs = baseConsumerProcs.filter(m => {
-          const mProduct = m.processName.replace('重構', '').replace('物質操縱', '').trim();
-          return list.some(c => {
-            if (nonDonorMachines.includes(c.machine)) return false;
-            return isUpstreamAncestor(c.processName, mProduct, intermediateRecipes, items);
-          });
-        });
-
-        const externalDonors = list.filter(p => {
-          if (p.isBaseFeeder || nonDonorMachines.includes(p.machine)) return false;
-          if (getProcessRealSurplusRate(p, list, intermediateRecipes) < 0.199) return false;
-          return !baseConsumerProcs.some(m => isUpstreamAncestor(p.processName, m.processName.replace('重構', '').replace('物質操縱', '').trim(), intermediateRecipes, items));
-        });
-        const extSlots = externalDonors.reduce((s, d) => s + Math.floor((getProcessRealSurplusRate(d, list, intermediateRecipes) + 0.001) / 0.2), 0);
-        const needProgenitor = progenitorProcs.length > 0 && extSlots < feederRow.parallelRounded;
-        const rootConsumer = progenitorProcs[0] || baseConsumerProcs[0];
-        const maxOffsetAllowed = needProgenitor ? Math.max(0, feederRow.parallelRounded - 1) : feederRow.parallelRounded;
-
-        let totalOffsetsAllocated = 0;
-        const reachMap = initReachabilityMap(baseConsumerProcs.map(m => m.processName));
-        const eligibleRecipients = needProgenitor
-          ? baseConsumerProcs.filter(m => m !== rootConsumer)
-          : baseConsumerProcs;
-
-        // Iterate over candidate donor processes
-        list.forEach(proc => {
-          if (proc.isBaseFeeder || nonDonorMachines.includes(proc.machine)) return;
-          if (totalOffsetsAllocated >= maxOffsetAllowed) return;
-
-          const supplier = baseConsumerProcs.find(m => {
-            const mProduct = m.processName.replace('重構', '').replace('物質操縱', '').trim();
-            return isUpstreamAncestor(proc.processName, mProduct, intermediateRecipes, items);
-          });
-
-          const surplusFlow = getProcessRealSurplusRate(proc, list, intermediateRecipes); // 考慮上游供料限流約束之真實物理淨產出流率 (items/second)
-
-          if (surplusFlow >= 0.199) {
-            let availableSlots = Math.floor((surplusFlow + 0.001) / 0.20);
-            const assignedRecipients: ProcessNode[] = [];
-
-            while (availableSlots > 0 && totalOffsetsAllocated < maxOffsetAllowed && eligibleRecipients.length > 0) {
-              const unassignedRecipient = eligibleRecipients.find(rec => {
-                if (rec.feederRoles.some(fr => fr.role === 'recipient')) return false;
-                const recProduct = rec.processName.replace('重構', '').replace('物質操縱', '').trim();
-                if (isUpstreamAncestor(proc.processName, recProduct, intermediateRecipes, items)) return false;
-                if (supplier && !canAddDependency(supplier.processName, rec.processName, reachMap)) return false;
-                return true;
-              });
-              if (!unassignedRecipient) break;
-
-              availableSlots--;
-              totalOffsetsAllocated++;
-              assignedRecipients.push(unassignedRecipient as any);
-              if (supplier) {
-                recordDependency(supplier.processName, unassignedRecipient.processName, reachMap);
-              }
-
-              unassignedRecipient.feederRoles.push({
-                dishName: '全廠',
-                role: 'recipient',
-                note: `底料由【${proc.processName}】過剩產能直供 (省 1 底料機)`
-              });
-            }
-
-            if (assignedRecipients.length > 0) {
-              const recNames = assignedRecipients.map(r => `【${r.processName}】`).join('、');
-              proc.feederRoles.push({
-                dishName: '全廠',
-                role: 'donor',
-                note: `產能過剩，分流直供${recNames}作為底料 (${surplusFlow.toFixed(2)}/s)`
-              });
-
-              // Add byproduct target to downstreamTargets if not already present
-              if (!proc.downstreamTargets) proc.downstreamTargets = [];
-              let plantTargetEntry = proc.downstreamTargets.find(dt => dt.dishName === '全廠');
-              if (!plantTargetEntry) {
-                plantTargetEntry = { dishName: '全廠', targets: [] };
-                proc.downstreamTargets.push(plantTargetEntry);
-              }
-              assignedRecipients.forEach(r => {
-                if (!plantTargetEntry!.targets.some(t => t.processName === r.processName && t.isByproduct)) {
-                  plantTargetEntry!.targets.push({
-                    processName: r.processName,
-                    machine: r.machine,
-                    ratio: 1,
-                    flowRate: 0.20,
-                    isByproduct: true,
-                    note: '副產物折抵'
-                  });
-                }
-              });
-
-              // 依據供餐需量與底料消耗之真實物理流率，動態重算分流配比 (最簡整數比)
-              const allProcTargets: DownstreamTarget[] = [];
-              proc.downstreamTargets.forEach(dt => {
-                dt.targets.forEach(t => allProcTargets.push(t));
-              });
-              if (allProcTargets.length > 1) {
-                const allRates = allProcTargets.map(t => t.flowRate !== undefined ? t.flowRate : 0.20);
-                const intRatios = computeIntegerRatio(allRates);
-                allProcTargets.forEach((t, idx) => {
-                  t.ratio = intRatios[idx];
-                });
-              }
-
-              bfSummary.offsetDetails.push(`由【${proc.processName}】過剩直供${recNames} (折抵 ${assignedRecipients.length} 台)`);
-            }
-          }
-        });
-
-        bfSummary.offsetCount = totalOffsetsAllocated;
-        feederRow.parallelRounded = Math.max(0, feederRow.parallelRounded - totalOffsetsAllocated);
-        feederRow.totalDemandRate = feederRow.parallelRounded;
-        bfSummary.finalCount = feederRow.parallelRounded;
+        matchParallelByproductFeeders(
+          list,
+          feederRow,
+          intermediateRecipes,
+          items,
+          getProcessRealSurplusRate
+        );
       }
     }
   }

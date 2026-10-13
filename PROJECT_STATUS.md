@@ -110,6 +110,12 @@
 ## 7. 近期決策摘要 (Recent Decisions)
 > 完整原文見 [`docs/CHANGELOG.md`](docs/CHANGELOG.md)。新紀錄請先追加詳細內容至 CHANGELOG 頂端，再於此更新摘要（保留最近約 10 筆）。
 
+* **2026-10-13｜多料理並聯規劃雙槽底料折抵全面打通：二分圖背包演算法解耦統一、碎屑跨產線配對與零重複架構**：
+  - 二分圖背包配對核心解耦 (`solveBipartiteByproductMatching`)：通用背包匹配、Progenitor 分析與 DAG 防環統一抽整，單料理與多料理並聯 100% 共享單一演算法。
+  - 型別結構標準化 (`src/types/index.ts`)：導出 `ConsolidatedProcessRecord` 與 `ProcessDemandItem` 全域型別。
+  - 多料理並聯整合器精簡 (`parallelPlanner.ts`)：移除 140 行內聯邏輯，由 `matchParallelByproductFeeders` 統一驅動，程式行數降至 371 行。多料理並聯各產線碎屑（$\ge 0.049$/s）可跨產線湊滿 0.20/s 直供雙待消化槽。
+  - 全量驗證：42 套料理藍圖 100% 滿載，`npm run check`（1008 solver / 378 sandbox 案例）與生產打包全數通過。
+
 * **2026-10-13｜雙槽物質操縱機底料湊數折抵 (Dual-Slot Byproduct Bundling) 實裝、共享庫存池需量守恆與 42 道藍圖 100% 滿載驗證**：
   - 雙槽背包匹配演算法 (`byproductMatching.ts`)：放寬副產物候選門檻至碎屑級別（$\ge 0.049$/s），支援碎屑剩餘量兩兩拼湊直供單台操縱機之雙槽（$r_1 + r_2 \ge 0.20$/s），並整合有向圖防環與祖源防護。
   - 沙盒物理雙待消化槽共享庫存池 (`sandboxPhysics.ts`)：總底料流率累加 $\ge 0.195$/s 判定滿載，免除單槽二次懲罰；空載凝結免底料物理；修正 Rule 10 汙泥超頻閉環啟動防死鎖。

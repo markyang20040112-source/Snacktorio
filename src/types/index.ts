@@ -103,6 +103,44 @@ export interface ProcessNode {
   tier?: number;
 }
 
+export interface ProcessDemandItem {
+  dishName: string;
+  demand: number;
+  countRounded: number;
+  feederRole?: 'donor' | 'recipient';
+  feederNote?: string;
+  isOffset?: boolean;
+  offsetCount?: number;
+  offsetSource?: string;
+}
+
+export interface ConsolidatedProcessRecord {
+  processName: string;
+  machine: string;
+  baseRate: number;
+  baseRateDisplay?: string;
+  integerRatio?: number;
+  dishDemands: ProcessDemandItem[];
+  totalDemandRate: number;
+  independentSum: number;
+  parallelRounded: number;
+  savedCount: number;
+  powerPerUnit: number;
+  goblinsPerUnit: number;
+  topologies: { dishName: string; text: string }[];
+  downstreamTargets: { dishName: string; targets: DownstreamTarget[] }[];
+  feederRoles: { dishName: string; role: 'donor' | 'recipient'; note: string }[];
+  isBaseFeeder?: boolean;
+  baseFeederSummary?: {
+    grossRequired: number;
+    offsetCount: number;
+    finalCount: number;
+    offsetDetails: string[];
+    consumerMachine?: string;
+  };
+  tier?: number;
+}
+
 export interface FluidTierInfo {
   demand: number;
   regularPumps: number;
