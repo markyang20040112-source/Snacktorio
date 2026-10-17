@@ -25,6 +25,7 @@
 ## 5. Git 版本控制規範
 - 在完成重大配方登錄、功能實裝或架構更新後，主動進行清楚的 Git Commit 並推送至 GitHub。
 - **提交前必須執行 `npm run check` 並全部通過**（見第 6 節）。嚴禁使用 `git commit --no-verify` 跳過檢查。
+- **嚴禁削弱品質閘門**：不得修改 `deploy.yml` 讓 CI 執行 `npm run baseline`、不得刪改 pre-commit hook 或 `check` 腳本、不得放寬 `scripts/check/` 的規則來讓自己的修改通過。CI 失敗代表本機沒跑 `npm run check` 或基準沒提交，請在本機修正。
 
 ## 6. 品質閘門 (Quality Gate) — 強制
 `npm run check` = TypeScript 型別檢查 + 資料 lint + 程式守門 + 回歸指紋。pre-commit hook 會自動執行；GitHub Actions 未通過則**不會部署**。

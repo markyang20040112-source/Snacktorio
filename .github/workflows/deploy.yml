@@ -38,13 +38,9 @@ jobs:
         run: npm install
 
       # 品質閘門：tsc + 資料 lint + 程式守門 + 回歸指紋。未通過則不部署。
+      # ⚠ 嚴禁在 CI 執行 npm run baseline（會讓回歸比對永遠通過、保護失效）。基準只能在本機更新並隨 commit 提交。
       - name: Quality Gate (npm run check)
-        run: |
-          if git log -1 --format=%B | grep -q 'BASELINE:'; then
-            echo "偵測到刻意修改標記 BASELINE:，在 CI 執行指紋與基準對齊..."
-            npm run baseline
-          fi
-          npm run check
+        run: npm run check
 
       # 基準檔（回歸指紋 / 守門基準）被修改時，本次推送的 commit 訊息必須含「BASELINE:」說明原因
       - name: Baseline Change Requires Explanation

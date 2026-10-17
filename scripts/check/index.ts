@@ -163,6 +163,18 @@ for (const f of srcFiles) {
   });
 }
 
+// 閘門自我保護：CI / pre-commit / npm script 不得被削弱（曾有 AI 讓 CI 自動重建基準，使回歸比對永遠通過）
+{
+  const read = (p: string) => (existsSync(join(ROOT, p)) ? readFileSync(join(ROOT, p), 'utf8') : '');
+  const ci = read('.github/workflows/deploy.yml');
+  const hook = read('.githooks/pre-commit');
+  const pkg = JSON.parse(read('package.json') || '{}');
+  if (!/run:\s*npm run check\s*$/m.test(ci)) fail('[閘門] deploy.yml 的品質閘門步驟必須是單純的 `run: npm run check`');
+  if (/npm run baseline|--update-baseline/.test(ci.replace(/#.*$/gm, ''))) fail('[閘門] deploy.yml 不得執行 npm run baseline（基準只能在本機更新並隨 commit 提交，否則回歸保護失效）');
+  if (!/npm run check/.test(hook)) fail('[閘門] .githooks/pre-commit 必須執行 npm run check');
+  if (!/tsc --noEmit/.test(pkg.scripts?.check || '') || !/scripts\/check\/index\.ts/.test(pkg.scripts?.check || '')) fail('[閘門] package.json 的 check 腳本必須包含 tsc --noEmit 與 scripts/check/index.ts');
+}
+
 // ───────────────────────── 3. 回歸指紋 ─────────────────────────
 const canonical = (v: unknown): string => {
   if (v === null || typeof v !== 'object') return JSON.stringify(v) ?? 'null';
