@@ -19,6 +19,7 @@ import { useSandboxAutoPan } from './useSandboxAutoPan';
 import { DigitalTwinModal } from './DigitalTwinModal';
 import { Compass, Maximize } from 'lucide-react';
 import { buildFluidNameSet, isFluidName, rawSourceMachine } from '../../utils/itemTraits';
+import { machineSpec } from '../../utils/machineSpec';
 
 interface SandboxSimulatorProps {
   machines: Machine[];
@@ -447,7 +448,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
       const hasPepto = nodes.some(n => n.recipeName === '胃復慘');
       if (!hasPepto) {
         const peptoRecipe = recipes.find(r => r.name === '胃復慘');
-        const chefMach = machines.find(m => m.name === '自動廚師機') || { name: '自動廚師機', power: 1.0, goblins: 3 };
+        const chefMach = machineSpec('自動廚師機', machines);
         if (peptoRecipe) {
           const peptoId = `node-pepto-${Date.now()}`;
           const peptoRawNode: SandboxNodeData = makeNode({
@@ -461,8 +462,8 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
             y: finalNewNode.y + 240,
             baseCycleTime: 5,
             baseOutputCount: 10,
-            basePowerConsumption: 1.0,
-            baseGoblins: 3,
+            basePowerConsumption: chefMach.power,
+            baseGoblins: chefMach.goblins,
             isAutoPepto: true,
             inputs: [],
             outputs: []
@@ -498,9 +499,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
       outCount = item.name === '泥沼蟑螂' ? 2 : 1;
       if (item.name === '虛空汙泥') {
         titlePrefix = '空載凝結';
-        baseInputs = [
-          { id: 'in-void', name: '虛空', type: 'fluid', rateRequired: 1.0 }
-        ];
+        baseInputs = [{ id: 'in-void', name: '虛空', type: 'fluid', rateRequired: 1.0 }];
       } else {
         titlePrefix = '重構';
         baseInputs = [
@@ -518,7 +517,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
       baseInputs = [];
     }
 
-    const mach = machines.find(m => m.name === machName) || { name: machName, power: 1.0, goblins: 1 };
+    const mach = machineSpec(machName, machines);
     const outRate = Number((outCount / cycleTime).toFixed(3));
 
     const newNode: SandboxNodeData = makeNode({
@@ -534,14 +533,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
       basePowerConsumption: mach.power,
       baseGoblins: mach.goblins,
       inputs: baseInputs,
-      outputs: [
-        {
-          id: `out-${item.name}`,
-          name: item.name,
-          type: 'solid',
-          rateProvided: outRate
-        }
-      ]
+      outputs: [{ id: `out-${item.name}`, name: item.name, type: 'solid', rateProvided: outRate }]
     });
 
     setNodes(prev => [...prev, newNode]);
@@ -553,6 +545,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     let node: SandboxNodeData;
 
     if (type === 'generator') {
+      const furnaceSpec = machineSpec('虛空熔爐', machines);
       node = makeNode({
         id,
         type: 'generator',
@@ -564,7 +557,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         baseCycleTime: 10,
         baseOutputCount: 1,
         basePowerConsumption: subtype === 'overclock' ? 16.0 : 4.0,
-        baseGoblins: 1,
+        baseGoblins: furnaceSpec.goblins,
         inputs: subtype === 'overclock' 
           ? [
               { id: 'in-coal', name: '煤炭', type: 'solid', rateRequired: 0.1 },
@@ -574,6 +567,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         outputs: []
       });
     } else if (type === 'pump') {
+      const pumpSpec = machineSpec('虛空泵機', machines);
       const isGeneric = subtype === 'generic' || !subtype;
       const fluidName = isGeneric ? '通用流體' : subtype;
       
@@ -604,19 +598,12 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         y: -pan.y + 200,
         baseCycleTime: 1,
         baseOutputCount: 2,
-        basePowerConsumption: 1.0,
-        baseGoblins: 1,
+        basePowerConsumption: pumpSpec.power,
+        baseGoblins: pumpSpec.goblins,
         efficiency: isGeneric ? 0 : 1.0,
         statusNote: isGeneric ? '⚠️ 待連接原位轉化液或環境池' : '正常運轉中 (常規 2.0 fl/s)',
         inputs,
-        outputs: [
-          {
-            id: 'out-fluid',
-            name: isGeneric ? '流體' : fluidName,
-            type: 'fluid',
-            rateProvided: isGeneric ? 0 : 2.0
-          }
-        ]
+        outputs: [{ id: 'out-fluid', name: isGeneric ? '流體' : fluidName, type: 'fluid', rateProvided: isGeneric ? 0 : 2.0 }]
       });
     } else if (type === 'splitter') {
       node = makeNode({

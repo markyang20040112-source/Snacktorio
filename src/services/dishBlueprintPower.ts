@@ -3,6 +3,7 @@ import { makeNode } from '../components/Sandbox/sandboxNodeUtils';
 import { FluidTierInfo } from '../types';
 import { sizeAutonomousPump, sizeVoidPump } from './plantInfrastructure';
 import { dataService } from './dataService';
+import { machineSpec } from '../utils/machineSpec';
 
 /**
  * 環境資源池節點 (無限供液)
@@ -24,19 +25,29 @@ export function makePoolNode(id: string, title: string, fluid: string, y: number
 }
 
 /**
- * 建立獨立自給電網模組（依產線負載動態配置虛空熔爐與採煤機閉環）
+ * 建立獨立自給電網模組（超頻模式 2:1:1 配置：2 台超頻虛空熔爐 : 1 台採煤機 : 1 台供汙泥物質操縱機）
  */
 export function buildPowerModule(
   dishIndex: number,
   furnaceCount: number,
   coalMinerCount: number,
+  genSludgeCount: number,
   coalName: string,
+  sludgeName: string,
+  voidFluidName: string,
   furnaceMachineName: string,
-  minerMachineName: string
+  minerMachineName: string,
+  manipulatorMachineName: string
 ): { nodes: SandboxNodeData[]; connections: SandboxConnection[] } {
   const nodes: SandboxNodeData[] = [];
   const connections: SandboxConnection[] = [];
   const coalMinerNodes: SandboxNodeData[] = [];
+  const sludgeManipNodes: SandboxNodeData[] = [];
+
+  const machines = dataService.getMachines();
+  const minerSpec = machineSpec(minerMachineName, machines);
+  const manipSpec = machineSpec(manipulatorMachineName, machines);
+  const furnaceSpec = machineSpec(furnaceMachineName, machines);
 
   for (let mIdx = 0; mIdx < coalMinerCount; mIdx++) {
     const minerId = `pwr-coal-${dishIndex}-${mIdx}`;
@@ -49,8 +60,8 @@ export function buildPowerModule(
       y: 80 + mIdx * 180,
       baseCycleTime: 5,
       baseOutputCount: 1,
-      basePowerConsumption: 1.0,
-      baseGoblins: 1,
+      basePowerConsumption: minerSpec.power,
+      baseGoblins: minerSpec.goblins,
       inputs: [],
       outputs: [{ id: `out-${coalName}`, name: coalName, type: 'solid', rateProvided: 0.2 }]
     });
@@ -58,21 +69,45 @@ export function buildPowerModule(
     coalMinerNodes.push(minerNode);
   }
 
+  for (let sIdx = 0; sIdx < genSludgeCount; sIdx++) {
+    const sludgeId = `pwr-sludge-${dishIndex}-${sIdx}`;
+    const sludgeNode = makeNode({
+      id: sludgeId,
+      type: 'machine',
+      title: genSludgeCount > 1 ? `${manipulatorMachineName} #${sIdx + 1} (供汙泥發電)` : `${manipulatorMachineName} (供汙泥發電)`,
+      machineName: manipulatorMachineName,
+      recipeName: sludgeName,
+      x: 60,
+      y: 260 + sIdx * 180,
+      baseCycleTime: 5,
+      baseOutputCount: 1,
+      basePowerConsumption: manipSpec.power,
+      baseGoblins: manipSpec.goblins,
+      inputs: [{ id: `in-fluid-${voidFluidName}`, name: voidFluidName, type: 'fluid', rateRequired: 1.0 }],
+      outputs: [{ id: `out-${sludgeName}`, name: sludgeName, type: 'solid', rateProvided: 0.2 }]
+    });
+    nodes.push(sludgeNode);
+    sludgeManipNodes.push(sludgeNode);
+  }
+
   for (let fIdx = 0; fIdx < furnaceCount; fIdx++) {
     const genId = `pwr-gen-${dishIndex}-${fIdx}`;
     const genNode = makeNode({
       id: genId,
       type: 'generator',
-      title: furnaceCount > 1 ? `虛空熔爐 #${fIdx + 1} (4 FV/s)` : '虛空熔爐 (4 FV/s)',
+      title: furnaceCount > 1 ? `虛空熔爐 #${fIdx + 1} (16 FV/s)` : '虛空熔爐 (16 FV/s)',
       machineName: furnaceMachineName,
-      powerMode: 'regular',
+      powerMode: 'overclock',
       x: 200,
       y: 80 + fIdx * 120,
       baseCycleTime: 10,
       baseOutputCount: 1,
-      basePowerConsumption: 4.0,
-      baseGoblins: 1,
-      inputs: [{ id: 'in-coal', name: coalName, type: 'solid', rateRequired: 0.1 }],
+      basePowerConsumption: 16.0,
+      baseGoblins: furnaceSpec.goblins,
+      inputs: [
+        { id: 'in-coal', name: coalName, type: 'solid', rateRequired: 0.1 },
+        { id: 'in-sludge', name: sludgeName, type: 'solid', rateRequired: 0.1 }
+      ],
       outputs: []
     });
     nodes.push(genNode);
@@ -89,6 +124,21 @@ export function buildPowerModule(
       type: 'solid',
       actualFlowRate: 0.1
     });
+
+    // Each generator sludge manipulator (0.2/s) can support up to 2 furnaces (0.1/s each)
+    if (sludgeManipNodes.length > 0) {
+      const sludgeNode = sludgeManipNodes[Math.floor(fIdx / 2) % sludgeManipNodes.length];
+      connections.push({
+        id: `c-pwr-sludge-${dishIndex}-${fIdx}`,
+        fromNodeId: sludgeNode.id,
+        fromPortId: `out-${sludgeName}`,
+        toNodeId: genId,
+        toPortId: 'in-sludge',
+        itemOrFluidName: sludgeName,
+        type: 'solid',
+        actualFlowRate: 0.1
+      });
+    }
   }
 
   return { nodes, connections };
@@ -111,12 +161,12 @@ export function buildEnvFluidsModule(
   let envY = 80;
 
   const machines = dataService.getMachines();
-  const pumpSpec = machines.find(m => m.name === pumpMachineName);
-  const manipSpec = machines.find(m => m.name === manipulatorMachineName);
-  const pumpPower = pumpSpec?.power ?? 1.0;
-  const pumpGoblins = pumpSpec?.goblins ?? 1;
-  const manipPower = manipSpec?.power ?? 1.0;
-  const manipGoblins = manipSpec?.goblins ?? 1;
+  const pumpSpec = machineSpec(pumpMachineName, machines);
+  const manipSpec = machineSpec(manipulatorMachineName, machines);
+  const pumpPower = pumpSpec.power;
+  const pumpGoblins = pumpSpec.goblins;
+  const manipPower = manipSpec.power;
+  const manipGoblins = manipSpec.goblins;
 
   // Pass 1：統計各環境流體之消費者與總需量，並依 plantInfrastructure 階梯決策泵機配置
   const consumersMap = new Map<string, SandboxNodeData[]>();
@@ -224,9 +274,10 @@ export function buildEnvFluidsModule(
 
       nodes.push(pumpNode);
       const netCap = (fluid === voidFluidName && isOc) ? 7.0 : pumpCapacity;
-      createdPumps.push({ node: pumpNode, netRemaining: netCap });
+      const pumpEntry = { node: pumpNode, netRemaining: netCap };
+      createdPumps.push(pumpEntry);
       if (fluid === voidFluidName) {
-        voidPumps.push({ node: pumpNode, netRemaining: netCap });
+        voidPumps.push(pumpEntry);
       }
 
       if (isOc) {

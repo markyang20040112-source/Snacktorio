@@ -52,7 +52,7 @@
 | `src/components/DataManager/` | 資料工作台各管理分頁與同步設定 |
 | `src/utils/itemTraits.ts` | 物品特性資料驅動判定：流體（食譜 `fluidType` 引用推導）、原料機台（`source`）、可發酵物品（`isPerishable`） |
 | `src/utils/actionVerbs.ts` | 工序動作動詞共用正則（solver 與 iconHelper 共用） |
-| `src/utils/` 其他 | `math.ts`（GCD/精度）、`iconHelper.ts`、`imageBeautifier.ts`、`machineBadge.ts` |
+| `src/utils/` 其他 | `machineSpec.ts`（從 `machines.json` 讀取耗電與哥布林）、`math.ts`（GCD/精度）、`iconHelper.ts`、`imageBeautifier.ts`、`machineBadge.ts` |
 | `scripts/regression/` | 黃金快照回歸測試：`cases.ts`（案例定義，solver 1008 + 沙盒 378）、`snapshot.ts` / `sandboxSnapshot.ts`（輸出完整快照）、`compare.mjs` |
 | `scripts/check/` | 品質閘門 `npm run check`：`index.ts`（資料 lint + 程式守門 + 回歸指紋）、`fingerprints.json`（每案例雜湊 + 資料雜湊）、`baseline.json`（佔位名、既有資料問題、已審核相似名、大檔行數、既有硬編碼名稱；只能縮減）、`installHooks.mjs`；hook 在 `.githooks/pre-commit` |
 | `scripts/generateAllDishBlueprints.ts` | 以 `buildDishBlueprint` 生成全部料理藍圖並逐道回報缺料（預設只檢查，不寫入資料檔） |
@@ -111,6 +111,7 @@
 ## 7. 近期決策摘要 (Recent Decisions)
 > 完整原文見 [`docs/CHANGELOG.md`](docs/CHANGELOG.md)。新紀錄請先追加詳細內容至 CHANGELOG 頂端，再於此更新摘要（保留最近約 10 筆）。
 
+* **2026-10-17｜D 組 Step 3（D4 + D6）**：新增 `machineSpec.ts` 統一由 `machines.json` 讀取耗電與哥布林（修正轉化抽取泵哥布林 0➔1）；沙盒發電模組改用計算機超頻 2:1:1 配置（16 FV/s 熔爐 + 採煤機 + 供汙泥操縱機），42 道料理熔爐數與計算機完全一致。
 * **2026-10-17｜D 組 Step 2（D1 + D2 + D3）**：`dishBlueprintPower.ts` 改用 `sizeAutonomousPump` / `sizeVoidPump` 配置泵機階梯，供汙泥操縱機改讀 `machines.json`（1 FV / 1 隻）；`sandboxPhysics.ts` 超頻泵維持 1 FV / 1 隻。11 道超頻泵料理負載與哥布林回歸正確值，計算機 1008 案例不變。
 * **2026-10-17｜D 組 Step 1（D5 + D7）**：`dishBlueprintGenerator.ts` 泵機 `machineName` 改從 `machines.json` 讀取為 `'虛空泵機'`；`dishBlueprintLayout.ts` 環境泵分類加入 `n.type === 'pump'`（排除 `pump-trans-`）。計算機 1008 案例完全不變。
 * **2026-10-17｜程式清理 A/B/C（零計算變更）**：刪除約 250 行死碼、底料名稱判斷集中至 `itemTraits.ts`、沙盒連線走線快取（拖曳不再每幀重算）、數位雙生不再重複計算。淨 −181 行，指紋全數一致。
@@ -121,5 +122,4 @@
 * **2026-10-13｜多料理並聯規劃雙槽底料折抵全面打通**：抽離 `solveBipartiteByproductMatching`，單料理與多料理並聯 100% 共用二分圖背包演算法，支援跨產線碎屑（$\ge 0.049$/s）湊滿 0.20/s。
 * **2026-10-13｜雙槽物質操縱機底料湊數折抵實裝**：放寬副產物候選門檻至 $\ge 0.049$/s，沙盒物理實裝雙待消化槽共享庫存池需量守恆（總和 $\ge 0.195$/s 滿載）。
 * **2026-10-10｜核心超大檔案模組化拆分重構**：抽離 `sandboxDevicePhysics.ts` 與 `byproductMatching.ts`，大幅縮減 `solver.ts` 與 `sandboxPhysics.ts` 行數。
-* **2026-10-10｜產線計算機與沙盒拓撲完全統一**：沙盒藍圖由 `runParallelPlan` 與 `downstreamTargets` 驅動，實裝動態有向圖可達性防死鎖與裝箱分流 (`partitionTargetsToSuppliers`)。
 

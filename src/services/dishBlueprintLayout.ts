@@ -41,7 +41,9 @@ export function applyHierarchicalLayout(
     (n.type === 'environment_pool' || n.type === 'pump' || n.id.startsWith('pool-') || n.id.startsWith('pump-') || n.id.startsWith('sludge-manip-')) &&
     !n.id.startsWith('pump-trans-')
   );
-  const powerNodes = nodes.filter(n => n.type === 'generator' || n.id.startsWith('pwr-coal'));
+  const powerNodes = nodes.filter(
+    n => n.type === 'generator' || n.id.startsWith('pwr-coal') || n.id.startsWith('pwr-sludge')
+  );
   const allProdNodes = nodes.filter(n => !envNodes.includes(n) && !powerNodes.includes(n));
 
   const mainProdNodes = allProdNodes.filter(n => !n.isAutoPepto);
@@ -291,13 +293,16 @@ export function applyHierarchicalLayout(
   }
 
   // ─────────────────────────────────────────────────────────────
-  // 3. 【電力系統】(產線與液體系統正下方，橫向展開 Power Cells)
+  // 3. 【電力系統】(產線與液體系統正下方，橫向展開 2:1:1 Power Cells)
   // ─────────────────────────────────────────────────────────────
   const coalMiners = powerNodes.filter(n => n.id.startsWith('pwr-coal'));
+  const genSludgeNodes = powerNodes.filter(n => n.id.startsWith('pwr-sludge'));
   const furnaces = powerNodes.filter(n => n.type === 'generator');
 
   const pwrStartY = Math.max(maxProdY, envMaxY) + 60;
   const pwrStartX = prodStartX;
+  const CELL_ROW_OFFSET = 280;
+  const CELL_HEIGHT = CELL_ROW_OFFSET * 2 + 40;
 
   // 每排最多並排單元數 (依上方產線總寬自適應，每單元佔 2 欄寬度)
   const prodCols = Math.max(4, Math.floor((maxProdX - pwrStartX) / COL_WIDTH));
@@ -335,13 +340,21 @@ export function applyHierarchicalLayout(
     const colInRow = mIdx % unitsPerRow;
 
     const unitX = pwrStartX + colInRow * 2 * COL_WIDTH;
-    const unitY = pwrStartY + rowIdx * (245 * 2 + 40);
+    const unitY = pwrStartY + rowIdx * CELL_HEIGHT;
 
-    // 採煤機置於單元左欄中央
-    miner.x = unitX;
-    miner.y = unitY + 120;
+    const sludgeManip = genSludgeNodes[mIdx];
+    if (sludgeManip) {
+      // 2:1:1 單元左欄：上方採煤機、下方發電供汙泥操縱機
+      miner.x = unitX;
+      miner.y = unitY;
+      sludgeManip.x = unitX;
+      sludgeManip.y = unitY + CELL_ROW_OFFSET;
+    } else {
+      miner.x = unitX;
+      miner.y = unitY + 120;
+    }
 
-    // 該採煤機連線供給之 1~2 台熔爐排列於右欄上下 (同單元水平直連，零交叉)
+    // 該單元供給之 1~2 台熔爐排列於右欄上下 (同單元水平直連，零交叉)
     const list = minerFurnacesMap.get(miner.id) || [];
     const f1 = list[0];
     const f2 = list[1];
@@ -352,7 +365,7 @@ export function applyHierarchicalLayout(
     }
     if (f2) {
       f2.x = unitX + COL_WIDTH;
-      f2.y = unitY + 245;
+      f2.y = unitY + CELL_ROW_OFFSET;
     }
   });
 
@@ -363,9 +376,9 @@ export function applyHierarchicalLayout(
       const rowIdx = Math.floor(uIdx / unitsPerRow);
       const colInRow = uIdx % unitsPerRow;
       const unitX = pwrStartX + colInRow * 2 * COL_WIDTH;
-      const unitY = pwrStartY + rowIdx * (245 * 2 + 40);
+      const unitY = pwrStartY + rowIdx * CELL_HEIGHT;
       f.x = unitX + COL_WIDTH;
-      f.y = (idx % 2 === 0) ? unitY : unitY + 245;
+      f.y = (idx % 2 === 0) ? unitY : unitY + CELL_ROW_OFFSET;
     });
   }
 }

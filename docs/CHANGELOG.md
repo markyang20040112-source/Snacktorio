@@ -3,6 +3,11 @@
 > 本檔案收錄自 `PROJECT_STATUS.md` 移出之完整歷史決策紀錄（原文逐字保留，未做任何改寫）。
 > 最新條目置於最上方；新的詳細紀錄請追加於「最新紀錄」區塊頂端，`PROJECT_STATUS.md` 僅保留精簡摘要。
 
+* **2026-10-17｜D 組 Step 3（D4 + D6）：沙盒發電熔爐改為超頻 2:1:1 配置對齊計算機、全機台耗電與哥布林由 machines.json 讀取（使用者核准更新基準）**：
+  - D6（`src/utils/machineSpec.ts`、`dishBlueprintGenerator.ts`、`dishBlueprintPower.ts`、`SandboxSimulator.tsx`）：新增 `machineSpec()` 由 `machines.json` 讀取機台 `power` 與 `goblins`，替換底料收割機、自動廚師機、加工機台、原位轉化抽取泵（修正哥布林 `0 ➔ 1`）、環境泵、供汙泥操縱機、採煤機、虛空熔爐及手動放置節點的寫死常數。
+  - D4（`dishBlueprintGenerator.ts`、`dishBlueprintPower.ts`、`dishBlueprintLayout.ts`）：發電模組改採用計算機 `settlePlantInfrastructure`（`plan.consolidated`）超頻模式結算之 `furnaces`、`coalMiners`、`genSludgeManipulators`，建立 `2:1:1` 超頻發電單元（每 2 台 `16 FV/s` 超頻虛空熔爐配 1 台採煤機與 1 台供汙泥物質操縱機），供汙泥操縱機自動接入全廠虛空泵管網並於電力區塊左欄下方零重疊排版。
+  - 驗證：計算機（solver）1008 案例完全不變；沙盒 42 道料理熔爐數與計算機 42 / 42 完全一致、全廠數位雙生物理檢驗 42 / 42 滿載通過；`npm run check` 與 `npm run build` 通過。
+
 * **2026-10-17｜D 組 Step 2（D1 + D2 + D3）：沙盒泵機階梯配置對齊、供汙泥操縱機與超頻泵耗電/哥布林修正（使用者核准更新基準）**：
   - D1（`plantInfrastructure.ts`、`dishBlueprintPower.ts`）：抽離並匯出 `sizeVoidPump`；`buildEnvFluidsModule` 改呼叫 `sizeAutonomousPump`（含全廠有無虛空 2.0 / 6.0 fl/s 超頻門檻與多泵階梯）與 `sizeVoidPump`，依回傳台數建立環境池、泵機與供汙泥操縱機，並將非虛空超頻泵之供汙泥操縱機連入全廠虛空泵。
   - D2（`dishBlueprintPower.ts`）：供汙泥物質操縱機與泵機耗電、哥布林改從 `machines.json` 讀取（`sludge-manip-…` 由 `2.0 FV / 2 隻` 修正為 `1.0 FV / 1 隻`）。

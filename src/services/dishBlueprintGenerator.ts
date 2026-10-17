@@ -15,6 +15,7 @@ import {
 } from '../components/Sandbox/sandboxTypes';
 import { Recipe, IntermediateRecipe, Machine, Item } from '../types';
 import { ENV_FLUIDS, hasScorchingAttr } from '../utils/itemTraits';
+import { machineSpec } from '../utils/machineSpec';
 import { buildPowerModule, buildEnvFluidsModule } from './dishBlueprintPower';
 import { applyHierarchicalLayout } from './dishBlueprintLayout';
 import { routeSolidOutputs, SolidTargetSpec } from './dishBlueprintSplitter';
@@ -156,6 +157,7 @@ export function buildDishBlueprint(
     if (p.isBaseFeeder) {
       const feederCount = p.parallelRounded ?? 0;
       if (feederCount <= 0) return;
+      const harvesterSpec = machineSpec('收割機', machines);
       const feederList: SandboxNodeData[] = [];
       for (let fIdx = 0; fIdx < feederCount; fIdx++) {
         const nodeId = `base-feeder-${dishIndex}-${fIdx}`;
@@ -169,8 +171,8 @@ export function buildDishBlueprint(
           y: 100 + fIdx * 240,
           baseCycleTime: 5,
           baseOutputCount: 1,
-          basePowerConsumption: 1.0,
-          baseGoblins: 1,
+          basePowerConsumption: harvesterSpec.power,
+          baseGoblins: harvesterSpec.goblins,
           inputs: [],
           outputs: [{ id: `out-${baseCropItemName}`, name: baseCropItemName, type: 'solid', rateProvided: 0.2 }]
         });
@@ -183,6 +185,7 @@ export function buildDishBlueprint(
     }
 
     if (p.machine === '自動廚師機') {
+      const chefSpec = machineSpec('自動廚師機', machines);
       const instanceList: SandboxNodeData[] = [];
       p.dishDemands.forEach((dem, dIdx) => {
         const isPepto = Boolean(isScorching && remedyDishName && dem.dishName === remedyDishName);
@@ -224,8 +227,8 @@ export function buildDishBlueprint(
           y: 100 + dIdx * 300,
           baseCycleTime: dObj.cycleTime || 5,
           baseOutputCount: dObj.outputCount || 1,
-          basePowerConsumption: 1.0,
-          baseGoblins: 3,
+          basePowerConsumption: chefSpec.power,
+          baseGoblins: chefSpec.goblins,
           inputs,
           outputs: [{
             id: `out-${dem.dishName}`,
@@ -311,9 +314,9 @@ export function buildDishBlueprint(
       const machOutputCount = interDef?.outputCount || (outputInfo.name === '泥沼蟑螂' ? 2 : 1);
       const machRate = p.machine === '注入機' ? 999 : (isFluidMach ? 1.0 : Number((machOutputCount / machCycleTime).toFixed(3)));
 
-      const mObj = machines.find(m => m.name === p.machine);
-      const machPower = mObj?.power || p.powerPerUnit || 1.0;
-      const machGoblins = mObj?.goblins || p.goblinsPerUnit || 1;
+      const machSpec = machineSpec(p.machine, machines);
+      const machPower = machSpec.power;
+      const machGoblins = machSpec.goblins;
       const subTitle = instancesCount > 1 ? ` #${instIdx + 1}` : '';
 
       const node = makeNode({
@@ -344,6 +347,7 @@ export function buildDishBlueprint(
       if (p.machine === '注入機') {
         const transFluidName = outputInfo.name;
         const pumpNodeId = `pump-trans-${dishIndex}-${pIdx}-${instIdx}`;
+        const pumpSpec = machineSpec(pumpMachineName, machines);
         const transPumpNode = makeNode({
           id: pumpNodeId,
           type: 'pump',
@@ -355,8 +359,8 @@ export function buildDishBlueprint(
           y: node.y,
           baseCycleTime: 1,
           baseOutputCount: 2.0,
-          basePowerConsumption: 1.0,
-          baseGoblins: 0,
+          basePowerConsumption: pumpSpec.power,
+          baseGoblins: pumpSpec.goblins,
           inputs: [{ id: 'in-fluid', name: transFluidName, type: 'fluid', rateRequired: 2.0 }],
           outputs: [{ id: `out-${transFluidName}`, name: transFluidName, type: 'fluid', rateProvided: 2.0 }],
           isAutoPepto: isExclusivelyPepto
@@ -579,33 +583,36 @@ export function buildDishBlueprint(
     }
   });
 
-  // 5. 左側集中供液系統 (水 / 油 / 虛空統籌抽取與超頻自耗閉環)
+  // 5. 下方統一集中電網平衡 (對齊 settlePlantInfrastructure 超頻 2:1:1 虛空熔爐、採煤機與供汙泥操縱機)
+  const sludgeName = '虛空汙泥';
+  const powerMod = buildPowerModule(
+    dishIndex,
+    plan.consolidated.furnaces,
+    plan.consolidated.coalMiners,
+    plan.consolidated.genSludgeManipulators,
+    '煤炭',
+    sludgeName,
+    '虛空',
+    '虛空熔爐',
+    '採掘機',
+    '物質操縱機'
+  );
+  if (plan.consolidated.genSludgeManipulators > 0) {
+    neededEnvFluids.add('虛空');
+  }
+
+  // 6. 左側集中供液系統 (水 / 油 / 虛空統籌抽取與超頻自耗閉環，含發電供汙泥操縱機之虛空供應)
   const envMod = buildEnvFluidsModule(
     dishIndex,
     neededEnvFluids,
-    nodes,
-    '虛空汙泥',
+    [...nodes, ...powerMod.nodes],
+    sludgeName,
     '虛空',
     pumpMachineName,
     '物質操縱機'
   );
-  nodes.push(...envMod.nodes);
-  pushConn(...envMod.connections);
-
-  // 6. 下方統一集中電網平衡 (2:1 虛空熔爐與採煤機，淨盈餘 >= 0 FV/s)
-  const currentTotalLoad = nodes
-    .filter(n => n.type !== 'splitter')
-    .reduce((sum, n) => sum + (n.basePowerConsumption || 0), 0);
-
-  let totalFurnaceCount = Math.max(1, Math.ceil(currentTotalLoad / 3.5));
-  let totalCoalMinerCount = Math.ceil(totalFurnaceCount / 2);
-  while (totalFurnaceCount * 4 < currentTotalLoad + totalCoalMinerCount) {
-    totalFurnaceCount++;
-    totalCoalMinerCount = Math.ceil(totalFurnaceCount / 2);
-  }
-  const powerMod = buildPowerModule(dishIndex, totalFurnaceCount, totalCoalMinerCount, '煤炭', '虛空熔爐', '採掘機');
-  nodes.push(...powerMod.nodes);
-  pushConn(...powerMod.connections);
+  nodes.push(...envMod.nodes, ...powerMod.nodes);
+  pushConn(...envMod.connections, ...powerMod.connections);
 
   // 7. 三大區塊階層與端口通道佈局排版
   applyHierarchicalLayout(nodes, connections);
