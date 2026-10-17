@@ -101,8 +101,7 @@
 - [x] 品質閘門：`npm run check` + pre-commit hook + GitHub Actions 部署前檢查（讓任何 AI 的修改自動受檢）
 - [x] ★ 沙盒正交圓角走線 (零切穿方塊)、懸停發光流向動畫與 500ms 延遲焦點過濾實裝
 - [x] ★ 產線計算機與沙盒模擬器邏輯全面統一、副產物拓撲直連、全廠 42 道食譜 100% 稼動率滿載與自癒機台清零達成
-- [ ] 【架構規劃中】數位雙生閉環檢查機制：第一關計算機與沙盒 1:1 靜態鏡像審計 + 第二關快進物理體檢（HealNodes=0 / 100% 滿載）+ 🟢/🔴 二元健康報警與病因診斷卡 + SOP 文件落地
-- [ ] 【架構規劃中】副產物折抵升級：物質操縱機雙待消化槽湊滿 0.20/s（雙源碎屑產能背包配對 + 雙端口共享庫存池需量守恆，詳見 docs/04 第三節）
+- [x] ★ D 組：沙盒與計算機基建（泵機台數、總耗電、發電熔爐 2:1:1、哥布林數）42 道料理 100% 對齊、全機台數值由 `machines.json` 驅動、數位雙生第一關三項基建對帳實裝
 - [ ] 依遊戲推進持續登錄後半段新島嶼與高階配方
 - [ ] 【冰塊 → 糊糊】糊糊未登錄（目前無食譜使用，使用者需要時自行登錄；`npm run check` 僅警告）
 
@@ -111,6 +110,7 @@
 ## 7. 近期決策摘要 (Recent Decisions)
 > 完整原文見 [`docs/CHANGELOG.md`](docs/CHANGELOG.md)。新紀錄請先追加詳細內容至 CHANGELOG 頂端，再於此更新摘要（保留最近約 10 筆）。
 
+* **2026-10-17｜D 組 Step 4（D8 + solver 流體修正）**：`digitalTwinAudit.ts` 第一關補入總耗電、泵機台數、發電熔爐數對帳；`solver.ts` 排除固體「水稻」誤判為水，並依 `intermediateRecipes.fluidType` 排除「炸哈瓦那魔椒」誤算入普通油。全廠 42 道料理在計算機與沙盒 100% 對齊（42/42 Healthy）。
 * **2026-10-17｜D 組 Step 3（D4 + D6）**：新增 `machineSpec.ts` 統一由 `machines.json` 讀取耗電與哥布林（修正轉化抽取泵哥布林 0➔1）；沙盒發電模組改用計算機超頻 2:1:1 配置（16 FV/s 熔爐 + 採煤機 + 供汙泥操縱機），42 道料理熔爐數與計算機完全一致。
 * **2026-10-17｜D 組 Step 2（D1 + D2 + D3）**：`dishBlueprintPower.ts` 改用 `sizeAutonomousPump` / `sizeVoidPump` 配置泵機階梯，供汙泥操縱機改讀 `machines.json`（1 FV / 1 隻）；`sandboxPhysics.ts` 超頻泵維持 1 FV / 1 隻。11 道超頻泵料理負載與哥布林回歸正確值，計算機 1008 案例不變。
 * **2026-10-17｜D 組 Step 1（D5 + D7）**：`dishBlueprintGenerator.ts` 泵機 `machineName` 改從 `machines.json` 讀取為 `'虛空泵機'`；`dishBlueprintLayout.ts` 環境泵分類加入 `n.type === 'pump'`（排除 `pump-trans-`）。計算機 1008 案例完全不變。
@@ -120,6 +120,6 @@
 * **2026-10-13｜莎莎醬工序圖標解析修復**：廢除 `iconHelper.ts` 殘留的 `replace(/莎莎/g, '沙沙')`，統一以草字頭「莎」為單一事實來源並補齊直通別名。
 * **2026-10-13｜數位雙生閉環檢查機制 (Digital Twin Verification) 實裝**：實裝第一關靜態鏡像審計 (`runMirrorAudit`)、第二關 60 週期無 UI 物理快進 (`runHeadlessPhysicsAudit`) 與全廠 42 道大體檢 (`runFullPlantAudit`)；0 底料需求不再生成孤島收割機；新增診斷卡彈窗與工具列狀態徽章。
 * **2026-10-13｜多料理並聯規劃雙槽底料折抵全面打通**：抽離 `solveBipartiteByproductMatching`，單料理與多料理並聯 100% 共用二分圖背包演算法，支援跨產線碎屑（$\ge 0.049$/s）湊滿 0.20/s。
-* **2026-10-13｜雙槽物質操縱機底料湊數折抵實裝**：放寬副產物候選門檻至 $\ge 0.049$/s，沙盒物理實裝雙待消化槽共享庫存池需量守恆（總和 $\ge 0.195$/s 滿載）。
+
 * **2026-10-10｜核心超大檔案模組化拆分重構**：抽離 `sandboxDevicePhysics.ts` 與 `byproductMatching.ts`，大幅縮減 `solver.ts` 與 `sandboxPhysics.ts` 行數。
 

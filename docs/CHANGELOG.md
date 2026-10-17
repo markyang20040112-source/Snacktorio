@@ -3,6 +3,11 @@
 > 本檔案收錄自 `PROJECT_STATUS.md` 移出之完整歷史決策紀錄（原文逐字保留，未做任何改寫）。
 > 最新條目置於最上方；新的詳細紀錄請追加於「最新紀錄」區塊頂端，`PROJECT_STATUS.md` 僅保留精簡摘要。
 
+* **2026-10-17｜D 組 Step 4（D8 + solver.ts 流體判定修正）：健康檢查補入總耗電/泵機數/熔爐數對帳、修正水稻與炸哈瓦那魔椒流體誤判（使用者核准更新基準）**：
+  - D8（`digitalTwinAudit.ts`、`DigitalTwinModal.tsx`）：於 `runMirrorAudit` 第一關靜態鏡像審計新增「全廠總耗電 vs 計算機總負載 (`ERR_POWER_LOAD_MISMATCH`)」、「全廠泵機台數 vs 計算機泵機總數 (`ERR_PUMP_COUNT_MISMATCH`)」、「發電熔爐數 vs 計算機熔爐數 (`ERR_FURNACE_COUNT_MISMATCH`)」三項強制對帳，並於彈窗同步顯示。
+  - `solver.ts` 兩處流體誤判修正（經使用者授權）：① 讀取 `calculatorDb.materials` 計算液體 BOM 時跳過 `m.type === '固體'`，排除固體「水稻」因含「水」字被誤計入液體水（修正【罪人炒飯】、【混亂日式炒飯】、【爆烈雞肉飯】多算 1 台幽靈水泵，以及【骨味炸米團】、【撒旦紅燴飯】、【驚嚇醃姜】理論水需量）；② 計算油炸鍋／煮鍋環境流體節點數時改依 `intermediateRecipes.json` 同機台工序之 `fluidType` 判斷是否為環境 `'油'` / `'水'`，排除【惡魔鷹身女妖】中用「致命莎莎醬」炸的「炸哈瓦那魔椒」被誤算入普通油需求（普通油需求由 `3.0 ➔ 2.0 fl/s`，超頻油泵改為常規油泵，同時消除 3 處硬編碼名稱）。
+  - 驗證：沙盒 378 案例 `IDENTICAL`；全廠 42 道料理 `runFullPlantAudit` 達成 **42 / 42 Healthy（0 Faulty）**，計算機與沙盒在 42 道料理的機台數、泵機台數、總耗電、發電熔爐數、哥布林數 100% 完全一致；`npm run check` 與 `npm run build` 通過。
+
 * **2026-10-17｜D 組 Step 3（D4 + D6）：沙盒發電熔爐改為超頻 2:1:1 配置對齊計算機、全機台耗電與哥布林由 machines.json 讀取（使用者核准更新基準）**：
   - D6（`src/utils/machineSpec.ts`、`dishBlueprintGenerator.ts`、`dishBlueprintPower.ts`、`SandboxSimulator.tsx`）：新增 `machineSpec()` 由 `machines.json` 讀取機台 `power` 與 `goblins`，替換底料收割機、自動廚師機、加工機台、原位轉化抽取泵（修正哥布林 `0 ➔ 1`）、環境泵、供汙泥操縱機、採煤機、虛空熔爐及手動放置節點的寫死常數。
   - D4（`dishBlueprintGenerator.ts`、`dishBlueprintPower.ts`、`dishBlueprintLayout.ts`）：發電模組改採用計算機 `settlePlantInfrastructure`（`plan.consolidated`）超頻模式結算之 `furnaces`、`coalMiners`、`genSludgeManipulators`，建立 `2:1:1` 超頻發電單元（每 2 台 `16 FV/s` 超頻虛空熔爐配 1 台採煤機與 1 台供汙泥物質操縱機），供汙泥操縱機自動接入全廠虛空泵管網並於電力區塊左欄下方零重疊排版。

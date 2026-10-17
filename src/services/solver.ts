@@ -1009,15 +1009,12 @@ export function calculateSingleDish(
 
   if (materialsRaw.length > 0) {
     for (const m of materialsRaw) {
+      if (m.type === '固體') continue;
       const amt = parseFractionOrNumber(m.amount);
       const matName = m.material.toLowerCase();
-      if (matName.includes('水') || matName.includes('water')) {
-        baseWater += amt;
-      } else if (matName.includes('油') || matName.includes('oil')) {
-        baseOil += amt;
-      } else if (matName.includes('虛空') || matName.includes('void')) {
-        baseVoid += amt;
-      }
+      if (matName.includes('水') || matName.includes('water')) baseWater += amt;
+      else if (matName.includes('油') || matName.includes('oil')) baseOil += amt;
+      else if (matName.includes('虛空') || matName.includes('void')) baseVoid += amt;
     }
   } else {
     // Dynamic derivation of fluid BOM for custom dishes
@@ -1029,10 +1026,10 @@ export function calculateSingleDish(
 
       processNodes.forEach(p => {
         if (p.machine === '自動廚師機') return;
-        const inter = intermediateRecipes.find(r => r.name === p.processName || p.processName.includes(r.name));
+        const inter = intermediateRecipes.find(r => r.machine === p.machine && (r.name === p.processName || p.processName.includes(r.name)));
         const fType = inter?.fluidType;
-        if (p.machine === '煮鍋' && fType !== '醋') baseWater += 1.0;
-        else if (p.machine === '油炸鍋' && fType !== '炙烈紅油') baseOil += 1.0;
+        if (p.machine === '煮鍋' && (!fType || fType === '水')) baseWater += 1.0;
+        else if (p.machine === '油炸鍋' && (!fType || fType === '油')) baseOil += 1.0;
         else if (p.machine === '物質操縱機') baseVoid += 1.0;
         else if (p.machine === '混合機') {
           if (fType === '水') baseWater += (inter?.fluidRate || 0.5);
@@ -1051,12 +1048,12 @@ export function calculateSingleDish(
 
   // Dual-Tier Node Engine fallback validation matching Excel N9 and N10:
   // Water: MAX(BOM, 煮鍋 + ⌈混合機/2⌉)
-  // 排除使用衍生流體（炙烈紅油、醋）的設備，杜絕重疊外採
+  // 排除使用非環境油/水（如炙烈紅油、致命莎莎醬、醋）的設備，杜絕重疊外採
   const cookersCount = processNodes.filter(p => p.machine === '煮鍋').reduce((sum, p) => sum + p.countRounded, 0);
   const fryersCount = processNodes.filter(p => {
     if (p.machine !== '油炸鍋') return false;
-    const inter = intermediateRecipes.find(r => r.name === p.processName || p.processName.includes(r.name));
-    return inter?.fluidType !== '炙烈紅油';
+    const inter = intermediateRecipes.find(r => r.machine === p.machine && (r.name === p.processName || p.processName.includes(r.name)));
+    return !inter?.fluidType || inter.fluidType === '油';
   }).reduce((sum, p) => sum + p.countRounded, 0);
   const waterMixers = processNodes.filter(p => p.machine === '混合機' && (p.processName.includes('麵包') || p.processName.includes('甘酒') || p.processName.includes('黃油'))).reduce((sum, p) => sum + p.countRounded, 0);
   const oilMixers = processNodes.filter(p => p.machine === '混合機' && p.processName.includes('玉米')).reduce((sum, p) => sum + p.countRounded, 0);

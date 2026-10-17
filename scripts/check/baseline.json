@@ -26,7 +26,7 @@
   "lineCounts": {
     "src/components/DataManager/IntermediateManager.tsx": 945,
     "src/components/Sandbox/SandboxSimulator.tsx": 1337,
-    "src/services/solver.ts": 1379
+    "src/services/solver.ts": 1376
   },
   "hardcodedNames": {
     "src/components/DataManager/IntermediateManager.tsx": [
@@ -121,8 +121,6 @@
       "多林多滋",
       "多林多滋",
       "多林多滋",
-      "炙烈紅油",
-      "炙烈紅油",
       "煮熟的千層麵皮",
       "煮熟的義大利麵",
       "煮熟的通心粉",
@@ -170,7 +168,6 @@
       "辣椒",
       "辣椒",
       "酸奶油",
-      "醋",
       "香豆蔻",
       "骨粉",
       "骨粉",

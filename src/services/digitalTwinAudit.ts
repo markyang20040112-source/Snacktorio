@@ -11,6 +11,9 @@ export type DiagnosticCode =
   | 'ERR_HEAL_PATCH_TRIGGERED'
   | 'ERR_CHEF_STARVATION'
   | 'ERR_MACHINE_COUNT_MISMATCH'
+  | 'ERR_POWER_LOAD_MISMATCH'
+  | 'ERR_PUMP_COUNT_MISMATCH'
+  | 'ERR_FURNACE_COUNT_MISMATCH'
   | 'ERR_BYPRODUCT_WIRING_MISMATCH';
 
 export interface DigitalTwinFault {
@@ -26,6 +29,15 @@ export interface Stage1MirrorReport {
   calcMachineCount: number;
   sandboxMachineCount: number;
   machineCountMatched: boolean;
+  calcPowerLoad: number;
+  sandboxPowerLoad: number;
+  powerLoadMatched: boolean;
+  calcPumpCount: number;
+  sandboxPumpCount: number;
+  pumpCountMatched: boolean;
+  calcFurnaceCount: number;
+  sandboxFurnaceCount: number;
+  furnaceCountMatched: boolean;
   byproductOffsetsMatched: boolean;
   details: string[];
 }
@@ -89,7 +101,58 @@ export function runMirrorAudit(
     });
   }
 
-  // 2. 副產物折抵連線對帳
+  // 2. 全廠總耗電 vs 計算機總負載對帳
+  const calcPowerLoad = Number((plan.totalPlantPowerLoad || 0).toFixed(2));
+  const sandboxPowerLoad = Number((blueprint.stats?.powerLoad || 0).toFixed(2));
+  const powerLoadMatched = Math.abs(calcPowerLoad - sandboxPowerLoad) < 0.01;
+
+  if (powerLoadMatched) {
+    details.push(`全廠總耗電精確吻合：理論 ${calcPowerLoad} FV/s == 實體 ${sandboxPowerLoad} FV/s`);
+  } else {
+    details.push(`全廠總耗電差異：理論 ${calcPowerLoad} FV/s != 實體 ${sandboxPowerLoad} FV/s`);
+    faults.push({
+      code: 'ERR_POWER_LOAD_MISMATCH',
+      title: '全廠總耗電鏡像不一致',
+      message: `產線計算機理論總負載為 ${calcPowerLoad} FV/s，但沙盒實測總耗電為 ${sandboxPowerLoad} FV/s。`,
+      remedy: '檢查 dishBlueprintPower.ts 與 sandboxPhysics.ts 機台與泵機耗電配置。'
+    });
+  }
+
+  // 3. 泵機台數對帳
+  const calcPumpCount = (plan.totalPlantRegularPumps || 0) + (plan.totalPlantOverclockPumps || 0);
+  const sandboxPumpCount = blueprint.nodes.filter(n => n.type === 'pump').length;
+  const pumpCountMatched = calcPumpCount === sandboxPumpCount;
+
+  if (pumpCountMatched) {
+    details.push(`全廠泵機台數精確吻合：理論 ${calcPumpCount} 台 == 實體 ${sandboxPumpCount} 台`);
+  } else {
+    details.push(`全廠泵機台數差異：理論 ${calcPumpCount} 台 != 實體 ${sandboxPumpCount} 台`);
+    faults.push({
+      code: 'ERR_PUMP_COUNT_MISMATCH',
+      title: '泵機台數鏡像不一致',
+      message: `產線計算機理論泵機總數為 ${calcPumpCount} 台，但沙盒實體泵機為 ${sandboxPumpCount} 台。`,
+      remedy: '檢查 dishBlueprintPower.ts 泵機階梯配置與原位轉化抽取泵。'
+    });
+  }
+
+  // 4. 發電熔爐數對帳
+  const calcFurnaceCount = plan.furnaces || 0;
+  const sandboxFurnaceCount = blueprint.nodes.filter(n => n.type === 'generator').length;
+  const furnaceCountMatched = calcFurnaceCount === sandboxFurnaceCount;
+
+  if (furnaceCountMatched) {
+    details.push(`發電熔爐數量精確吻合：理論 ${calcFurnaceCount} 台 == 實體 ${sandboxFurnaceCount} 台`);
+  } else {
+    details.push(`發電熔爐數量差異：理論 ${calcFurnaceCount} 台 != 實體 ${sandboxFurnaceCount} 台`);
+    faults.push({
+      code: 'ERR_FURNACE_COUNT_MISMATCH',
+      title: '發電熔爐數鏡像不一致',
+      message: `產線計算機理論超頻熔爐為 ${calcFurnaceCount} 台，但沙盒實體熔爐為 ${sandboxFurnaceCount} 台。`,
+      remedy: '檢查 dishBlueprintGenerator.ts 與 dishBlueprintPower.ts 發電熔爐配置。'
+    });
+  }
+
+  // 5. 副產物折抵連線對帳
   let byproductOffsetsMatched = true;
   const byproductTargets: { donorName: string; targetProcess: string; baseSlot?: number }[] = [];
   plan.processes.forEach(p => {
@@ -131,7 +194,7 @@ export function runMirrorAudit(
     details.push('副產物折抵對帳：本產線無副產物折抵');
   }
 
-  const passed = machineCountMatched && byproductOffsetsMatched;
+  const passed = machineCountMatched && powerLoadMatched && pumpCountMatched && furnaceCountMatched && byproductOffsetsMatched;
 
   return {
     report: {
@@ -139,6 +202,15 @@ export function runMirrorAudit(
       calcMachineCount: theoryProcCount,
       sandboxMachineCount: sandboxProcCount,
       machineCountMatched,
+      calcPowerLoad,
+      sandboxPowerLoad,
+      powerLoadMatched,
+      calcPumpCount,
+      sandboxPumpCount,
+      pumpCountMatched,
+      calcFurnaceCount,
+      sandboxFurnaceCount,
+      furnaceCountMatched,
       byproductOffsetsMatched,
       details
     },
@@ -278,7 +350,23 @@ export function runDigitalTwinVerification(
     return {
       dishName: typeof dishInput === 'string' ? dishInput : '未知料理',
       isHealthy: false,
-      stage1: { passed: false, calcMachineCount: 0, sandboxMachineCount: 0, machineCountMatched: false, byproductOffsetsMatched: false, details: ['找不到該料理食譜'] },
+      stage1: {
+        passed: false,
+        calcMachineCount: 0,
+        sandboxMachineCount: 0,
+        machineCountMatched: false,
+        calcPowerLoad: 0,
+        sandboxPowerLoad: 0,
+        powerLoadMatched: false,
+        calcPumpCount: 0,
+        sandboxPumpCount: 0,
+        pumpCountMatched: false,
+        calcFurnaceCount: 0,
+        sandboxFurnaceCount: 0,
+        furnaceCountMatched: false,
+        byproductOffsetsMatched: false,
+        details: ['找不到該料理食譜']
+      },
       stage2: { passed: false, chefEfficiency: 0, healedNodeCount: 0, deficitNodeCount: 0, cyclesRun: 0, stoppageNodes: [], deficitNodes: [], details: ['未執行物理模擬'] },
       faults: [{ code: 'ERR_CHEF_STARVATION', title: '未找到料理食譜', message: `資料庫無此料理: ${dishInput}`, remedy: '確認食譜名稱' }],
       executionTimeMs: execTime

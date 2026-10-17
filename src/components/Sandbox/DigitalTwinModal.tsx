@@ -262,6 +262,35 @@ export const DigitalTwinModal: React.FC<DigitalTwinModalProps> = ({
                   </div>
                 </div>
 
+                <div className="grid grid-cols-3 gap-3 text-xs font-mono">
+                  <div className="bg-[#121f28] p-2.5 rounded-xl border border-slate-800">
+                    <div className="text-[10px] text-slate-400 mb-1">全廠總耗電對帳</div>
+                    <div className="flex items-baseline space-x-1.5">
+                      <span className="text-sm font-bold text-cyan-300">{report.stage1.calcPowerLoad}</span>
+                      <span className="text-slate-500">==</span>
+                      <span className={`text-sm font-bold ${report.stage1.powerLoadMatched ? 'text-teal-300' : 'text-rose-400'}`}>{report.stage1.sandboxPowerLoad} FV/s</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-[#121f28] p-2.5 rounded-xl border border-slate-800">
+                    <div className="text-[10px] text-slate-400 mb-1">全廠泵機台數對帳</div>
+                    <div className="flex items-baseline space-x-1.5">
+                      <span className="text-sm font-bold text-cyan-300">理論 {report.stage1.calcPumpCount}</span>
+                      <span className="text-slate-500">==</span>
+                      <span className={`text-sm font-bold ${report.stage1.pumpCountMatched ? 'text-teal-300' : 'text-rose-400'}`}>實體 {report.stage1.sandboxPumpCount} 台</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-[#121f28] p-2.5 rounded-xl border border-slate-800">
+                    <div className="text-[10px] text-slate-400 mb-1">發電熔爐數對帳</div>
+                    <div className="flex items-baseline space-x-1.5">
+                      <span className="text-sm font-bold text-cyan-300">理論 {report.stage1.calcFurnaceCount}</span>
+                      <span className="text-slate-500">==</span>
+                      <span className={`text-sm font-bold ${report.stage1.furnaceCountMatched ? 'text-teal-300' : 'text-rose-400'}`}>實體 {report.stage1.sandboxFurnaceCount} 座</span>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="space-y-1 text-[11px] text-slate-400 bg-[#091217] p-2.5 rounded-xl border border-slate-800/60 font-mono">
                   {report.stage1.details.map((det, i) => (
                     <div key={i} className="flex items-center space-x-1.5">
