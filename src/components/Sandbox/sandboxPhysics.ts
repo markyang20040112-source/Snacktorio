@@ -105,10 +105,10 @@ function updatePumpNode(
   const nominalRate = isOverclocked ? 8.0 : 2.0;
 
   node.powerMode = isOverclocked ? 'overclock' : 'regular';
-  node.basePowerConsumption = isOverclocked ? 2.0 : 1.0;
-  node.actualPower = Number((node.basePowerConsumption * (isOverclocked ? sludgeSat : 1.0)).toFixed(2));
-  node.baseGoblins = isOverclocked ? 2 : 1;
-  node.actualGoblins = node.baseGoblins;
+  node.basePowerConsumption = 1.0;
+  node.actualPower = 1.0;
+  node.baseGoblins = 1;
+  node.actualGoblins = 1;
 
   // 檢核輸入端原位液/環境池 (針對通用抽取泵機)
   const fluidInPort = node.inputs.find(p => p.type === 'fluid');

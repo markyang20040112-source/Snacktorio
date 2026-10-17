@@ -3,6 +3,12 @@
 > 本檔案收錄自 `PROJECT_STATUS.md` 移出之完整歷史決策紀錄（原文逐字保留，未做任何改寫）。
 > 最新條目置於最上方；新的詳細紀錄請追加於「最新紀錄」區塊頂端，`PROJECT_STATUS.md` 僅保留精簡摘要。
 
+* **2026-10-17｜D 組 Step 2（D1 + D2 + D3）：沙盒泵機階梯配置對齊、供汙泥操縱機與超頻泵耗電/哥布林修正（使用者核准更新基準）**：
+  - D1（`plantInfrastructure.ts`、`dishBlueprintPower.ts`）：抽離並匯出 `sizeVoidPump`；`buildEnvFluidsModule` 改呼叫 `sizeAutonomousPump`（含全廠有無虛空 2.0 / 6.0 fl/s 超頻門檻與多泵階梯）與 `sizeVoidPump`，依回傳台數建立環境池、泵機與供汙泥操縱機，並將非虛空超頻泵之供汙泥操縱機連入全廠虛空泵。
+  - D2（`dishBlueprintPower.ts`）：供汙泥物質操縱機與泵機耗電、哥布林改從 `machines.json` 讀取（`sludge-manip-…` 由 `2.0 FV / 2 隻` 修正為 `1.0 FV / 1 隻`）。
+  - D3（`sandboxPhysics.ts`）：`updatePumpNode` 於超頻時僅將額定產能提升至 `8.0 fl/s`，泵機自身耗電與哥布林維持 `1.0 FV / 1 隻`（不再重複計入外接供汙泥操縱機負載）。
+  - 驗證：計算機（solver）1008 案例完全不變；沙盒含超頻虛空泵之 11 道料理每組超頻泵＋操縱機合計由 `4 FV / 4 隻` 回歸正確之 `2 FV / 2 隻`；`npm run check` 與 `npm run build` 通過。
+
 * **2026-10-17｜D 組 Step 1（D5 + D7）：泵機機台名稱從資料讀取為「虛空泵機」、環境泵排版分類統一（使用者核准更新基準）**：
   - D5（`dishBlueprintGenerator.ts`）：原位轉化抽取泵與環境流體模組之泵機名稱改由 `machines.json` 動態讀取（`'虛空泵機'`），消除不存在的硬編碼名稱 `'泵機'`（影響 39 道含泵機料理藍圖之 `machineName` 欄位）。
   - D7（`dishBlueprintLayout.ts`）：環境節點篩選條件加入 `n.type === 'pump'`（排除 `pump-trans-` 原位轉化抽取泵），確保所有環境泵歸入左側液體系統區。

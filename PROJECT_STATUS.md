@@ -111,6 +111,7 @@
 ## 7. 近期決策摘要 (Recent Decisions)
 > 完整原文見 [`docs/CHANGELOG.md`](docs/CHANGELOG.md)。新紀錄請先追加詳細內容至 CHANGELOG 頂端，再於此更新摘要（保留最近約 10 筆）。
 
+* **2026-10-17｜D 組 Step 2（D1 + D2 + D3）**：`dishBlueprintPower.ts` 改用 `sizeAutonomousPump` / `sizeVoidPump` 配置泵機階梯，供汙泥操縱機改讀 `machines.json`（1 FV / 1 隻）；`sandboxPhysics.ts` 超頻泵維持 1 FV / 1 隻。11 道超頻泵料理負載與哥布林回歸正確值，計算機 1008 案例不變。
 * **2026-10-17｜D 組 Step 1（D5 + D7）**：`dishBlueprintGenerator.ts` 泵機 `machineName` 改從 `machines.json` 讀取為 `'虛空泵機'`；`dishBlueprintLayout.ts` 環境泵分類加入 `n.type === 'pump'`（排除 `pump-trans-`）。計算機 1008 案例完全不變。
 * **2026-10-17｜程式清理 A/B/C（零計算變更）**：刪除約 250 行死碼、底料名稱判斷集中至 `itemTraits.ts`、沙盒連線走線快取（拖曳不再每幀重算）、數位雙生不再重複計算。淨 −181 行，指紋全數一致。
 * **2026-10-17｜名稱寫法全面統一**：莎莎、菠蘿、混合、熾熱、麵團、豆蔻、姜（奶酪／芝士保留）；資料、圖檔、程式同步，移除所有異體字轉換。計算僅骨味炸米團折抵對象改變（總量不變）。⚠ 瀏覽器工作台需先按 ↺ 重置再同步。

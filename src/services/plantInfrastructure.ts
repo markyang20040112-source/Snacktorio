@@ -27,6 +27,29 @@ export function sizeAutonomousPump(demand: number, hasVoid: boolean): FluidTierI
   };
 }
 
+/**
+ * Void pump sizing ladder matching Excel formulas
+ * Capacity: Overclock net 7 fl/s (gross 8 fl/s minus 1 fl/s self-consumed by its own sludge manipulator), Regular 2 fl/s
+ */
+export function sizeVoidPump(totalVoidDemand: number): FluidTierInfo {
+  const demand = Number(Math.max(0, totalVoidDemand).toFixed(2));
+  let voidOverclockPumps = 0;
+  let voidRegularPumps = 0;
+  if (demand > 0) {
+    const rem7 = demand % 7;
+    voidOverclockPumps = Math.floor(demand / 7) + (rem7 > 2.0 ? 1 : 0);
+    voidRegularPumps = (rem7 > 0 && rem7 <= 2.0) ? 1 : 0;
+  }
+  const voidSludgeManipulators = voidOverclockPumps;
+  return {
+    demand,
+    regularPumps: voidRegularPumps,
+    overclockPumps: voidOverclockPumps,
+    sludgeManipulators: voidSludgeManipulators,
+    pumpPower: (voidOverclockPumps + voidRegularPumps + voidSludgeManipulators) * 1.0
+  };
+}
+
 export interface PlantInfrastructureInput {
   powerMode: 'regular' | 'overclock';
   waterDemand: number;          // 外採水需量 (fl/s)
@@ -80,20 +103,9 @@ export function settlePlantInfrastructure(input: PlantInfrastructureInput) {
 
   // 虛空泵階梯（超頻淨 7 fl/s = 毛 8 扣自耗 1；常規 2 fl/s）
   const totalVoidDemand = Number((processVoid + pumpSludgeVoid + generatorSludgeVoid).toFixed(2));
-  let voidOverclockPumps = 0;
-  let voidRegularPumps = 0;
-  if (totalVoidDemand > 0) {
-    const rem7 = totalVoidDemand % 7;
-    voidOverclockPumps = Math.floor(totalVoidDemand / 7) + (rem7 > 2.0 ? 1 : 0);
-    voidRegularPumps = (rem7 > 0 && rem7 <= 2.0) ? 1 : 0;
-  }
-  const voidSludgeManipulators = voidOverclockPumps;
+  const voidTier = sizeVoidPump(totalVoidDemand);
   const voidInfo: FluidTierInfo & { breakdown: { processVoid: number; generatorSludgeVoid: number; pumpSludgeVoid: number } } = {
-    demand: totalVoidDemand,
-    regularPumps: voidRegularPumps,
-    overclockPumps: voidOverclockPumps,
-    sludgeManipulators: voidSludgeManipulators,
-    pumpPower: (voidOverclockPumps + voidRegularPumps + voidSludgeManipulators) * 1.0,
+    ...voidTier,
     breakdown: { processVoid, generatorSludgeVoid, pumpSludgeVoid }
   };
 
