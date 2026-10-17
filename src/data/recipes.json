@@ -1065,7 +1065,7 @@
   },
   {
     "island": "斯科瓦拉",
-    "name": "驚嚇醃薑",
+    "name": "驚嚇醃姜",
     "machine": "自動廚師機",
     "fluidType": "醋",
     "fluidRate": 1,
@@ -1145,7 +1145,7 @@
     ],
     "cycleTime": 5,
     "outputCount": 1,
-    "notes": "炙熱特性，需搭配胃復慘"
+    "notes": "熾熱特性，需搭配胃復慘"
   },
   {
     "island": "斯科瓦拉",
@@ -1173,6 +1173,6 @@
     ],
     "cycleTime": 5,
     "outputCount": 1,
-    "notes": "炙熱特性，需搭配胃復慘"
+    "notes": "熾熱特性，需搭配胃復慘"
   }
 ]

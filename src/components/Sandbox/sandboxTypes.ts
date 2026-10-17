@@ -38,8 +38,8 @@ export interface SandboxNodeData {
   splitterCustomRates?: number[];     // 自訂各端口輸出限流 (個/秒，相容性保留)
   splitterRatios?: number[];          // 自訂各出口輸出比例權重 (如 [2, 1] 表示 2:1，[3, 2] 表示 3:2)
   targetRatePerMin?: number;          // 終端料理目標產能 (份/分，如 12, 24, 36)
-  isAutoPepto?: boolean;              // 隨炙熱菜餚自動配餐之胃復慘節點
-  autoPeptoTrackingRate?: number;     // 當前追蹤之全廠炙熱菜餚總和產能 (份/分)
+  isAutoPepto?: boolean;              // 隨熾熱菜餚自動配餐之胃復慘節點
+  autoPeptoTrackingRate?: number;     // 當前追蹤之全廠熾熱菜餚總和產能 (份/分)
 
   // 額定標準參數 (來自資料庫)
   baseCycleTime: number;              // 基準加工週期 (秒)

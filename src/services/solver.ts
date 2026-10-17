@@ -29,14 +29,10 @@ const COOKED_GROUPS = [
   ['蟑螂奶油', '奶油', '酸奶油'],
   ['香豆蔻', '豆肉蔻'],
   ['蛇蛋', '臭蛇蛋'],
-  ['麵包麵團', '麵包麵糰', '發酵麵糰', '發酵麵團', '麵團', '麵糰']
+  ['麵包麵團', '發酵麵團', '麵團']
 ];
 
 const ACTION_VERBS = PROCESS_ACTION_VERBS;
-
-function normalizeMatName(str: string): string {
-  return str.replace(/麵糰/g, '麵團');
-}
 
 function isRawItem(name: string): boolean {
   return /^(生|生的|生鮮|生鮮的)/.test(name) && !/^(生產|生成)/.test(name);
@@ -48,15 +44,15 @@ function isTerrainOrPlant(name: string): boolean {
 }
 
 function getBaseItemName(str: string): string {
-  return normalizeMatName(str)
+  return str
     .replace(/^(煮熟的|新鮮的|烘烤的|油炸的|生鮮的|熟的|生的|生|熟)/, '')
     .trim();
 }
 
 export function matchMaterial(prodItem: { name: string; isFluid: boolean }, reqItem: { name: string; isFluid: boolean }): boolean {
   if (prodItem.isFluid !== reqItem.isFluid) return false;
-  const pNorm = normalizeMatName(prodItem.name);
-  const rNorm = normalizeMatName(reqItem.name);
+  const pNorm = prodItem.name;
+  const rNorm = reqItem.name;
   if (pNorm === rNorm) return true;
 
   if ((pNorm === '·椒' || pNorm === '辣椒') && (rNorm === '·椒' || rNorm === '辣椒')) {
@@ -77,8 +73,8 @@ export function matchMaterial(prodItem: { name: string; isFluid: boolean }, reqI
   }
 
   for (const group of COOKED_GROUPS) {
-    const inProd = group.some(g => pNorm === normalizeMatName(g));
-    const inReq = group.some(g => rNorm === normalizeMatName(g));
+    const inProd = group.includes(pNorm);
+    const inReq = group.includes(rNorm);
     if (inProd && inReq) return true;
   }
 
@@ -406,7 +402,7 @@ export function generateProcessesFromRecipe(
       case '物質操縱機': return '重構';
       case '採掘機': return '開採';
       case '收割機': return '採收';
-      case '混合機': return '混和';
+      case '混合機': return '混合';
       case '烤箱': return '烘烤';
       case '發酵罐': return '發酵';
       case '油炸鍋': return '炸';
@@ -1135,7 +1131,6 @@ function normalizeProcessOrItemName(name: string): string {
   if (!name) return '';
   let cleaned = name.replace(/[\(（][^\)）]*[\)）]/g, '').trim();
   cleaned = cleaned.replace(ITEM_ACTION_PREFIX, '').trim();
-  cleaned = cleaned.replace(/莎莎/g, '沙沙').replace(/波蘿/g, '菠蘿');
   if (cleaned === '史萊姆') return '綠色史萊姆';
   if (cleaned === '鷹身女妖肉') return '生鷹身女妖肉';
   if (cleaned === '麵團') return '麵包麵團';
@@ -1213,9 +1208,9 @@ function assembleResult(params: any): CalculationResult {
     candidateItems.push(it);
   });
 
-  // 檢測產線是否包含炙熱/熾熱屬性物品（排除中和與胃復慘）
+  // 檢測產線是否包含熾熱屬性物品（排除中和與胃復慘）
   const isHotAttr = (attrStr: string) => {
-    return (attrStr.includes('炙熱') || attrStr.includes('熾熱') || attrStr.includes('炽热')) && !attrStr.includes('中和');
+    return attrStr.includes('熾熱') && !attrStr.includes('中和');
   };
 
   const dishItem = itemMap.get(dishName);
@@ -1270,8 +1265,8 @@ function assembleResult(params: any): CalculationResult {
     }
 
     // 4. 遇熱凝固 (Strictly data-driven: item must have '遇熱凝固' in attributes)
-    // 物理法則：遇熱凝固物品不能碰到炙熱屬性物品；除非一道料理產線中同時存在遇熱凝固與炙熱物品，否則不顯示警示。
-    // 有顯示需要時只需顯示遇熱凝固的警示（炙熱物品不影響其他物品，不需單獨警示）。
+    // 物理法則：遇熱凝固物品不能碰到熾熱屬性物品；除非一道料理產線中同時存在遇熱凝固與熾熱物品，否則不顯示警示。
+    // 有顯示需要時只需顯示遇熱凝固的警示（熾熱物品不影響其他物品，不需單獨警示）。
     if (attrs.includes('遇熱凝固') && hasHotItem) {
       const key = `${iname}-遇熱凝固`;
       if (!seenWarnings.has(key)) {
@@ -1279,7 +1274,7 @@ function assembleResult(params: any): CalculationResult {
         biochemicalWarnings.push({
           item: iname,
           type: '遇熱凝固',
-          detail: '遇熱或辛辣物質會凝固堵管，因本料理產線包含炙熱/熾熱原料，傳送與儲存管線必須與熱源徹底實體隔離！'
+          detail: '遇熱或辛辣物質會凝固堵管，因本料理產線包含熾熱原料，傳送與儲存管線必須與熱源徹底實體隔離！'
         });
       }
     }
@@ -1370,7 +1365,7 @@ export function isScorchingDish(
   // 1. Strictly check the finished dish item itself (DO NOT check intermediate ingredients)
   const item = currentItems.find(i => i.name === dishName);
   if (item && item.attributes) {
-    if (item.attributes.includes('熾熱') || item.attributes.includes('炙熱') || item.attributes.includes('炽热')) {
+    if (item.attributes.includes('熾熱')) {
       return true;
     }
   }
@@ -1378,7 +1373,7 @@ export function isScorchingDish(
   // 2. Check recipe notes if explicitly noted as scorching dish
   const recipe = currentRecipes.find(r => r.name === dishName);
   if (recipe && recipe.notes) {
-    if (recipe.notes.includes('熾熱') || recipe.notes.includes('炙熱') || recipe.notes.includes('炽热')) {
+    if (recipe.notes.includes('熾熱')) {
       return true;
     }
   }

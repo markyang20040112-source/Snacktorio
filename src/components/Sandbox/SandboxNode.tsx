@@ -193,15 +193,15 @@ export const SandboxNode: React.FC<SandboxNodeProps> = ({
           </div>
         )}
 
-        {/* 終端料理產能目標設定面板 (X 份/分，隨炙熱菜餚連動) */}
+        {/* 終端料理產能目標設定面板 (X 份/分，隨熾熱菜餚連動) */}
         {node.machineName === '自動廚師機' && !!node.recipeName && (
           <div className="p-2 rounded-xl bg-slate-900/90 border border-amber-900/40 space-y-1.5 mt-1">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-1.5">
                 <span className="text-[10px] font-bold text-amber-300">🎯 出餐目標</span>
                 {node.isAutoPepto && (
-                  <span className="text-[9px] px-1 py-0.2 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 font-mono font-bold" title="自動隨全廠炙熱菜餚產能加總動態連動">
-                    🌶️ 隨炙熱連動
+                  <span className="text-[9px] px-1 py-0.2 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 font-mono font-bold" title="自動隨全廠熾熱菜餚產能加總動態連動">
+                    🌶️ 隨熾熱連動
                   </span>
                 )}
               </div>

@@ -426,14 +426,14 @@
     "source": "混合機",
     "isPerishable": true,
     "spoilTime": 15,
-    "spoilProduct": "發酵麵糰",
+    "spoilProduct": "發酵麵團",
     "attributes": "發酵膨脹",
     "notes": ""
   },
   {
     "island": "波莫拉 (Pomora)",
-    "name": "發酵麵糰",
-    "source": "麵包麵糰發酵",
+    "name": "發酵麵團",
+    "source": "麵包麵團發酵",
     "isPerishable": false,
     "spoilTime": null,
     "spoilProduct": "",
@@ -899,7 +899,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "由綠色史萊姆與豆肉蔻混和製成，用於油炸。"
+    "notes": "由綠色史萊姆與豆肉蔻混合製成，用於油炸。"
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -929,7 +929,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "由蜘蛛蛋與鹽於混合機混和製成，用於組裝塔瑪茄炒蛋。"
+    "notes": "由蜘蛛蛋與鹽於混合機混合製成，用於組裝塔瑪茄炒蛋。"
   },
   {
     "island": "波莫拉 (Pomora)",
@@ -1396,7 +1396,7 @@
   },
   {
     "island": "斯科瓦拉",
-    "name": "油荳蔻",
+    "name": "油豆蔻",
     "source": "收割機",
     "isPerishable": false,
     "spoilTime": null,
@@ -1484,7 +1484,7 @@
     "spoilTime": null,
     "spoilProduct": "-",
     "attributes": "無",
-    "notes": "由洋蔥蔥、塔瑪茄與炙烈紅油於混合機混和製成，每次產出2個"
+    "notes": "由洋蔥蔥、塔瑪茄與炙烈紅油於混合機混合製成，每次產出2個"
   },
   {
     "island": "斯科瓦拉",
@@ -1619,7 +1619,7 @@
   },
   {
     "island": "斯科瓦拉",
-    "name": "驚嚇醃薑",
+    "name": "驚嚇醃姜",
     "source": "自動廚師機",
     "isPerishable": false,
     "spoilTime": null,

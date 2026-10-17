@@ -95,7 +95,7 @@ export function buildDishBlueprint(
   const items: Item[] = context?.items || dataService.getItems();
 
   const isScorching = isScorchingDish(dish.name, items, recipes);
-  const remedyRecipe = recipes.find(r => r.notes?.includes('中和') && (r.notes?.includes('熾熱') || r.notes?.includes('炙熱')));
+  const remedyRecipe = recipes.find(r => r.notes?.includes('中和') && r.notes?.includes('熾熱'));
   const remedyDishName = remedyRecipe?.name || '';
 
   // 1. 產線計算機最高效率規劃 (超頻模式 + 副產物折抵模式 recycle + 熾熱自動配產中和料理)

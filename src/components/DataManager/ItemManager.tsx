@@ -87,7 +87,7 @@ export const ItemManager: React.FC<ItemManagerProps> = ({ items, onSave }) => {
       { value: '地圖生成', label: '地圖生成 (自然地貌/野生採集)' },
       { value: '開局獲得', label: '開局獲得 (初始新手物資)' },
       { value: '蛇蛋腐壞', label: '蛇蛋腐壞 (時序自然腐壞)' },
-      { value: '麵包麵糰發酵', label: '麵包麵糰發酵 (時序自然發酵)' },
+      { value: '麵包麵團發酵', label: '麵包麵團發酵 (時序自然發酵)' },
       { value: '蟑螂奶油發酵', label: '蟑螂奶油發酵 (常溫熟成)' },
       { value: '軟質奶酪發酵', label: '軟質奶酪發酵 (時序熟成)' },
       { value: '中等熟成奶酪發酵', label: '中等熟成奶酪發酵 (時序熟成)' },

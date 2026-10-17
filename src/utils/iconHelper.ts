@@ -8,28 +8,14 @@ const itemIcons: Record<string, string> = itemIconsData as Record<string, string
 // 核心鐵律：終端菜餚不顯示料理圖片，亦不可模糊匹配原料圖示
 const TERMINAL_RECIPES = new Set((recipesData as Array<{ name: string }>).map(r => r.name));
 
-// Special direct process and alias mappings
+// Special direct process and alias mappings（只保留「無法由 itemIcons + 去動詞前綴自動解析」的工序）
 const DIRECT_PROCESS_ALIASES: Record<string, string> = {
   '終端組裝': '自動廚師機.png',
   '絞碎史萊姆': '史萊姆肉餡.png',
-  '混和麵團': '義大利麵團.png',
-  '擠出千層麵皮': '煮熟的千層麵皮.png',
-  '水煮千層麵皮': '煮熟的千層麵皮.png',
-  '擠出義大利麵': '生義大利麵.png',
+  '混合麵團': '義大利麵團.png',
   '水煮義大利麵': '煮熟的義大利麵.png',
-  '擠出通心粉': '生通心粉.png',
   '水煮通心粉': '煮熟的通心粉.png',
-  '採收粉塵底料': '粉塵.png',
-  '剝皮鷹身女妖肉': '生鷹身女妖肉.png',
-  '採收刺菠蘿': '刺波蘿.png',
-  '虛空熔爐': '虛空熔爐.png',
-  '虛空熔爐 (常規發電)': '虛空熔爐.png',
-  '虛空熔爐 (超頻發電)': '虛空熔爐.png',
-  '虛空熔爐 (常規)': '虛空熔爐.png',
-  '虛空熔爐 (超頻)': '虛空熔爐.png',
   '發電熔爐': '虛空熔爐.png',
-  '混和辛辣莎莎醬': '辛辣沙沙醬.png',
-  '攪拌致命莎莎醬': '致命沙沙醬.png',
 };
 
 /**
@@ -60,7 +46,7 @@ export function getItemIcon(name: string, customIcon?: string): string | undefin
   }
 
   const formatUrl = (filename: string) =>
-    `${import.meta.env.BASE_URL}icons/${encodeURIComponent(filename)}`;
+    `${import.meta.env?.BASE_URL ?? '/'}icons/${encodeURIComponent(filename)}`;
 
   // 1. Direct process alias lookup
   if (DIRECT_PROCESS_ALIASES[cleanName]) {
@@ -72,21 +58,9 @@ export function getItemIcon(name: string, customIcon?: string): string | undefin
     return formatUrl(itemIcons[cleanName]);
   }
 
-  // 3. 異體字與錯字正規化：以資料庫官方名稱為準（水字旁「沙沙」一律扶正為草字頭「莎莎」）
-  const normalized = cleanName
-    .replace(/沙沙/g, '莎莎')
-    .replace(/菠蘿/g, '波蘿')
-    .replace(/混和/g, '混合');
-
-  if (DIRECT_PROCESS_ALIASES[normalized]) {
-    return formatUrl(DIRECT_PROCESS_ALIASES[normalized]);
-  }
-  if (itemIcons[normalized]) {
-    return formatUrl(itemIcons[normalized]);
-  }
-
-  // 4. Stripped name without brackets or descriptors (e.g. "收割機 (底料專供)" -> "收割機", "攪拌蟑螂奶(奶油專線)" -> "攪拌蟑螂奶")
-  const baseName = normalized.replace(/\s*[\(\[（【].*?[\)\]）】]\s*/g, '').trim();
+  // 3. Stripped name without brackets or descriptors (e.g. "收割機 (底料專供)" -> "收割機", "攪拌蟑螂奶(奶油專線)" -> "攪拌蟑螂奶")
+  //    名稱寫法已在資料庫統一（莎莎、菠蘿、混合…），不再做異體字轉換
+  const baseName = cleanName.replace(/\s*[\(\[（【].*?[\)\]）】]\s*/g, '').trim();
   if (DIRECT_PROCESS_ALIASES[baseName]) {
     return formatUrl(DIRECT_PROCESS_ALIASES[baseName]);
   }
@@ -94,8 +68,7 @@ export function getItemIcon(name: string, customIcon?: string): string | undefin
     return formatUrl(itemIcons[baseName]);
   }
 
-  // 5. Extended action verb prefix stripping
-  // Matches: 採收, 開採, 採集, 製作, 調配, 水煮, 油炸, 重構, 擠出, 研磨, 混合, 混和, 烘焙, 烘烤, 攪拌, 剝皮, 注入, 絞碎, 發酵, 炸, 煮, 採
+  // 4. Extended action verb prefix stripping（動詞清單見 utils/actionVerbs.ts 的 ITEM_ACTION_PREFIX）
   const strippedAction = baseName.replace(ITEM_ACTION_PREFIX, '').trim();
 
   if (strippedAction) {

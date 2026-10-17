@@ -16,6 +16,7 @@
   ],
   "reviewedSimilarNames": [
     "塔瑪茄泥 ↔ 塔瑪茄醬",
+    "油豆蔻 ↔ 香豆蔻",
     "炒蜘蛛蛋 ↔ 炸蜘蛛蛋",
     "炸史萊姆肉丸 ↔ 生史萊姆肉丸",
     "炸鷹身女妖肉 ↔ 生鷹身女妖肉",
@@ -25,7 +26,7 @@
   "lineCounts": {
     "src/components/DataManager/IntermediateManager.tsx": 945,
     "src/components/Sandbox/SandboxSimulator.tsx": 1350,
-    "src/services/solver.ts": 1389
+    "src/services/solver.ts": 1384
   },
   "hardcodedNames": {
     "src/components/DataManager/IntermediateManager.tsx": [
@@ -130,7 +131,7 @@
       "生薯條",
       "生鷹身女妖肉",
       "生鷹身女妖肉",
-      "發酵麵糰",
+      "發酵麵團",
       "硬質奶酪",
       "粉塵",
       "粉塵",

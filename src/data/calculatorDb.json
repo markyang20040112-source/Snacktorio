@@ -92,7 +92,7 @@
     },
     {
       "dish": "蜘蛛意式通心粉",
-      "processName": "混和麵團",
+      "processName": "混合麵團",
       "machine": "混合機",
       "baseRate": 0.25,
       "power": 1,
@@ -182,7 +182,7 @@
     },
     {
       "dish": "惡鬼千層面",
-      "processName": "混和麵團",
+      "processName": "混合麵團",
       "machine": "混合機",
       "baseRate": 0.25,
       "power": 1,
@@ -290,7 +290,7 @@
     },
     {
       "dish": "幽靈肉醬意麵",
-      "processName": "混和麵團",
+      "processName": "混合麵團",
       "machine": "混合機",
       "baseRate": 0.25,
       "power": 1,
@@ -389,7 +389,7 @@
     },
     {
       "dish": "哀嚎肉丸",
-      "processName": "混和生史萊姆肉丸",
+      "processName": "混合生史萊姆肉丸",
       "machine": "混合機",
       "baseRate": 0.25,
       "power": 1,
@@ -443,7 +443,7 @@
     },
     {
       "dish": "塔瑪茄炒蛋",
-      "processName": "混和炒蜘蛛蛋",
+      "processName": "混合炒蜘蛛蛋",
       "machine": "混合機",
       "baseRate": 0.25,
       "power": 1,
@@ -524,7 +524,7 @@
     },
     {
       "dish": "瘟疫青醬麵",
-      "processName": "混和麵團",
+      "processName": "混合麵團",
       "machine": "混合機",
       "baseRate": 0.25,
       "power": 1,
@@ -659,7 +659,7 @@
     },
     {
       "dish": "驚魂北非蛋",
-      "processName": "混和塔瑪茄泥",
+      "processName": "混合塔瑪茄泥",
       "machine": "混合機",
       "baseRate": 0.25,
       "power": 1,
@@ -749,7 +749,7 @@
     },
     {
       "dish": "撕裂脆片蘸醬",
-      "processName": "混和生玉米餅",
+      "processName": "混合生玉米餅",
       "machine": "混合機",
       "baseRate": 0.5,
       "power": 1,
@@ -821,7 +821,7 @@
     },
     {
       "dish": "惡臭農場蛋",
-      "processName": "混和塔瑪茄泥",
+      "processName": "混合塔瑪茄泥",
       "machine": "混合機",
       "baseRate": 0.25,
       "power": 1,
@@ -839,7 +839,7 @@
     },
     {
       "dish": "惡臭農場蛋",
-      "processName": "混和生玉米餅",
+      "processName": "混合生玉米餅",
       "machine": "混合機",
       "baseRate": 0.5,
       "power": 1,
@@ -920,7 +920,7 @@
     },
     {
       "dish": "致命玉米片",
-      "processName": "混和炒蜘蛛蛋",
+      "processName": "混合炒蜘蛛蛋",
       "machine": "混合機",
       "baseRate": 0.25,
       "power": 1,
@@ -947,7 +947,7 @@
     },
     {
       "dish": "致命玉米片",
-      "processName": "混和生玉米餅",
+      "processName": "混合生玉米餅",
       "machine": "混合機",
       "baseRate": 0.5,
       "power": 1,
@@ -1244,7 +1244,7 @@
     },
     {
       "dish": "末日麵團",
-      "processName": "混和麵包麵團",
+      "processName": "混合麵包麵團",
       "machine": "混合機",
       "baseRate": 0.25,
       "power": 1,
@@ -1316,7 +1316,7 @@
     },
     {
       "dish": "咒語餃子",
-      "processName": "混和蟑螂黃油",
+      "processName": "混合蟑螂黃油",
       "machine": "混合機",
       "baseRate": 0.5,
       "power": 1,
@@ -1325,7 +1325,7 @@
     },
     {
       "dish": "咒語餃子",
-      "processName": "混和蟑螂奶油",
+      "processName": "混合蟑螂奶油",
       "machine": "混合機",
       "baseRate": 0.1666666667,
       "power": 1,
@@ -1343,7 +1343,7 @@
     },
     {
       "dish": "咒語餃子",
-      "processName": "混和義大利麵團",
+      "processName": "混合義大利麵團",
       "machine": "混合機",
       "baseRate": 0.25,
       "power": 1,
@@ -1451,7 +1451,7 @@
     },
     {
       "dish": "墳墓茄包",
-      "processName": "混和麵包麵團",
+      "processName": "混合麵包麵團",
       "machine": "混合機",
       "baseRate": 0.25,
       "power": 1,
@@ -1541,7 +1541,7 @@
     },
     {
       "dish": "暴徒烤麵包",
-      "processName": "混和塔瑪茄泥",
+      "processName": "混合塔瑪茄泥",
       "machine": "混合機",
       "baseRate": 0.25,
       "power": 1,
@@ -1559,7 +1559,7 @@
     },
     {
       "dish": "暴徒烤麵包",
-      "processName": "混和麵包麵團",
+      "processName": "混合麵包麵團",
       "machine": "混合機",
       "baseRate": 0.25,
       "power": 1,
@@ -1649,7 +1649,7 @@
     },
     {
       "dish": "爛蛋約翰",
-      "processName": "混和麵包麵團",
+      "processName": "混合麵包麵團",
       "machine": "混合機",
       "baseRate": 0.25,
       "power": 1,
@@ -1748,7 +1748,7 @@
     },
     {
       "dish": "怪物庫克先生",
-      "processName": "混和蟑螂黃油",
+      "processName": "混合蟑螂黃油",
       "machine": "混合機",
       "baseRate": 0.5,
       "power": 1,
@@ -1757,7 +1757,7 @@
     },
     {
       "dish": "怪物庫克先生",
-      "processName": "混和蟑螂奶油",
+      "processName": "混合蟑螂奶油",
       "machine": "混合機",
       "baseRate": 0.1666666667,
       "power": 1,
@@ -1802,7 +1802,7 @@
     },
     {
       "dish": "怪物庫克先生",
-      "processName": "混和麵包麵團",
+      "processName": "混合麵包麵團",
       "machine": "混合機",
       "baseRate": 0.25,
       "power": 1,
@@ -2009,7 +2009,7 @@
     },
     {
       "dish": "奶酪飛濺盤",
-      "processName": "混和麵包麵團",
+      "processName": "混合麵包麵團",
       "machine": "混合機",
       "baseRate": 0.25,
       "power": 1,
@@ -2099,7 +2099,7 @@
     },
     {
       "dish": "恐慌帕尼爾",
-      "processName": "混和蟑螂奶油",
+      "processName": "混合蟑螂奶油",
       "machine": "混合機",
       "baseRate": 0.25,
       "power": 1,
@@ -2189,7 +2189,7 @@
     },
     {
       "dish": "殺戮芝士麵",
-      "processName": "混和蟑螂黃油",
+      "processName": "混合蟑螂黃油",
       "machine": "混合機",
       "baseRate": 0.5,
       "power": 1,
@@ -2198,7 +2198,7 @@
     },
     {
       "dish": "殺戮芝士麵",
-      "processName": "混和蟑螂奶油",
+      "processName": "混合蟑螂奶油",
       "machine": "混合機",
       "baseRate": 0.5,
       "power": 1,
@@ -2243,7 +2243,7 @@
     },
     {
       "dish": "殺戮芝士麵",
-      "processName": "混和麵團",
+      "processName": "混合麵團",
       "machine": "混合機",
       "baseRate": 0.25,
       "power": 1,
@@ -2360,7 +2360,7 @@
     },
     {
       "dish": "恐懼炸芝士",
-      "processName": "混和麵包麵團",
+      "processName": "混合麵包麵團",
       "machine": "混合機",
       "baseRate": 0.25,
       "power": 1,
@@ -2450,7 +2450,7 @@
     },
     {
       "dish": "毒蘑菇·肉",
-      "processName": "混和蟑螂奶油",
+      "processName": "混合蟑螂奶油",
       "machine": "混合機",
       "baseRate": 0.25,
       "power": 1,
@@ -2639,7 +2639,7 @@
     },
     {
       "dish": "骨味炸米團",
-      "processName": "混和麵包麵團",
+      "processName": "混合麵包麵團",
       "machine": "混合機",
       "baseRate": 0.25,
       "power": 1,
@@ -2774,7 +2774,7 @@
     },
     {
       "dish": "撒旦紅燴飯",
-      "processName": "混和蟑螂黃油",
+      "processName": "混合蟑螂黃油",
       "machine": "混合機",
       "baseRate": 0.5,
       "power": 1,
@@ -2783,7 +2783,7 @@
     },
     {
       "dish": "撒旦紅燴飯",
-      "processName": "混和蟑螂奶油",
+      "processName": "混合蟑螂奶油",
       "machine": "混合機",
       "baseRate": 0.25,
       "power": 1,
@@ -3053,7 +3053,7 @@
     },
     {
       "dish": "痛擊漢堡",
-      "processName": "混和麵包麵團",
+      "processName": "混合麵包麵團",
       "machine": "混合機",
       "baseRate": 0.25,
       "power": 1,
@@ -3224,7 +3224,7 @@
     },
     {
       "dish": "刺菠蘿披薩",
-      "processName": "混和麵包麵團",
+      "processName": "混合麵包麵團",
       "machine": "混合機",
       "baseRate": 0.25,
       "power": 1,
@@ -3323,7 +3323,7 @@
     },
     {
       "dish": "殺手薄餅",
-      "processName": "混和生玉米餅",
+      "processName": "混合生玉米餅",
       "machine": "混合機",
       "baseRate": 0.5,
       "power": 1,
@@ -3395,7 +3395,7 @@
     },
     {
       "dish": "殺手薄餅",
-      "processName": "混和蟑螂奶油",
+      "processName": "混合蟑螂奶油",
       "machine": "混合機",
       "baseRate": 0.25,
       "power": 1,
@@ -3548,7 +3548,7 @@
     },
     {
       "dish": "爆烈雞肉飯",
-      "processName": "混和辛辣莎莎醬",
+      "processName": "混合辛辣莎莎醬",
       "machine": "混合機",
       "baseRate": 0.5,
       "power": 1,
@@ -3583,7 +3583,7 @@
       "order": 0
     },
     {
-      "dish": "驚嚇醃薑",
+      "dish": "驚嚇醃姜",
       "processName": "終端組裝",
       "machine": "自動廚師機",
       "baseRate": 0.2,
@@ -3592,7 +3592,7 @@
       "order": 0
     },
     {
-      "dish": "驚嚇醃薑",
+      "dish": "驚嚇醃姜",
       "processName": "注入醋",
       "machine": "注入機",
       "baseRate": 0.2,
@@ -3601,7 +3601,7 @@
       "order": 0
     },
     {
-      "dish": "驚嚇醃薑",
+      "dish": "驚嚇醃姜",
       "processName": "發酵甘酒",
       "machine": "發酵罐",
       "baseRate": 0.5,
@@ -3610,7 +3610,7 @@
       "order": 0
     },
     {
-      "dish": "驚嚇醃薑",
+      "dish": "驚嚇醃姜",
       "processName": "採收水稻",
       "machine": "收割機",
       "baseRate": 0.2,
@@ -3619,7 +3619,7 @@
       "order": 0
     },
     {
-      "dish": "驚嚇醃薑",
+      "dish": "驚嚇醃姜",
       "processName": "採收姜姜",
       "machine": "收割機",
       "baseRate": 0.2,
@@ -3628,7 +3628,7 @@
       "order": 0
     },
     {
-      "dish": "驚嚇醃薑",
+      "dish": "驚嚇醃姜",
       "processName": "研磨E127",
       "machine": "研磨機",
       "baseRate": 1,
@@ -3637,7 +3637,7 @@
       "order": 0
     },
     {
-      "dish": "驚嚇醃薑",
+      "dish": "驚嚇醃姜",
       "processName": "重構粉紅仙子",
       "machine": "物質操縱機",
       "baseRate": 0.4,
@@ -3665,7 +3665,7 @@
     },
     {
       "dish": "胃復慘",
-      "processName": "混和蟑螂奶油",
+      "processName": "混合蟑螂奶油",
       "machine": "混合機",
       "baseRate": 2.5,
       "power": 1,
@@ -5163,31 +5163,31 @@
       "type": "液體"
     },
     {
-      "dish": "驚嚇醃薑",
+      "dish": "驚嚇醃姜",
       "material": "姜姜",
       "amount": 1,
       "type": "固體"
     },
     {
-      "dish": "驚嚇醃薑",
+      "dish": "驚嚇醃姜",
       "material": "水稻",
       "amount": 1,
       "type": "固體"
     },
     {
-      "dish": "驚嚇醃薑",
+      "dish": "驚嚇醃姜",
       "material": "粉紅仙子",
       "amount": 0.5,
       "type": "固體"
     },
     {
-      "dish": "驚嚇醃薑",
+      "dish": "驚嚇醃姜",
       "material": "水",
       "amount": 1,
       "type": "液體"
     },
     {
-      "dish": "驚嚇醃薑",
+      "dish": "驚嚇醃姜",
       "material": "虛空",
       "amount": 1,
       "type": "液體"

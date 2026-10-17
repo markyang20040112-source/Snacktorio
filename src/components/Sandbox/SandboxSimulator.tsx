@@ -334,12 +334,12 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
   }, []);
 
   // ==========================================
-  // 終端料理產能換算與炙熱菜餚連動引擎
+  // 終端料理產能換算與熾熱菜餚連動引擎
   // ==========================================
 
-  // 動態同步全廠炙熱菜餚總和產能至【胃復慘】終端方塊
+  // 動態同步全廠熾熱菜餚總和產能至【胃復慘】終端方塊
   const syncAutoPeptoNodes = useCallback((currentNodes: SandboxNodeData[]): SandboxNodeData[] => {
-    // 找出畫布上所有炙熱菜餚
+    // 找出畫布上所有熾熱菜餚
     const scorchingNodes = currentNodes.filter(n => 
       n.type === 'machine' && 
       n.recipeName && 
@@ -357,13 +357,13 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
           return {
             ...updated,
             autoPeptoTrackingRate: totalScorchingRate,
-            statusNote: `🌶️ 隨 ${scorchingNodes.length} 道炙熱菜餚連動 (總和 ${totalScorchingRate} 份/分)`
+            statusNote: `🌶️ 隨 ${scorchingNodes.length} 道熾熱菜餚連動 (總和 ${totalScorchingRate} 份/分)`
           };
         } else {
           return {
             ...node,
             autoPeptoTrackingRate: 0,
-            statusNote: '⚠️ 畫布上無炙熱菜餚連動'
+            statusNote: '⚠️ 畫布上無熾熱菜餚連動'
           };
         }
       }
@@ -442,7 +442,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
       finalNewNode = configureDishNodeRates(rawNode, defaultDishRateMin, recipeOrInter as Recipe, mach);
     }
 
-    // 若為炙熱料理，自動加入胃復慘終端方塊並動態連動產能！
+    // 若為熾熱料理，自動加入胃復慘終端方塊並動態連動產能！
     if (isDish && recipeOrInter && isScorchingDish(recipeOrInter.name, items, recipes)) {
       const hasPepto = nodes.some(n => n.recipeName === '胃復慘');
       if (!hasPepto) {
