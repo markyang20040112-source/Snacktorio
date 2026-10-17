@@ -44,30 +44,35 @@ export const DigitalTwinModal: React.FC<DigitalTwinModalProps> = ({
     }
   }, [isOpen, currentDishName]);
 
+  // 體檢為重度同步運算：先讓 isRunning 載入狀態繪製，再於下一個 macrotask 執行
   const runAuditForDish = (dishName: string, allRecipes?: Recipe[]) => {
     setIsRunning(true);
     const recs = allRecipes || recipes;
-    try {
-      const rep = runDigitalTwinVerification(dishName, { recipes: recs });
-      setReport(rep);
-    } catch (e) {
-      console.error('Digital Twin Audit Error:', e);
-    } finally {
-      setIsRunning(false);
-    }
+    setTimeout(() => {
+      try {
+        const rep = runDigitalTwinVerification(dishName, { recipes: recs });
+        setReport(rep);
+      } catch (e) {
+        console.error('Digital Twin Audit Error:', e);
+      } finally {
+        setIsRunning(false);
+      }
+    }, 0);
   };
 
   const handleRunFullPlant = () => {
     setIsRunning(true);
-    try {
-      const fullRep = runFullPlantAudit(recipes);
-      setFullPlantReport(fullRep);
-      setActiveTab('fullPlant');
-    } catch (e) {
-      console.error('Full Plant Audit Error:', e);
-    } finally {
-      setIsRunning(false);
-    }
+    setTimeout(() => {
+      try {
+        const fullRep = runFullPlantAudit(recipes);
+        setFullPlantReport(fullRep);
+        setActiveTab('fullPlant');
+      } catch (e) {
+        console.error('Full Plant Audit Error:', e);
+      } finally {
+        setIsRunning(false);
+      }
+    }, 0);
   };
 
   const handleSelectDishFromPlant = (dishName: string) => {

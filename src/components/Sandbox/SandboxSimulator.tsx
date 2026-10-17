@@ -1141,10 +1141,10 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
   };
 
   // 刪除連線
-  const handleDeleteConnection = (connId: string, e: React.MouseEvent) => {
+  const handleDeleteConnection = useCallback((connId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setConnections(prev => prev.filter(c => c.id !== connId));
-  };
+  }, []);
 
   // 取得節點端口的畫布絕對座標 (以 id 索引查表；重複 id 時與 Array.find 相同取第一筆)
   const nodeById = useMemo(() => {
@@ -1152,7 +1152,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     nodes.forEach(n => { if (!map.has(n.id)) map.set(n.id, n); });
     return map;
   }, [nodes]);
-  const getPortCoordinates = (nodeId: string, portId: string, isOutput: boolean) => {
+  const getPortCoordinates = useCallback((nodeId: string, portId: string, isOutput: boolean) => {
     const node = nodeById.get(nodeId);
     if (!node) return { x: 0, y: 0 };
 
@@ -1172,7 +1172,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
       x: isOutput ? node.x + nodeWidth - 12 : node.x + 12,
       y: node.y + portStartY + offsetY
     };
-  };
+  }, [nodeById]);
 
   return (
     <div className="flex h-[calc(100vh-140px)] w-full overflow-hidden bg-[#050b0e] rounded-3xl border border-[#1c2e38] shadow-2xl relative select-none">

@@ -5,6 +5,7 @@ import {
   PortDefinition
 } from './sandboxTypes';
 import { updateSplitterNode, updateBufferDecayNode } from './sandboxDevicePhysics';
+import { isGenericBaseName } from '../../utils/itemTraits';
 
 /**
  * 清理物料名稱 (去除分流器百分比後綴如 " (A: 50%)"、"(無限制)" 等附加標記)
@@ -37,8 +38,7 @@ export function isItemMatch(
   if (cleanSource === cleanTarget) return true;
 
   // 通用底料相容性：任意物品 / 重構底料 / 底料 互相相容
-  const isGenericBase = (s: string) => s === '任意物品' || s === '重構底料' || s === '底料' || s === '底料專供' || s === '底料作物';
-  if (isGenericBase(cleanSource) && isGenericBase(cleanTarget)) return true;
+  if (isGenericBaseName(cleanSource) && isGenericBaseName(cleanTarget)) return true;
 
   // 2. 特殊設備或通用端口邏輯
   if (targetNode) {

@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { SandboxConnection, SandboxNodeData } from './sandboxTypes';
-import { computeOrthogonalPath } from './sandboxRouting';
+import { computeOrthogonalPath, createBoundsLookup } from './sandboxRouting';
 
 export interface ConnectingSource {
   nodeId: string;
@@ -26,33 +26,114 @@ interface SandboxConnectionsLayerProps {
   isFocusDimActive?: boolean;
 }
 
+/** 已完成走線計算之連線 (僅依連線 / 端口座標 / 節點變動重算；懸停、拉線、平移不重算) */
+interface RoutedConnection {
+  c: SandboxConnection;
+  pathD: string;
+  isFluid: boolean;
+  badgeX: number;
+  badgeY: number;
+}
+
+const EMPTY_NODES: SandboxNodeData[] = [];
+
 /** SVG 連線層：已建立連線 (正交圓角走線、懸停發光流向、焦點過濾) 與拉線中的臨時虛線 */
-export const SandboxConnectionsLayer: React.FC<SandboxConnectionsLayerProps> = ({
+const SandboxConnectionsLayerImpl: React.FC<SandboxConnectionsLayerProps> = ({
   connections,
   connectingSource,
   getPortCoordinates,
   onDeleteConnection,
-  allNodes = [],
+  allNodes = EMPTY_NODES,
   nodeMap,
   hoveredConnId = null,
   onHoverConnection,
   inspectedNodeId = null,
   isFocusDimActive = false
 }) => {
-  // 預先為多條流體或長距跨欄連線分配獨立高空/地下通道軌道 (Corridor Tracks)
-  const topTrackMap = new Map<string, number>();
-  const bottomTrackMap = new Map<string, number>();
-  let topCount = 0;
-  let bottomCount = 0;
+  const routed = useMemo<RoutedConnection[]>(() => {
+    // 預先為多條流體或長距跨欄連線分配獨立高空/地下通道軌道 (Corridor Tracks)
+    const topTrackMap = new Map<string, number>();
+    const bottomTrackMap = new Map<string, number>();
+    let topCount = 0;
+    let bottomCount = 0;
 
-  connections.forEach(c => {
-    const isVoidFluid = c.type === 'fluid' && (c.itemOrFluidName === '虛空' || c.toPortId?.includes('虛空') || c.fromPortId?.includes('虛空'));
-    if (isVoidFluid) {
-      bottomTrackMap.set(c.id, bottomCount++);
-    } else if (c.type === 'fluid') {
-      topTrackMap.set(c.id, topCount++);
-    }
-  });
+    connections.forEach(c => {
+      const isVoidFluid = c.type === 'fluid' && (c.itemOrFluidName === '虛空' || c.toPortId?.includes('虛空') || c.fromPortId?.includes('虛空'));
+      if (isVoidFluid) {
+        bottomTrackMap.set(c.id, bottomCount++);
+      } else if (c.type === 'fluid') {
+        topTrackMap.set(c.id, topCount++);
+      }
+    });
+
+    // 同一批次共用節點邊界快取
+    const boundsOf = createBoundsLookup();
+
+    return connections.map(c => {
+      const start = getPortCoordinates(c.fromNodeId, c.fromPortId, true);
+      const end = getPortCoordinates(c.toNodeId, c.toPortId, false);
+      const fromNode = nodeMap?.get(c.fromNodeId);
+      const toNode = nodeMap?.get(c.toNodeId);
+
+      // 順向走線槽位分流：依目標輸入端口順序排列垂直軌道
+      // 關鍵幾何法則 (契合使用者手繪圖無交叉並行架構)：
+      // 當連線由上往下進料時 (end.y >= start.y)，上方端口 (inIdx 小) 位於最右側軌道 (緊鄰目標機台)；
+      // 下方端口 (inIdx 大) 依序向左展開。
+      // 這樣上方線條在到達上方端口時直接向右轉入，完全不與下方線條產生交叉！
+      const isDownwards = end.y >= start.y;
+      const portDirection = isDownwards ? -1 : 1;
+      let slotOffset = 0;
+      if (toNode && toNode.inputs.length > 1) {
+        const inIdx = toNode.inputs.findIndex(p => p.id === c.toPortId);
+        if (inIdx >= 0) {
+          slotOffset += portDirection * (inIdx - (toNode.inputs.length - 1) / 2) * 16;
+        }
+      }
+      if (fromNode && fromNode.outputs.length > 1) {
+        const outIdx = fromNode.outputs.findIndex(p => p.id === c.fromPortId);
+        if (outIdx >= 0) {
+          slotOffset += (outIdx - (fromNode.outputs.length - 1) / 2) * 8;
+        }
+      }
+      slotOffset = Math.max(-32, Math.min(32, slotOffset));
+
+      const isVoidFluid = c.type === 'fluid' && (c.itemOrFluidName === '虛空' || c.toPortId?.includes('虛空') || c.fromPortId?.includes('虛空'));
+      const isFluid = c.type === 'fluid';
+      const corridorTrack = isVoidFluid
+        ? (bottomTrackMap.get(c.id) || 0)
+        : (topTrackMap.get(c.id) || 0);
+
+      // 智慧正交圓角走線 (不切穿方塊，全走在走線槽與行間通道中；虛空優先走下方通道，水管走上方，同向多管獨立分軌)
+      const pathD = computeOrthogonalPath(start, end, fromNode, toNode, allNodes, {
+        slotOffset,
+        isFluid,
+        fluidName: c.itemOrFluidName,
+        preferBelow: isVoidFluid ? true : undefined,
+        corridorTrack,
+        boundsOf
+      });
+
+      // 流量標籤座標：置於出料橫向線段旁 (靠起點右側 8px)，避免遮擋垂直主走線槽與其它並行線條
+      let badgeX: number;
+      let badgeY: number;
+
+      if (Math.abs(start.y - end.y) < 15) {
+        // 水平直線：置於起訖中點
+        badgeX = (start.x + end.x) / 2 - 27;
+        badgeY = (start.y + end.y) / 2 - 12;
+      } else if (end.x >= start.x + 36) {
+        // 順向走線：緊貼出料端右側出線段，各機台出料標籤清楚對齊自己的出料口
+        badgeX = start.x + 8;
+        badgeY = start.y - 12;
+      } else {
+        // 逆向或特殊走線：緊貼目標入料端左側
+        badgeX = end.x - 62;
+        badgeY = end.y - 12;
+      }
+
+      return { c, pathD, isFluid, badgeX, badgeY };
+    });
+  }, [connections, getPortCoordinates, nodeMap, allNodes]);
 
   return (
     <svg className="absolute inset-0 w-[5000px] h-[5000px] overflow-visible pointer-events-none">
@@ -73,49 +154,7 @@ export const SandboxConnectionsLayer: React.FC<SandboxConnectionsLayerProps> = (
       </defs>
 
       {/* 已建立的連線 */}
-      {connections.map(c => {
-        const start = getPortCoordinates(c.fromNodeId, c.fromPortId, true);
-        const end = getPortCoordinates(c.toNodeId, c.toPortId, false);
-        const fromNode = nodeMap?.get(c.fromNodeId);
-        const toNode = nodeMap?.get(c.toNodeId);
-
-        // 順向走線槽位分流：依目標輸入端口順序排列垂直軌道
-        // 關鍵幾何法則 (契合使用者手繪圖無交叉並行架構)：
-        // 當連線由上往下進料時 (end.y >= start.y)，上方端口 (inIdx 小) 位於最右側軌道 (緊鄰目標機台)；
-        // 下方端口 (inIdx 大) 依序向左展開。
-        // 這樣上方線條在到達上方端口時直接向右轉入，完全不與下方線條產生交叉！
-        const isDownwards = end.y >= start.y;
-        const portDirection = isDownwards ? -1 : 1;
-        let slotOffset = 0;
-        if (toNode && toNode.inputs.length > 1) {
-          const inIdx = toNode.inputs.findIndex(p => p.id === c.toPortId);
-          if (inIdx >= 0) {
-            slotOffset += portDirection * (inIdx - (toNode.inputs.length - 1) / 2) * 16;
-          }
-        }
-        if (fromNode && fromNode.outputs.length > 1) {
-          const outIdx = fromNode.outputs.findIndex(p => p.id === c.fromPortId);
-          if (outIdx >= 0) {
-            slotOffset += (outIdx - (fromNode.outputs.length - 1) / 2) * 8;
-          }
-        }
-        slotOffset = Math.max(-32, Math.min(32, slotOffset));
-
-        const isVoidFluid = c.type === 'fluid' && (c.itemOrFluidName === '虛空' || c.toPortId?.includes('虛空') || c.fromPortId?.includes('虛空'));
-        const isFluid = c.type === 'fluid';
-        const corridorTrack = isVoidFluid
-          ? (bottomTrackMap.get(c.id) || 0)
-          : (topTrackMap.get(c.id) || 0);
-
-        // 智慧正交圓角走線 (不切穿方塊，全走在走線槽與行間通道中；虛空優先走下方通道，水管走上方，同向多管獨立分軌)
-        const pathD = computeOrthogonalPath(start, end, fromNode, toNode, allNodes, {
-          slotOffset,
-          isFluid,
-          fluidName: c.itemOrFluidName,
-          preferBelow: isVoidFluid ? true : undefined,
-          corridorTrack
-        });
-
+      {routed.map(({ c, pathD, isFluid, badgeX, badgeY }) => {
         // 懸停與焦點狀態判斷
         const isDirectlyHovered = hoveredConnId === c.id;
         const isNodeConnected = !!inspectedNodeId && (c.fromNodeId === inspectedNodeId || c.toNodeId === inspectedNodeId);
@@ -132,24 +171,6 @@ export const SandboxConnectionsLayer: React.FC<SandboxConnectionsLayerProps> = (
         }
 
         const opacityClass = isDimmed ? 'opacity-20' : 'opacity-100';
-
-        // 流量標籤座標：置於出料橫向線段旁 (靠起點右側 8px)，避免遮擋垂直主走線槽與其它並行線條
-        let badgeX: number;
-        let badgeY: number;
-
-        if (Math.abs(start.y - end.y) < 15) {
-          // 水平直線：置於起訖中點
-          badgeX = (start.x + end.x) / 2 - 27;
-          badgeY = (start.y + end.y) / 2 - 12;
-        } else if (end.x >= start.x + 36) {
-          // 順向走線：緊貼出料端右側出線段，各機台出料標籤清楚對齊自己的出料口
-          badgeX = start.x + 8;
-          badgeY = start.y - 12;
-        } else {
-          // 逆向或特殊走線：緊貼目標入料端左側
-          badgeX = end.x - 62;
-          badgeY = end.y - 12;
-        }
 
         return (
           <g
@@ -205,34 +226,39 @@ export const SandboxConnectionsLayer: React.FC<SandboxConnectionsLayerProps> = (
       })}
 
       {/* 正在拉線中的臨時虛線 (支援雙向貝茲曲線與動態指示) */}
-      {connectingSource && (
-        <g>
-          <path
-            d={connectingSource.isOutput
-              ? `M ${connectingSource.startX} ${connectingSource.startY} C ${connectingSource.startX + 60} ${connectingSource.startY}, ${connectingSource.currentX - 60} ${connectingSource.currentY}, ${connectingSource.currentX} ${connectingSource.currentY}`
-              : `M ${connectingSource.startX} ${connectingSource.startY} C ${connectingSource.startX - 60} ${connectingSource.startY}, ${connectingSource.currentX + 60} ${connectingSource.currentY}, ${connectingSource.currentX} ${connectingSource.currentY}`
-            }
-            fill="none"
-            stroke={connectingSource.portType === 'fluid' ? '#06b6d4' : '#f59e0b'}
-            strokeWidth={2.5}
-            strokeDasharray="5,4"
-            className="animate-pulse"
-          />
-          <circle
-            cx={connectingSource.currentX}
-            cy={connectingSource.currentY}
-            r={5}
-            fill={connectingSource.portType === 'fluid' ? '#06b6d4' : '#f59e0b'}
-            className="animate-ping opacity-75"
-          />
-          <circle
-            cx={connectingSource.currentX}
-            cy={connectingSource.currentY}
-            r={4}
-            fill={connectingSource.portType === 'fluid' ? '#22d3ee' : '#fbbf24'}
-          />
-        </g>
-      )}
+      {connectingSource && <ConnectingWire source={connectingSource} />}
     </svg>
   );
 };
+
+/** 拉線中的臨時虛線 (獨立小元件：滑鼠移動僅更新此處，不重算已建立連線之走線) */
+const ConnectingWire: React.FC<{ source: ConnectingSource }> = ({ source: connectingSource }) => (
+  <g>
+    <path
+      d={connectingSource.isOutput
+        ? `M ${connectingSource.startX} ${connectingSource.startY} C ${connectingSource.startX + 60} ${connectingSource.startY}, ${connectingSource.currentX - 60} ${connectingSource.currentY}, ${connectingSource.currentX} ${connectingSource.currentY}`
+        : `M ${connectingSource.startX} ${connectingSource.startY} C ${connectingSource.startX - 60} ${connectingSource.startY}, ${connectingSource.currentX + 60} ${connectingSource.currentY}, ${connectingSource.currentX} ${connectingSource.currentY}`
+      }
+      fill="none"
+      stroke={connectingSource.portType === 'fluid' ? '#06b6d4' : '#f59e0b'}
+      strokeWidth={2.5}
+      strokeDasharray="5,4"
+      className="animate-pulse"
+    />
+    <circle
+      cx={connectingSource.currentX}
+      cy={connectingSource.currentY}
+      r={5}
+      fill={connectingSource.portType === 'fluid' ? '#06b6d4' : '#f59e0b'}
+      className="animate-ping opacity-75"
+    />
+    <circle
+      cx={connectingSource.currentX}
+      cy={connectingSource.currentY}
+      r={4}
+      fill={connectingSource.portType === 'fluid' ? '#22d3ee' : '#fbbf24'}
+    />
+  </g>
+);
+
+export const SandboxConnectionsLayer = React.memo(SandboxConnectionsLayerImpl);

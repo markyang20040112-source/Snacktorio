@@ -52,25 +52,23 @@ export function useSandboxAutoPan({
         return;
       }
 
-      setPan(prev => {
-        const nextX = prev.x + vx;
-        const nextY = prev.y + vy;
-        panRef.current = { x: nextX, y: nextY };
+      // 平移狀態以純函式 updater 累加；拉線端點更新移出 updater (避免於 updater 內產生副作用)，改以 panRef 追蹤之下一幀位置計算
+      const nextX = panRef.current.x + vx;
+      const nextY = panRef.current.y + vy;
+      panRef.current = { x: nextX, y: nextY };
+      setPan(prev => ({ x: prev.x + vx, y: prev.y + vy }));
 
-        if (connectingSourceRef.current && canvasRef.current) {
-          const rect = canvasRef.current.getBoundingClientRect();
-          const { clientX, clientY } = lastMousePosRef.current;
-          const curX = (clientX - rect.left - nextX) / zoomRef.current;
-          const curY = (clientY - rect.top - nextY) / zoomRef.current;
-          setConnectingSource(prevSrc => prevSrc ? {
-            ...prevSrc,
-            currentX: curX,
-            currentY: curY
-          } : null);
-        }
-
-        return { x: nextX, y: nextY };
-      });
+      if (connectingSourceRef.current && canvasRef.current) {
+        const rect = canvasRef.current.getBoundingClientRect();
+        const { clientX, clientY } = lastMousePosRef.current;
+        const curX = (clientX - rect.left - nextX) / zoomRef.current;
+        const curY = (clientY - rect.top - nextY) / zoomRef.current;
+        setConnectingSource(prevSrc => prevSrc ? {
+          ...prevSrc,
+          currentX: curX,
+          currentY: curY
+        } : null);
+      }
 
       autoPanAnimationRef.current = requestAnimationFrame(loop);
     };

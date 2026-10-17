@@ -8,9 +8,6 @@ import { dataService } from './dataService';
 export type DiagnosticCode =
   | 'ERR_PROGENITOR_DEADLOCK'
   | 'ERR_FLUID_STARVATION'
-  | 'ERR_RATE_PENALTY'
-  | 'ERR_PARTITION_IMBALANCE'
-  | 'ERR_CROSS_DONATION_CYCLE'
   | 'ERR_HEAL_PATCH_TRIGGERED'
   | 'ERR_CHEF_STARVATION'
   | 'ERR_MACHINE_COUNT_MISMATCH'
@@ -296,8 +293,8 @@ export function runDigitalTwinVerification(
     recipes
   );
 
-  // 2. 沙盒實體拓撲生成 (純投影)
-  const blueprint = buildDishBlueprint(dish, 0, { recipes });
+  // 2. 沙盒實體拓撲生成 (純投影；沿用上方同參數之規劃結果，免重複求解)
+  const blueprint = buildDishBlueprint(dish, 0, { recipes, plan });
 
   // 3. 第一關：鏡像一致性審計
   const { report: stage1Report, faults: stage1Faults } = runMirrorAudit(plan.consolidated, blueprint);

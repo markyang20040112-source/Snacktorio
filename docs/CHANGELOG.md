@@ -3,6 +3,13 @@
 > 本檔案收錄自 `PROJECT_STATUS.md` 移出之完整歷史決策紀錄（原文逐字保留，未做任何改寫）。
 > 最新條目置於最上方；新的詳細紀錄請追加於「最新紀錄」區塊頂端，`PROJECT_STATUS.md` 僅保留精簡摘要。
 
+* **2026-10-17｜程式清理 A/B/C（零計算變更，未更新基準）**：
+  - A 刪除死碼：`dishBlueprintPower.ts` 未被呼叫的舊版底料分配 `allocateSmartBaseMaterials` / `hasDirectedPath`（539 → 293 行）；solver 無人使用的再匯出；digitalTwinAudit 從未發出的 3 個診斷碼（docs/04 改標「人工排查用」）；generator 無效別名與空過濾。
+  - B 合併重複：`itemTraits.ts` 新增 `BASE_PLACEHOLDERS` / `isBasePlaceholder` / `isGenericBaseName` / `isNonMaterialInput` / `isNoneOrEnvFluid` / `hasScorchingAttr`（各呼叫點維持原本的名稱子集）；byproductMatching 合併重複的非 Donor 機台清單與候選建立，`isBaseConsumerProcess` 供 parallelPlanner 共用。
+  - C 效能：沙盒連線走線改為 useMemo 快取＋每輪共用節點邊界查表，拖曳 / 平移不再每幀重算全部路徑；`canDonate` 結果快取；數位雙生檢查不再重複計算並聯規劃；DigitalTwinModal 執行中動畫可正常顯示；AutoPan 移除 state updater 內的副作用。
+  - 未做（差異過大或會改變結果）：兩個節點高度估算器、兩個健康判定、byproductMatching 兩段折抵寫入、Node 端深拷貝。
+  - 驗證：`npm run check` 1008 / 378 指紋全數一致，`npm run build` 通過。
+
 * **2026-10-17｜名稱寫法全面統一（使用者核准）**：
   - 規則：沙沙→**莎莎**、波蘿/波羅→**菠蘿**、混和→**混合**、炙熱/炽热→**熾熱**（屬性正式名）、麵糰→**麵團**、荳蔻→**豆蔻**、薑→**姜**；奶酪／芝士為遊戲原名不改。物品更名：發酵麵糰→發酵麵團、油荳蔻→油豆蔻、驚嚇醃薑→驚嚇醃姜；來源「麵包麵糰發酵」→「麵包麵團發酵」；計算機參數庫「混和XXX」工序 → 「混合XXX」。
   - 圖檔同步改名（刺菠蘿、刺菠蘿樹、致命莎莎醬、辛辣莎莎醬、油豆蔻、油豆蔻植株、發酵麵團）；itemIcons 全部 150 個鍵都對得到實際圖檔。

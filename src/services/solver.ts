@@ -4,13 +4,9 @@ import { parseFractionOrNumber, formatFractionOrDecimal, gcdArray, computeIntege
 import { PROCESS_ACTION_VERBS, ITEM_ACTION_PREFIX } from '../utils/actionVerbs';
 import { settlePlantInfrastructure } from './plantInfrastructure';
 import { matchByproductFeeders } from './byproductMatching';
+import { isGenericBaseName, isNonMaterialInput, isNoneOrEnvFluid, isBasePlaceholder, hasScorchingAttr } from '../utils/itemTraits';
 
-export {
-  sizeAutonomousPump,
-  settlePlantInfrastructure,
-  type PlantInfrastructureInput,
-  type PlantInfrastructureResult
-} from './plantInfrastructure';
+export { settlePlantInfrastructure } from './plantInfrastructure';
 
 export { computeIntegerRatio } from '../utils/math';
 
@@ -60,8 +56,7 @@ export function matchMaterial(prodItem: { name: string; isFluid: boolean }, reqI
   }
 
   // 泛用底料配對：任意物品 / 重構底料 / 底料 / 底料專供 互通
-  const isGenericBase = (n: string) => n === '任意物品' || n === '重構底料' || n === '底料' || n === '底料專供' || n === '底料作物';
-  if (isGenericBase(pNorm) && isGenericBase(rNorm)) {
+  if (isGenericBaseName(pNorm) && isGenericBaseName(rNorm)) {
     return true;
   }
 
@@ -306,12 +301,12 @@ export function generateProcessesFromRecipe(
   // 2. 廣度優先遍歷向上追溯原料與中間配方
   const queue: { name: string; reqPerDish: number; path: string[] }[] = [];
   (dishRec.inputs || []).forEach(inp => {
-    if (inp.name && !['無', '任意物品', '無(空載)', '重構底料', '底料'].includes(inp.name) && inp.count > 0) {
+    if (!isNonMaterialInput(inp.name) && inp.count > 0) {
       queue.push({ name: inp.name, reqPerDish: inp.count / outCnt, path: [dishName] });
     }
   });
 
-  if (dishRec.fluidType && !['無', '水', '油', '虛空'].includes(dishRec.fluidType)) {
+  if (dishRec.fluidType && !isNoneOrEnvFluid(dishRec.fluidType)) {
     const fRate = dishRec.fluidRate || 1;
     const dishCycle = dishRec.cycleTime || 5;
     // 終端組裝單次耗時 dishCycle 秒，持續通入 fRate fl/s，單次耗水量 = fRate * dishCycle，產出 outCnt 份料理
@@ -327,7 +322,7 @@ export function generateProcessesFromRecipe(
 
   while (queue.length > 0) {
     const { name, reqPerDish, path } = queue.shift()!;
-    if (!name || ['無', '任意物品', '無(空載)', '重構底料', '底料'].includes(name)) {
+    if (isNonMaterialInput(name)) {
       continue;
     }
 
@@ -342,7 +337,7 @@ export function generateProcessesFromRecipe(
           interMap.set(ikey, { recipe: inter, countPerDish: 1 });
           const newPath = [...path, ikey];
           (inter.inputs || []).forEach(inp => {
-            if (inp.name && !['無', '任意物品', '無(空載)', '重構底料', '底料'].includes(inp.name) && inp.count > 0) {
+            if (!isNonMaterialInput(inp.name) && inp.count > 0) {
               queue.push({ name: inp.name, reqPerDish: inp.count * 1, path: newPath });
             }
           });
@@ -366,11 +361,11 @@ export function generateProcessesFromRecipe(
       const newPath = [...path, ikey];
 
       (inter.inputs || []).forEach(inp => {
-        if (inp.name && !['無', '任意物品', '無(空載)', '重構底料', '底料'].includes(inp.name) && inp.count > 0) {
+        if (!isNonMaterialInput(inp.name) && inp.count > 0) {
           queue.push({ name: inp.name, reqPerDish: inp.count * cycles, path: newPath });
         }
       });
-      if (inter.fluidType && !['無', '水', '油', '虛空'].includes(inter.fluidType)) {
+      if (inter.fluidType && !isNoneOrEnvFluid(inter.fluidType)) {
         const fRate = inter.fluidRate || 1;
         // 中間工序單週期耗時 iCycle 秒，持續通入 fRate fl/s，每週期耗液量 = fRate * iCycle
         queue.push({ name: inter.fluidType, reqPerDish: fRate * iCycle * cycles, path: newPath });
@@ -531,7 +526,7 @@ function getProcessMaxOutputRate(
   let maxSupportedRate = nominalCapacity;
 
   for (const inp of inter.inputs) {
-    if (!inp.name || ['無', '任意物品', '無(空載)', '重構底料', '底料'].includes(inp.name) || inp.count <= 0) {
+    if (isNonMaterialInput(inp.name) || inp.count <= 0) {
       continue;
     }
 
@@ -736,7 +731,7 @@ export function calculateSingleDish(
       warnings.push('異界重構：每台需 1.0 fl/s 虛空 ＋ 1 台底料收割機');
     }
     const matchingInter = intermediateRecipes.find(r => r.name === p.processName);
-    if (p.machine !== '物質操縱機' && matchingInter && matchingInter.inputs?.some(inp => ['任意物品', '重構底料', '底料'].includes(inp.name))) {
+    if (p.machine !== '物質操縱機' && matchingInter && matchingInter.inputs?.some(inp => isBasePlaceholder(inp.name))) {
       warnings.push('泛用底料供給：每台需 1 台底料收割機直供任意原料');
     }
 
@@ -789,11 +784,11 @@ export function calculateSingleDish(
   const baseConsumerNodes = processNodes.filter(p => {
     if (p.machine === '物質操縱機') return true;
     const ctx = nodeContexts.find(nc => nc.node === p);
-    if (ctx && ctx.inputs.some(inp => ['任意物品', '重構底料', '底料'].includes(inp.name))) {
+    if (ctx && ctx.inputs.some(inp => isBasePlaceholder(inp.name))) {
       return true;
     }
     const inter = intermediateRecipes.find(r => r.name === p.processName);
-    if (inter && inter.inputs?.some(inp => ['任意物品', '重構底料', '底料'].includes(inp.name))) {
+    if (inter && inter.inputs?.some(inp => isBasePlaceholder(inp.name))) {
       return true;
     }
     return false;
@@ -1181,7 +1176,7 @@ function assembleResult(params: any): CalculationResult {
         if (inp.name && inp.name !== '無') candidateNames.add(inp.name);
       });
     }
-    if (recipe.fluidType && !['無', '水', '油', '虛空'].includes(recipe.fluidType)) {
+    if (recipe.fluidType && !isNoneOrEnvFluid(recipe.fluidType)) {
       candidateNames.add(recipe.fluidType);
     }
   }
@@ -1210,7 +1205,7 @@ function assembleResult(params: any): CalculationResult {
 
   // 檢測產線是否包含熾熱屬性物品（排除中和與胃復慘）
   const isHotAttr = (attrStr: string) => {
-    return attrStr.includes('熾熱') && !attrStr.includes('中和');
+    return hasScorchingAttr(attrStr) && !attrStr.includes('中和');
   };
 
   const dishItem = itemMap.get(dishName);
@@ -1365,7 +1360,7 @@ export function isScorchingDish(
   // 1. Strictly check the finished dish item itself (DO NOT check intermediate ingredients)
   const item = currentItems.find(i => i.name === dishName);
   if (item && item.attributes) {
-    if (item.attributes.includes('熾熱')) {
+    if (hasScorchingAttr(item.attributes)) {
       return true;
     }
   }
@@ -1373,7 +1368,7 @@ export function isScorchingDish(
   // 2. Check recipe notes if explicitly noted as scorching dish
   const recipe = currentRecipes.find(r => r.name === dishName);
   if (recipe && recipe.notes) {
-    if (recipe.notes.includes('熾熱')) {
+    if (hasScorchingAttr(recipe.notes)) {
       return true;
     }
   }

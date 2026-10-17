@@ -14,7 +14,7 @@ import {
   PortDefinition 
 } from '../components/Sandbox/sandboxTypes';
 import { Recipe, IntermediateRecipe, Machine, Item } from '../types';
-import { ENV_FLUIDS } from '../utils/itemTraits';
+import { ENV_FLUIDS, hasScorchingAttr } from '../utils/itemTraits';
 import { buildPowerModule, buildEnvFluidsModule } from './dishBlueprintPower';
 import { applyHierarchicalLayout } from './dishBlueprintLayout';
 import { routeSolidOutputs, SolidTargetSpec } from './dishBlueprintSplitter';
@@ -87,6 +87,8 @@ export function buildDishBlueprint(
     items?: Item[];
     intermediate?: IntermediateRecipe[];
     machines?: Machine[];
+    /** 已以相同參數 (本料理 12 份/分、overclock、recycle、recipes) 求得之規劃結果；省略時自行求解 */
+    plan?: ReturnType<typeof runParallelPlan>;
   }
 ): SandboxBlueprint {
   const recipes: Recipe[] = context?.recipes || dataService.getRecipes();
@@ -95,11 +97,11 @@ export function buildDishBlueprint(
   const items: Item[] = context?.items || dataService.getItems();
 
   const isScorching = isScorchingDish(dish.name, items, recipes);
-  const remedyRecipe = recipes.find(r => r.notes?.includes('中和') && r.notes?.includes('熾熱'));
+  const remedyRecipe = recipes.find(r => r.notes?.includes('中和') && hasScorchingAttr(r.notes));
   const remedyDishName = remedyRecipe?.name || '';
 
   // 1. 產線計算機最高效率規劃 (超頻模式 + 副產物折抵模式 recycle + 熾熱自動配產中和料理)
-  const plan = runParallelPlan(
+  const plan = context?.plan || runParallelPlan(
     [{ id: 'main', dishName: dish.name, rateMin: 12 }],
     'overclock',
     'recycle',
@@ -251,10 +253,10 @@ export function buildDishBlueprint(
     const machCycleTime = interDef?.cycleTime || 5;
 
     const isExclusivelyPepto = Boolean(remedyDishName && p.dishDemands.length === 1 && p.dishDemands[0].dishName === remedyDishName);
+    const inputInfos = getProcessInputItems(p as any, dish.name, procs as any, recipes, intermediateRecipes);
 
     for (let instIdx = 0; instIdx < instancesCount; instIdx++) {
       const nodeId = `proc-${dishIndex}-${pIdx}-${instIdx}`;
-      const inputInfos = getProcessInputItems(p as any, dish.name, procs as any, recipes, intermediateRecipes);
       const inputs: PortDefinition[] = [];
 
       inputInfos.forEach(inp => {
@@ -306,8 +308,7 @@ export function buildDishBlueprint(
 
       const isFluidMach = outputInfo.isFluid;
       const machOutputCount = interDef?.outputCount || (outputInfo.name === '泥沼蟑螂' ? 2 : 1);
-      const defaultMachRate = p.machine === '注入機' ? 999 : (isFluidMach ? 1.0 : Number((machOutputCount / machCycleTime).toFixed(3)));
-      const machRate = defaultMachRate;
+      const machRate = p.machine === '注入機' ? 999 : (isFluidMach ? 1.0 : Number((machOutputCount / machCycleTime).toFixed(3)));
 
       const mObj = machines.find(m => m.name === p.machine);
       const machPower = mObj?.power || p.powerPerUnit || 1.0;
@@ -592,7 +593,7 @@ export function buildDishBlueprint(
 
   // 6. 下方統一集中電網平衡 (2:1 虛空熔爐與採煤機，淨盈餘 >= 0 FV/s)
   const currentTotalLoad = nodes
-    .filter(n => n.type !== 'generator' && !n.id.startsWith('pwr-coal') && n.type !== 'splitter')
+    .filter(n => n.type !== 'splitter')
     .reduce((sum, n) => sum + (n.basePowerConsumption || 0), 0);
 
   let totalFurnaceCount = Math.max(1, Math.ceil(currentTotalLoad / 3.5));

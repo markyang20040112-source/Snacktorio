@@ -5,10 +5,34 @@ export interface Point {
   y: number;
 }
 
+interface NodeBounds {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+}
+
+export type BoundsLookup = (node: SandboxNodeData) => NodeBounds;
+
+/**
+ * 建立單一走線批次用之節點邊界快取：同一批次內節點不變，避免於 some / filter / sort 比較函式中重複估算
+ */
+export function createBoundsLookup(): BoundsLookup {
+  const cache = new Map<SandboxNodeData, NodeBounds>();
+  return node => {
+    let b = cache.get(node);
+    if (!b) {
+      b = getNodeBounds(node);
+      cache.set(node, b);
+    }
+    return b;
+  };
+}
+
 /**
  * 取得節點實體碰撞邊界（AABB 帶安全邊距）
  */
-function getNodeBounds(node: SandboxNodeData) {
+function getNodeBounds(node: SandboxNodeData): NodeBounds {
   const width = 288;
   let estimatedHeight = 220;
   if (node.machineName === '自動廚師機') {
@@ -100,6 +124,8 @@ export interface RoutingOptions {
   fluidName?: string;
   preferBelow?: boolean;
   corridorTrack?: number;
+  /** 批次共用之邊界快取 (createBoundsLookup)；省略時單次呼叫內自建 */
+  boundsOf?: BoundsLookup;
 }
 
 /**
@@ -110,13 +136,14 @@ function isHorizontalSegmentClear(
   x1: number,
   x2: number,
   allNodes: SandboxNodeData[],
-  ignoreIds: Set<string>
+  ignoreIds: Set<string>,
+  boundsOf: BoundsLookup
 ): boolean {
   const minX = Math.min(x1, x2);
   const maxX = Math.max(x1, x2);
   return !allNodes.some(n => {
     if (ignoreIds.has(n.id)) return false;
-    const b = getNodeBounds(n);
+    const b = boundsOf(n);
     return y >= b.top && y <= b.bottom && maxX >= b.left && minX <= b.right;
   });
 }
@@ -142,6 +169,7 @@ export function computeOrthogonalPath(
     : (options || {});
   const slotOffset = opts.slotOffset || 0;
   const corridorTrack = opts.corridorTrack || 0;
+  const boundsOf = opts.boundsOf || createBoundsLookup();
 
   const ignoreIds = new Set<string>();
   if (fromNode) ignoreIds.add(fromNode.id);
@@ -151,7 +179,7 @@ export function computeOrthogonalPath(
   if (Math.abs(start.y - end.y) < 2 && end.x >= start.x) {
     const hasObstacle = (allNodes || []).some(n => {
       if (ignoreIds.has(n.id)) return false;
-      const b = getNodeBounds(n);
+      const b = boundsOf(n);
       return b.left < end.x && b.right > start.x && start.y >= b.top && start.y <= b.bottom;
     });
     if (!hasObstacle) {
@@ -164,7 +192,7 @@ export function computeOrthogonalPath(
   const maxX = Math.max(start.x, end.x);
   const intermediateObstacles = (allNodes || []).filter(n => {
     if (ignoreIds.has(n.id)) return false;
-    const b = getNodeBounds(n);
+    const b = boundsOf(n);
     // 橫向重疊於路徑中段
     return b.right > minX + 16 && b.left < maxX - 16;
   });
@@ -178,7 +206,7 @@ export function computeOrthogonalPath(
 
     // 檢查簡單 2-Bend 路徑（start.y 橫向 -> midX 直向 -> end.y 橫向）是否會切穿任何中間機台
     const hitsObstacle = intermediateObstacles.some(n => {
-      const b = getNodeBounds(n);
+      const b = boundsOf(n);
       // 檢查橫向段 1 [start.x, midX] at start.y
       if (start.y >= b.top && start.y <= b.bottom && Math.max(start.x, b.left) <= Math.min(midX, b.right)) {
         return true;
@@ -216,29 +244,29 @@ export function computeOrthogonalPath(
     const TRACK_GAP_X = 20;
     const x1 = Math.max(
       start.x + 16,
-      (fromNode ? getNodeBounds(fromNode).right + 16 : start.x + 24) + corridorTrack * TRACK_GAP_X + slotOffset * 0.5
+      (fromNode ? boundsOf(fromNode).right + 16 : start.x + 24) + corridorTrack * TRACK_GAP_X + slotOffset * 0.5
     );
     const x2 = Math.min(
       end.x - 24,
-      (toNode ? getNodeBounds(toNode).left - 16 : end.x - 28) - corridorTrack * TRACK_GAP_X - slotOffset * 0.5
+      (toNode ? boundsOf(toNode).left - 16 : end.x - 28) - corridorTrack * TRACK_GAP_X - slotOffset * 0.5
     );
 
     const minSpanX = Math.min(x1, x2);
     const maxSpanX = Math.max(x1, x2);
     const blockingObstacles = intermediateObstacles
       .filter(n => {
-        const b = getNodeBounds(n);
+        const b = boundsOf(n);
         return b.right >= minSpanX && b.left <= maxSpanX;
       })
-      .sort((a, b) => getNodeBounds(a).top - getNodeBounds(b).top);
+      .sort((a, b) => boundsOf(a).top - boundsOf(b).top);
 
     const candidateList: number[] = [];
 
     // 2. 優先探索「機台之間的水平行間通道」(Inter-row Gaps)
     //    如採收辣椒與烘烤灰燼之間的間隙，直接走最短橫向通道，杜絕無謂折返！
     for (let i = 0; i < blockingObstacles.length - 1; i++) {
-      const b1 = getNodeBounds(blockingObstacles[i]);
-      const b2 = getNodeBounds(blockingObstacles[i + 1]);
+      const b1 = boundsOf(blockingObstacles[i]);
+      const b2 = boundsOf(blockingObstacles[i + 1]);
       const gapHeight = b2.top - b1.bottom;
       if (gapHeight >= 16) {
         const gapCenter = (b1.bottom + b2.top) / 2;
@@ -252,24 +280,24 @@ export function computeOrthogonalPath(
 
     // 3. 障礙物群頂部與底部外緣通道
     if (blockingObstacles.length > 0) {
-      const blockTop = Math.min(...blockingObstacles.map(n => getNodeBounds(n).top));
-      const blockBottom = Math.max(...blockingObstacles.map(n => getNodeBounds(n).bottom));
+      const blockTop = Math.min(...blockingObstacles.map(n => boundsOf(n).top));
+      const blockBottom = Math.max(...blockingObstacles.map(n => boundsOf(n).bottom));
       candidateList.push(Math.max(20, blockTop - offset));
       candidateList.push(blockBottom + offset);
     }
 
     // 4. 全廠外緣通道 (安全兜底)
     const allObstacleTop = intermediateObstacles.length > 0
-      ? Math.min(...intermediateObstacles.map(n => getNodeBounds(n).top))
+      ? Math.min(...intermediateObstacles.map(n => boundsOf(n).top))
       : 80;
     const allObstacleBottom = intermediateObstacles.length > 0
-      ? Math.max(...intermediateObstacles.map(n => getNodeBounds(n).bottom))
+      ? Math.max(...intermediateObstacles.map(n => boundsOf(n).bottom))
       : 1200;
     const factoryTop = (allNodes && allNodes.length > 0)
-      ? Math.min(...allNodes.map(n => getNodeBounds(n).top))
+      ? Math.min(...allNodes.map(n => boundsOf(n).top))
       : 80;
     const factoryBottom = (allNodes && allNodes.length > 0)
-      ? Math.max(...allNodes.map(n => getNodeBounds(n).bottom))
+      ? Math.max(...allNodes.map(n => boundsOf(n).bottom))
       : 1200;
 
     candidateList.push(Math.max(20, allObstacleTop - offset));
@@ -279,7 +307,7 @@ export function computeOrthogonalPath(
 
     // 5. 嚴格碰撞檢驗：只保留 100% 水平不穿透任何機台的安全通道
     const clearCandidates = candidateList.filter(y =>
-      isHorizontalSegmentClear(y, x1, x2, allNodes || [], ignoreIds)
+      isHorizontalSegmentClear(y, x1, x2, allNodes || [], ignoreIds, boundsOf)
     );
 
     // 6. 評分排序：尋找總垂直位移最小、路徑最直接的美觀通道 (虛空優先走下方通道)
@@ -315,13 +343,13 @@ export function computeOrthogonalPath(
 
   // 4. 同欄位垂直連線或逆向回補 (Target 在 Source 左方、或同欄位垂直向下/向上)
   const TRACK_GAP_X = 20;
-  const fromRight = (fromNode ? getNodeBounds(fromNode).right + 16 : start.x + 24) + corridorTrack * TRACK_GAP_X + slotOffset * 0.5;
-  const toLeft = (toNode ? getNodeBounds(toNode).left - 16 : end.x - 28) - corridorTrack * TRACK_GAP_X - slotOffset * 0.5;
+  const fromRight = (fromNode ? boundsOf(fromNode).right + 16 : start.x + 24) + corridorTrack * TRACK_GAP_X + slotOffset * 0.5;
+  const toLeft = (toNode ? boundsOf(toNode).left - 16 : end.x - 28) - corridorTrack * TRACK_GAP_X - slotOffset * 0.5;
 
-  const fromBottom = fromNode ? getNodeBounds(fromNode).bottom : (start.y + 30);
-  const fromTop = fromNode ? getNodeBounds(fromNode).top : (start.y - 30);
-  const toBottom = toNode ? getNodeBounds(toNode).bottom : (end.y + 30);
-  const toTop = toNode ? getNodeBounds(toNode).top : (end.y - 30);
+  const fromBottom = fromNode ? boundsOf(fromNode).bottom : (start.y + 30);
+  const fromTop = fromNode ? boundsOf(fromNode).top : (start.y - 30);
+  const toBottom = toNode ? boundsOf(toNode).bottom : (end.y + 30);
+  const toTop = toNode ? boundsOf(toNode).top : (end.y - 30);
 
   let gapY: number;
   if (opts.preferBelow) {
@@ -348,12 +376,12 @@ export function computeOrthogonalPath(
   }
 
   // 檢查橫向跨越段是否會切穿同欄中的其它中間機台
-  if (!isHorizontalSegmentClear(gapY, toLeft, fromRight, allNodes || [], ignoreIds)) {
+  if (!isHorizontalSegmentClear(gapY, toLeft, fromRight, allNodes || [], ignoreIds, boundsOf)) {
     const candidateGapTop = Math.min(fromTop, toTop) - 24 - corridorTrack * 16;
     const candidateGapBottom = Math.max(fromBottom, toBottom) + 24 + corridorTrack * 16;
     if (opts.preferBelow) {
       gapY = candidateGapBottom;
-    } else if (isHorizontalSegmentClear(candidateGapTop, toLeft, fromRight, allNodes || [], ignoreIds)) {
+    } else if (isHorizontalSegmentClear(candidateGapTop, toLeft, fromRight, allNodes || [], ignoreIds, boundsOf)) {
       gapY = candidateGapTop;
     } else {
       gapY = candidateGapBottom;

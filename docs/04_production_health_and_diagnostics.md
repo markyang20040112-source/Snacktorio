@@ -66,6 +66,6 @@
 |---|---|---|---|
 | 物質操縱機 0% 停機 | `ERR_PROGENITOR_DEADLOCK` | 祖源閉環死鎖，候選 Donor 依賴自身產物。 | 檢查 `itemTraits.ts` 的 `isUpstreamAncestor` 或動態有向圖閉環 |
 | 廚師機固定 50% 欠壓 | `ERR_FLUID_STARVATION` | 流體混管稀釋，或未落實 1:1 專線直供 / 均分。 | 檢查流體分配與 `dishBlueprintGenerator.ts` 專線邏輯 |
-| 中間設備 80% 降載 | `ERR_RATE_PENALTY` | 輸入端 `rateRequired` 誤寫為額定值，造成二次扣減懲罰。 | 校準輸入端口之 `rateRequired` 為實際設計流率 |
-| 相同設備負載不均 | `ERR_PARTITION_IMBALANCE` | 裝箱分流（Best-Fit）分配不均，下游目標全擠到同一台。 | 檢查目標分流分配器（`partitionTargetsToSuppliers`） |
-| 輸送帶週期性停擺 | `ERR_CROSS_DONATION_CYCLE` | 多重構機 cross-donation 引發長震盪互鎖循環。 | 檢查有向圖可達性檢查與遞移閉包 (`canAddDependency`) |
+| 中間設備 80% 降載 | `ERR_RATE_PENALTY`（無自動偵測，人工排查用） | 輸入端 `rateRequired` 誤寫為額定值，造成二次扣減懲罰。 | 校準輸入端口之 `rateRequired` 為實際設計流率 |
+| 相同設備負載不均 | `ERR_PARTITION_IMBALANCE`（無自動偵測，人工排查用） | 裝箱分流（Best-Fit）分配不均，下游目標全擠到同一台。 | 檢查目標分流分配器（`partitionTargetsToSuppliers`） |
+| 輸送帶週期性停擺 | `ERR_CROSS_DONATION_CYCLE`（無自動偵測，人工排查用） | 多重構機 cross-donation 引發長震盪互鎖循環。 | 檢查有向圖可達性檢查與遞移閉包 (`canAddDependency`) |

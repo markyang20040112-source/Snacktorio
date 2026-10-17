@@ -9,6 +9,37 @@ import { PROCESS_ACTION_VERBS } from './actionVerbs';
 /** 由環境池 + 泵機供應之環境流體（遊戲物理常數，非物品分類） */
 export const ENV_FLUIDS = ['水', '油', '虛空'];
 
+/** fluidType 欄位為「無」或環境流體（無需上游加工工序供應） */
+export function isNoneOrEnvFluid(fluidType: string): boolean {
+  return fluidType === '無' || ENV_FLUIDS.includes(fluidType);
+}
+
+/** 底料佔位名稱（非實體物品）：配方中以此表示「接受任意固體作為底料」之輸入端 */
+export const BASE_PLACEHOLDERS = ['任意物品', '重構底料', '底料'];
+
+/** 是否為底料佔位名稱（任意物品 / 重構底料 / 底料） */
+export function isBasePlaceholder(name: string): boolean {
+  return BASE_PLACEHOLDERS.includes(name);
+}
+
+/** 泛用底料別名（底料佔位 + 底料專供 / 底料作物），彼此互通配對 */
+const GENERIC_BASE_NAMES = [...BASE_PLACEHOLDERS, '底料專供', '底料作物'];
+
+/** 是否為泛用底料別名（任意物品 / 重構底料 / 底料 / 底料專供 / 底料作物） */
+export function isGenericBaseName(name: string): boolean {
+  return GENERIC_BASE_NAMES.includes(name);
+}
+
+/** 非實體原料輸入：空值、「無」、「無(空載)」與底料佔位名稱（BOM 追溯時一律略過） */
+export function isNonMaterialInput(name: string | undefined): boolean {
+  return !name || name === '無' || name === '無(空載)' || isBasePlaceholder(name);
+}
+
+/** 屬性 / 備註字串是否標示「熾熱」 */
+export function hasScorchingAttr(text: string | undefined): boolean {
+  return Boolean(text && text.includes('熾熱'));
+}
+
 /**
  * 連續管網流體名稱集合：環境流體 + 任何被終端食譜 / 中間配方引用為 fluidType（液體輸入）的物品。
  * 例：塔瑪茄醬被某料理的 fluidType 引用 → 即為流體。新食譜引用新流體時自動納入，無需維護名單。
@@ -84,7 +115,7 @@ export function isUpstreamAncestor(
   for (const r of matching) {
     // 1. 固體原料遞迴檢查
     for (const inp of r.inputs || []) {
-      if (!inp.name || ['無', '任意物品', '重構底料', '底料'].includes(inp.name)) continue;
+      if (!inp.name || inp.name === '無' || isBasePlaceholder(inp.name)) continue;
       if (inp.name === targetProduct || inp.name.includes(targetProduct) || targetProduct.includes(inp.name)) {
         return true;
       }
@@ -93,7 +124,7 @@ export function isUpstreamAncestor(
       }
     }
     // 2. 流體原料 (fluidType) 遞迴檢查
-    if (r.fluidType && !['無', '水', '油', '虛空'].includes(r.fluidType)) {
+    if (r.fluidType && !isNoneOrEnvFluid(r.fluidType)) {
       if (r.fluidType === targetProduct || r.fluidType.includes(targetProduct) || targetProduct.includes(r.fluidType)) {
         return true;
       }

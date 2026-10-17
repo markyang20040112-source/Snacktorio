@@ -1,6 +1,6 @@
 import { Recipe, ProcessNode, FeederStrategy, DownstreamTarget, IntermediateRecipe, CalculationResult, Item, ConsolidatedProcessRecord } from '../types';
 import { calculateSingleDish, settlePlantInfrastructure, isScorchingDish, getProcessRealSurplusRate, sortProcessesDownstreamToUpstream, computeIntegerRatio } from './solver';
-import { matchParallelByproductFeeders } from './byproductMatching';
+import { matchParallelByproductFeeders, isBaseConsumerProcess } from './byproductMatching';
 import { dataService } from './dataService';
 import { formatFractionOrDecimal, gcdArray } from '../utils/math';
 
@@ -97,12 +97,7 @@ function consolidatePlan(
     const feederKey = '底料作物採集 (收割機 底料專供)';
 
     // Identify merged base consumer processes in the factory
-    const baseConsumerProcesses = Array.from(processMap.values()).filter(p => {
-      if (p.machine === '物質操縱機') return true;
-      const matchingInter = intermediateRecipes.find(r => r.name === p.processName || p.processName.includes(r.name));
-      if (matchingInter && matchingInter.inputs?.some(inp => ['任意物品', '重構底料', '底料'].includes(inp.name))) return true;
-      return false;
-    });
+    const baseConsumerProcesses = Array.from(processMap.values()).filter(p => isBaseConsumerProcess(p, intermediateRecipes));
 
     // True merged gross requirement across the whole factory
     const mergedGrossBaseFeeders = baseConsumerProcesses.length > 0
