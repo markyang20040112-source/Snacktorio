@@ -136,6 +136,7 @@ export function buildDishBlueprint(
     || items.find(it => it.source === '收割機' && it.island.includes('波莫拉'))
     || items.find(it => it.source === '收割機');
   const baseCropItemName = baseCropItem?.name || '';
+  const pumpMachineName = machines.find(m => m.name.includes('泵'))?.name || '';
 
 
   const SPOIL_MAP = new Map<string, { product: string; time: number }>();
@@ -347,7 +348,7 @@ export function buildDishBlueprint(
           id: pumpNodeId,
           type: 'pump',
           title: `${transFluidName}抽取泵機`,
-          machineName: '泵機',
+          machineName: pumpMachineName,
           powerMode: 'regular',
           pumpCapacity: 2.0,
           x: node.x + 180,
@@ -585,7 +586,7 @@ export function buildDishBlueprint(
     nodes,
     '虛空汙泥',
     '虛空',
-    '泵機',
+    pumpMachineName,
     '物質操縱機'
   );
   nodes.push(...envMod.nodes);

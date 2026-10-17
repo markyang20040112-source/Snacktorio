@@ -38,7 +38,7 @@ export function applyHierarchicalLayout(
 
   // 1. 全廠設備分類：環境流體基建、集中發電電網、主產線機台、胃復慘機台
   const envNodes = nodes.filter(n =>
-    (n.type === 'environment_pool' || n.id.startsWith('pool-') || n.id.startsWith('pump-') || n.id.startsWith('sludge-manip-')) &&
+    (n.type === 'environment_pool' || n.type === 'pump' || n.id.startsWith('pool-') || n.id.startsWith('pump-') || n.id.startsWith('sludge-manip-')) &&
     !n.id.startsWith('pump-trans-')
   );
   const powerNodes = nodes.filter(n => n.type === 'generator' || n.id.startsWith('pwr-coal'));

@@ -3,6 +3,11 @@
 > 本檔案收錄自 `PROJECT_STATUS.md` 移出之完整歷史決策紀錄（原文逐字保留，未做任何改寫）。
 > 最新條目置於最上方；新的詳細紀錄請追加於「最新紀錄」區塊頂端，`PROJECT_STATUS.md` 僅保留精簡摘要。
 
+* **2026-10-17｜D 組 Step 1（D5 + D7）：泵機機台名稱從資料讀取為「虛空泵機」、環境泵排版分類統一（使用者核准更新基準）**：
+  - D5（`dishBlueprintGenerator.ts`）：原位轉化抽取泵與環境流體模組之泵機名稱改由 `machines.json` 動態讀取（`'虛空泵機'`），消除不存在的硬編碼名稱 `'泵機'`（影響 39 道含泵機料理藍圖之 `machineName` 欄位）。
+  - D7（`dishBlueprintLayout.ts`）：環境節點篩選條件加入 `n.type === 'pump'`（排除 `pump-trans-` 原位轉化抽取泵），確保所有環境泵歸入左側液體系統區。
+  - 驗證：計算機（solver）1008 案例完全不變；沙盒 378 案例除 `machineName` 外數值與座標零差異；`npm run check` 與 `npm run build` 通過。
+
 * **2026-10-17｜程式清理 A/B/C（零計算變更，未更新基準）**：
   - A 刪除死碼：`dishBlueprintPower.ts` 未被呼叫的舊版底料分配 `allocateSmartBaseMaterials` / `hasDirectedPath`（539 → 293 行）；solver 無人使用的再匯出；digitalTwinAudit 從未發出的 3 個診斷碼（docs/04 改標「人工排查用」）；generator 無效別名與空過濾。
   - B 合併重複：`itemTraits.ts` 新增 `BASE_PLACEHOLDERS` / `isBasePlaceholder` / `isGenericBaseName` / `isNonMaterialInput` / `isNoneOrEnvFluid` / `hasScorchingAttr`（各呼叫點維持原本的名稱子集）；byproductMatching 合併重複的非 Donor 機台清單與候選建立，`isBaseConsumerProcess` 供 parallelPlanner 共用。
