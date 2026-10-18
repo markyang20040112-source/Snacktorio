@@ -111,6 +111,7 @@
 ## 7. 近期決策摘要 (Recent Decisions)
 > 完整原文見 [`docs/CHANGELOG.md`](docs/CHANGELOG.md)。新紀錄請先追加詳細內容至 CHANGELOG 頂端，再於此更新摘要（保留最近約 10 筆）。
 
+* **2026-10-18｜並聯規劃廚師機液體路由與電網負載同步修復、移除42道食譜巡檢**：修復 `dishBlueprintGenerator.ts` 終端廚師機未依 `dishName` 篩選導致多料理共用攪拌機錯接飢餓；修復 `plantInfrastructure.ts` 超頻發電熔爐進位時操縱機負載未同步至 `totalLoad` 造成 1 FV/s 差距；`DigitalTwinModal.tsx` 徹底移除已退役的 42 道巡檢分頁（372 行）。`npm run check` 通過。
 * **2026-10-18｜E 組：沙盒動態產線規劃生成器、專案庫純自建重構與物理監控收合**：左側「✨ 產線規劃」分頁動態生成單/多料理產線藍圖（`buildPlantBlueprint`）；非整數倍廚師機稼動率物理與體檢模型實裝（尾部機台達標即 100% 合格）；專案庫清理預設 42 道藍圖轉為純使用者自建（支援單筆刪除與做法 1 先預覽後存檔）；右側全廠即時物理監控支援收合。
 * **2026-10-17｜D 組 Step 4（D8 + solver 流體修正）**：`digitalTwinAudit.ts` 第一關補入總耗電、泵機台數、發電熔爐數對帳；`solver.ts` 排除固體「水稻」誤判為水，並依 `intermediateRecipes.fluidType` 排除「炸哈瓦那魔椒」誤算入普通油。全廠 42 道料理在計算機與沙盒 100% 對齊（42/42 Healthy）。
 * **2026-10-17｜D 組 Step 3（D4 + D6）**：新增 `machineSpec.ts` 統一由 `machines.json` 讀取耗電與哥布林（修正轉化抽取泵哥布林 0➔1）；沙盒發電模組改用計算機超頻 2:1:1 配置（16 FV/s 熔爐 + 採煤機 + 供汙泥操縱機），42 道料理熔爐數與計算機完全一致。
@@ -121,5 +122,4 @@
 * **2026-10-17｜恢復嚴格品質閘門**：撤銷 CI 自動重建基準（會讓回歸保護失效），閘門新增自我保護，AGENTS.md 新增「嚴禁削弱品質閘門」。
 * **2026-10-13｜莎莎醬工序圖標解析修復**：廢除 `iconHelper.ts` 殘留的 `replace(/莎莎/g, '沙沙')`，統一以草字頭「莎」為單一事實來源並補齊直通別名。
 * **2026-10-13｜數位雙生閉環檢查機制 (Digital Twin Verification) 實裝**：實裝第一關靜態鏡像審計 (`runMirrorAudit`)、第二關 60 週期無 UI 物理快進 (`runHeadlessPhysicsAudit`) 與全廠 42 道大體檢 (`runFullPlantAudit`)；0 底料需求不再生成孤島收割機；新增診斷卡彈窗與工具列狀態徽章。
-* **2026-10-13｜多料理並聯規劃雙槽底料折抵全面打通**：抽離 `solveBipartiteByproductMatching`，單料理與多料理並聯 100% 共用二分圖背包演算法，支援跨產線碎屑（$\ge 0.049$/s）湊滿 0.20/s。
 

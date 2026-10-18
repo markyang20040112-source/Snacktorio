@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, CheckCircle2, AlertTriangle, RefreshCw, Cpu, Activity,
-  Boxes, GitMerge, ArrowRight, Layers, ShieldCheck, Bug
+  Boxes, GitMerge, ArrowRight, ShieldCheck, Bug
 } from 'lucide-react';
 import { 
   runDigitalTwinVerification, 
-  runFullPlantAudit, 
   runBlueprintAudit,
-  DigitalTwinReport, 
-  FullPlantAuditReport 
+  DigitalTwinReport
 } from '../../services/digitalTwinAudit';
 import { dataService } from '../../services/dataService';
 import { Recipe } from '../../types';
@@ -27,10 +25,8 @@ export const DigitalTwinModal: React.FC<DigitalTwinModalProps> = ({
   currentDishName,
   currentBlueprint
 }) => {
-  const [activeTab, setActiveTab] = useState<'current' | 'fullPlant'>('current');
   const [selectedDishName, setSelectedDishName] = useState<string>('');
   const [report, setReport] = useState<DigitalTwinReport | null>(null);
-  const [fullPlantReport, setFullPlantReport] = useState<FullPlantAuditReport | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
 
@@ -82,27 +78,6 @@ export const DigitalTwinModal: React.FC<DigitalTwinModalProps> = ({
     }, 0);
   };
 
-  const handleRunFullPlant = () => {
-    setIsRunning(true);
-    setTimeout(() => {
-      try {
-        const fullRep = runFullPlantAudit(recipes);
-        setFullPlantReport(fullRep);
-        setActiveTab('fullPlant');
-      } catch (e) {
-        console.error('Full Plant Audit Error:', e);
-      } finally {
-        setIsRunning(false);
-      }
-    }, 0);
-  };
-
-  const handleSelectDishFromPlant = (dishName: string) => {
-    setSelectedDishName(dishName);
-    runAuditForDish(dishName);
-    setActiveTab('current');
-  };
-
   if (!isOpen) return null;
 
   return (
@@ -137,72 +112,36 @@ export const DigitalTwinModal: React.FC<DigitalTwinModalProps> = ({
         </div>
 
         {/* Tab Controls & Actions */}
+        {/* Action Controls */}
         <div className="px-6 py-2.5 border-b border-[#1c2e38] flex items-center justify-between bg-[#0a1318] text-xs">
           <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setActiveTab('current')}
-              className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center space-x-1.5 ${
-                activeTab === 'current'
-                  ? 'bg-teal-500/20 text-teal-300 border border-teal-500/50 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-              }`}
-            >
+            <div className="px-3 py-1.5 rounded-xl font-bold bg-teal-500/20 text-teal-300 border border-teal-500/50 shadow-sm flex items-center space-x-1.5">
               <Activity className="w-3.5 h-3.5" />
               <span>當前產線體檢 ({report?.dishName || selectedDishName})</span>
-            </button>
-            <button
-              onClick={() => {
-                if (!fullPlantReport) handleRunFullPlant();
-                else setActiveTab('fullPlant');
-              }}
-              className={`px-3 py-1.5 rounded-xl font-bold transition-all flex items-center space-x-1.5 ${
-                activeTab === 'fullPlant'
-                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5" />
-              <span>全廠 42 道食譜巡檢</span>
-              {fullPlantReport && (
-                <span className="ml-1 text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-800/60 font-mono">
-                  {fullPlantReport.healthyCount}/{fullPlantReport.totalDishes}
-                </span>
-              )}
-            </button>
+            </div>
           </div>
 
           <div className="flex items-center space-x-2">
-            {activeTab === 'current' ? (
-              <button
-                onClick={() => {
-                  if (currentBlueprint && currentBlueprint.nodes.length > 0) {
-                    runAuditForBlueprint(currentBlueprint);
-                  } else {
-                    runAuditForDish(selectedDishName);
-                  }
-                }}
-                disabled={isRunning}
-                className="px-2.5 py-1.5 bg-[#14232a] hover:bg-[#1a2d36] text-slate-300 rounded-xl border border-slate-700/60 flex items-center space-x-1 transition-colors disabled:opacity-50"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isRunning ? 'animate-spin text-teal-400' : ''}`} />
-                <span>重新體檢</span>
-              </button>
-            ) : (
-              <button
-                onClick={handleRunFullPlant}
-                disabled={isRunning}
-                className="px-3 py-1.5 bg-teal-600/30 hover:bg-teal-600/40 text-teal-200 border border-teal-500/50 rounded-xl font-bold flex items-center space-x-1 transition-colors disabled:opacity-50"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isRunning ? 'animate-spin' : ''}`} />
-                <span>一鍵全廠總體檢</span>
-              </button>
-            )}
+            <button
+              onClick={() => {
+                if (currentBlueprint && currentBlueprint.nodes.length > 0) {
+                  runAuditForBlueprint(currentBlueprint);
+                } else {
+                  runAuditForDish(selectedDishName);
+                }
+              }}
+              disabled={isRunning}
+              className="px-2.5 py-1.5 bg-[#14232a] hover:bg-[#1a2d36] text-slate-300 rounded-xl border border-slate-700/60 flex items-center space-x-1 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isRunning ? 'animate-spin text-teal-400' : ''}`} />
+              <span>重新體檢</span>
+            </button>
           </div>
         </div>
 
         {/* Body Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {activeTab === 'current' && report && (
+          {report && (
             <div className="space-y-6">
               
               {/* Overall Health Status Banner */}
@@ -408,70 +347,6 @@ export const DigitalTwinModal: React.FC<DigitalTwinModalProps> = ({
                   </div>
                 </div>
               )}
-
-            </div>
-          )}
-
-          {/* Tab 2: Full Plant Overview */}
-          {activeTab === 'fullPlant' && fullPlantReport && (
-            <div className="space-y-6">
-              
-              {/* Plant KPI Card */}
-              <div className="p-4 rounded-2xl bg-[#0e1a22] border border-[#1e3340] flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-bold text-slate-100 flex items-center space-x-2">
-                    <span>全廠 42 道料理數位雙生總巡檢報告</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full font-mono bg-teal-950 text-teal-300 border border-teal-800">
-                      100% 健全
-                    </span>
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    全自動巡檢 42 道食譜，歷經鏡像一致性審計與 60 週期無 UI 物理快進
-                  </p>
-                </div>
-
-                <div className="flex items-center space-x-4 font-mono text-xs">
-                  <div className="text-right">
-                    <div className="text-[10px] text-slate-400">健全食譜</div>
-                    <div className="text-lg font-bold text-emerald-400">{fullPlantReport.healthyCount} / {fullPlantReport.totalDishes}</div>
-                  </div>
-                  <div className="text-right pl-4 border-l border-slate-800">
-                    <div className="text-[10px] text-slate-400">巡檢總耗時</div>
-                    <div className="text-lg font-bold text-cyan-300">{fullPlantReport.executionTimeMs}ms</div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Dishes Grid */}
-              <div className="grid grid-cols-3 gap-3">
-                {fullPlantReport.results.map((dishRep, i) => (
-                  <div
-                    key={i}
-                    onClick={() => handleSelectDishFromPlant(dishRep.dishName)}
-                    className={`p-3 rounded-xl border text-xs cursor-pointer transition-all hover:scale-[1.02] flex flex-col justify-between ${
-                      dishRep.isHealthy
-                        ? 'bg-[#0f1b22] border-slate-800 hover:border-teal-500/60'
-                        : 'bg-rose-950/30 border-rose-800/80 hover:border-rose-500'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-slate-200 truncate pr-1">{dishRep.dishName}</span>
-                      <span className={`text-[10px] px-1.5 py-0.2 rounded font-mono font-bold shrink-0 ${
-                        dishRep.isHealthy
-                          ? 'bg-emerald-950 text-emerald-300 border border-emerald-800/60'
-                          : 'bg-rose-950 text-rose-300 border border-rose-800/60'
-                      }`}>
-                        {dishRep.isHealthy ? '🟢 滿載' : '🔴 故障'}
-                      </span>
-                    </div>
-
-                    <div className="mt-2 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-mono text-slate-400">
-                      <span>機台: {dishRep.stage1.sandboxMachineCount} 台</span>
-                      <span className="text-teal-300">{dishRep.stage2.chefEfficiency}% 滿載</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
 
             </div>
           )}

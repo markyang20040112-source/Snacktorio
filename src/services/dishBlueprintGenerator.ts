@@ -473,13 +473,24 @@ export function buildDishBlueprint(
         }
 
         let targetProcessName = dt.processName;
-        let toNodes = procNodesMap.get(targetProcessName);
+        let toNodes: SandboxNodeData[] | undefined;
 
-        if (!toNodes || toNodes.length === 0) {
-          if (dt.machine === '自動廚師機' || dt.processName === group.dishName || dt.processName === dish.name || Boolean(remedyDishName && dt.processName === remedyDishName)) {
-            const chefNodes = procNodesMap.get('終端組裝') || [];
+        if (targetProcessName === '終端組裝' || dt.machine === '自動廚師機') {
+          const chefNodes = procNodesMap.get('終端組裝') || [];
+          if (group.dishName) {
             toNodes = chefNodes.filter(cn => cn.recipeName === group.dishName);
-            if (toNodes.length === 0) toNodes = chefNodes;
+          }
+          if (!toNodes || toNodes.length === 0) toNodes = chefNodes;
+        } else {
+          toNodes = procNodesMap.get(targetProcessName);
+          if (!toNodes || toNodes.length === 0) {
+            if (dt.processName === group.dishName || dt.processName === dish.name || Boolean(remedyDishName && dt.processName === remedyDishName)) {
+              const chefNodes = procNodesMap.get('終端組裝') || [];
+              if (group.dishName) {
+                toNodes = chefNodes.filter(cn => cn.recipeName === group.dishName);
+              }
+              if (!toNodes || toNodes.length === 0) toNodes = chefNodes;
+            }
           }
         }
 

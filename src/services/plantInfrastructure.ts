@@ -114,17 +114,24 @@ export function settlePlantInfrastructure(input: PlantInfrastructureInput) {
                             transformations.reduce((sum, t) => sum + t.regularPumps, 0);
   const totalOverclockPumps = water.overclockPumps + oil.overclockPumps + voidInfo.overclockPumps +
                               transformations.reduce((sum, t) => sum + t.overclockPumps, 0);
-  const totalSludgeManipulators = water.sludgeManipulators + oil.sludgeManipulators + voidInfo.sludgeManipulators +
-                                  transformations.reduce((sum, t) => sum + t.sludgeManipulators, 0) +
-                                  genSludgeManipulators;
-  const totalPumpManipulatorPower = (totalRegularPumps + totalOverclockPumps + totalSludgeManipulators) * 1.0;
+  let totalSludgeManipulators = water.sludgeManipulators + oil.sludgeManipulators + voidInfo.sludgeManipulators +
+                                transformations.reduce((sum, t) => sum + t.sludgeManipulators, 0) +
+                                genSludgeManipulators;
+  let totalPumpManipulatorPower = (totalRegularPumps + totalOverclockPumps + totalSludgeManipulators) * 1.0;
 
   // 電網平衡：常規淨 3.5 FV/s/爐（2 爐 : 1 採煤）；超頻淨 14 FV/s/爐（2 爐 : 1 採煤 : 1 汙泥操縱機）
-  const baseForFurnace = mainPower + totalPumpManipulatorPower + feederPower;
+  let baseForFurnace = mainPower + totalPumpManipulatorPower + feederPower;
   const isOverclock = powerMode === 'overclock';
   const furnaces = Math.max(1, Math.ceil(baseForFurnace / (isOverclock ? 14.0 : 3.5)));
   const coalMiners = Math.ceil(furnaces / 2.0);
-  if (isOverclock) genSludgeManipulators = Math.ceil(furnaces / 2.0);
+  if (isOverclock) {
+    const finalGenSludge = Math.ceil(furnaces / 2.0);
+    const diff = finalGenSludge - genSludgeManipulators;
+    genSludgeManipulators = finalGenSludge;
+    totalSludgeManipulators += diff;
+    totalPumpManipulatorPower += diff * 1.0;
+    baseForFurnace += diff * 1.0;
+  }
   const grossPower = furnaces * (isOverclock ? 16.0 : 4.0);
   const coalRate = Number((furnaces * 0.1).toFixed(2));
   const coalMinerPower = coalMiners * 1.0;
