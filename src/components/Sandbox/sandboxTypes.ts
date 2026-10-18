@@ -38,6 +38,7 @@ export interface SandboxNodeData {
   splitterCustomRates?: number[];     // 自訂各端口輸出限流 (個/秒，相容性保留)
   splitterRatios?: number[];          // 自訂各出口輸出比例權重 (如 [2, 1] 表示 2:1，[3, 2] 表示 3:2)
   targetRatePerMin?: number;          // 終端料理目標產能 (份/分，如 12, 24, 36)
+  expectedEfficiency?: number;        // 規劃目標稼動率 (0 ~ 1，非整數倍產量時如第 2 台廚師機為 0.5)
   isAutoPepto?: boolean;              // 隨熾熱菜餚自動配餐之胃復慘節點
   autoPeptoTrackingRate?: number;     // 當前追蹤之全廠熾熱菜餚總和產能 (份/分)
 
@@ -98,6 +99,12 @@ export interface SandboxMetrics {
   }[];
 }
 
+export interface SandboxPlanConfig {
+  plannedDishes: { dishName: string; rateMin: number }[];
+  powerMode: 'regular' | 'overclock';
+  feedingStrategy: 'dedicated' | 'recycle';
+}
+
 /**
  * 沙盒產線專案 / 藍圖 (Sandbox Blueprint)
  * 支援任意命名、無限儲存、複製副本、匯入匯出與 GitHub API 雲端跨裝置同步
@@ -112,6 +119,7 @@ export interface SandboxBlueprint {
   connections: SandboxConnection[]; // 畫布連線拓撲
   pan?: { x: number; y: number };
   zoom?: number;
+  planConfig?: SandboxPlanConfig; // 產線計算機規劃配置 (供數位雙生體檢 1:1 對帳)
   stats?: {
     machineCount: number;
     powerLoad: number;

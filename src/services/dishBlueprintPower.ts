@@ -90,24 +90,29 @@ export function buildPowerModule(
     sludgeManipNodes.push(sludgeNode);
   }
 
+  const isOcGen = genSludgeCount > 0;
+  const genPower = isOcGen ? 16.0 : furnaceSpec.power;
+
   for (let fIdx = 0; fIdx < furnaceCount; fIdx++) {
     const genId = `pwr-gen-${dishIndex}-${fIdx}`;
     const genNode = makeNode({
       id: genId,
       type: 'generator',
-      title: furnaceCount > 1 ? `虛空熔爐 #${fIdx + 1} (16 FV/s)` : '虛空熔爐 (16 FV/s)',
+      title: furnaceCount > 1 ? `虛空熔爐 #${fIdx + 1} (${genPower} FV/s)` : `虛空熔爐 (${genPower} FV/s)`,
       machineName: furnaceMachineName,
-      powerMode: 'overclock',
+      powerMode: isOcGen ? 'overclock' : 'regular',
       x: 200,
       y: 80 + fIdx * 120,
       baseCycleTime: 10,
       baseOutputCount: 1,
-      basePowerConsumption: 16.0,
+      basePowerConsumption: genPower,
       baseGoblins: furnaceSpec.goblins,
-      inputs: [
-        { id: 'in-coal', name: coalName, type: 'solid', rateRequired: 0.1 },
-        { id: 'in-sludge', name: sludgeName, type: 'solid', rateRequired: 0.1 }
-      ],
+      inputs: isOcGen
+        ? [
+            { id: 'in-coal', name: coalName, type: 'solid', rateRequired: 0.1 },
+            { id: 'in-sludge', name: sludgeName, type: 'solid', rateRequired: 0.1 }
+          ]
+        : [{ id: 'in-coal', name: coalName, type: 'solid', rateRequired: 0.1 }],
       outputs: []
     });
     nodes.push(genNode);
@@ -154,7 +159,8 @@ export function buildEnvFluidsModule(
   sludgeName: string,
   voidFluidName: string,
   pumpMachineName: string,
-  manipulatorMachineName: string
+  manipulatorMachineName: string,
+  precomputedTiers?: Record<string, FluidTierInfo>
 ): { nodes: SandboxNodeData[]; connections: SandboxConnection[] } {
   const nodes: SandboxNodeData[] = [];
   const connections: SandboxConnection[] = [];
@@ -197,19 +203,19 @@ export function buildEnvFluidsModule(
   neededEnvFluids.forEach(fl => {
     if (fl === voidFluidName) return;
     const dem = demandMap.get(fl) || 0;
-    const tier = sizeAutonomousPump(dem, hasVoid);
+    const tier = precomputedTiers?.[fl] || sizeAutonomousPump(dem, hasVoid);
     tierMap.set(fl, tier);
     pumpSludgeVoid += tier.sludgeManipulators * 1.0;
   });
 
-  if (pumpSludgeVoid > 0 && !neededEnvFluids.has(voidFluidName)) {
+  if ((pumpSludgeVoid > 0 || (precomputedTiers?.[voidFluidName] && (precomputedTiers[voidFluidName].regularPumps + precomputedTiers[voidFluidName].overclockPumps > 0))) && !neededEnvFluids.has(voidFluidName)) {
     neededEnvFluids.add(voidFluidName);
     scanFluidConsumers(voidFluidName);
   }
 
   if (neededEnvFluids.has(voidFluidName)) {
     const procVoid = demandMap.get(voidFluidName) || 0;
-    tierMap.set(voidFluidName, sizeVoidPump(procVoid + pumpSludgeVoid));
+    tierMap.set(voidFluidName, precomputedTiers?.[voidFluidName] || sizeVoidPump(procVoid + pumpSludgeVoid));
   }
 
   const voidPumps: { node: SandboxNodeData; netRemaining: number }[] = [];

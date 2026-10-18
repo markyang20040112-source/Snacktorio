@@ -11,6 +11,119 @@ export interface SolidTargetSpec {
 }
 
 /**
+ * 依據各上游機台額定容量進行最佳適配裝箱分流 (Best-Fit Decreasing)，支援跨機台餘額拆分
+ */
+export function partitionTargetsToSuppliers<T extends { flowRate: number; isByproduct?: boolean }>(
+  fromNodes: { outputs: PortDefinition[] }[],
+  targets: T[],
+  defaultCap: number,
+  allowSplit: boolean = false
+): T[][] {
+  const n = fromNodes.length;
+  if (n <= 1) return [targets];
+  if (!allowSplit && targets.length <= 1) {
+    const res: T[][] = Array.from({ length: n }, () => []);
+    res[0] = targets;
+    return res;
+  }
+
+  const bins: { capacity: number; load: number; items: T[] }[] = fromNodes.map(fn => {
+    const cap = fn.outputs[0]?.rateProvided || defaultCap;
+    return { capacity: cap > 0 ? cap : defaultCap, load: 0, items: [] };
+  });
+
+  if (
+    allowSplit &&
+    targets.length === n &&
+    !targets.some(t => t.isByproduct) &&
+    targets.every((t, i) => t.flowRate <= bins[i].capacity + 0.005)
+  ) {
+    return targets.map(t => [t]);
+  }
+
+  const sorted = targets
+    .map((t, idx) => ({ t, idx }))
+    .sort((a, b) => (b.t.flowRate - a.t.flowRate) || (a.idx - b.idx));
+
+  for (const { t } of sorted) {
+    let bestBinIdx = -1;
+    let minResidual = Infinity;
+
+    for (let i = 0; i < n; i++) {
+      if (bins[i].load + t.flowRate <= bins[i].capacity + 0.005) {
+        const residual = bins[i].capacity - (bins[i].load + t.flowRate);
+        if (residual < minResidual) {
+          minResidual = residual;
+          bestBinIdx = i;
+        }
+      }
+    }
+
+    if (bestBinIdx !== -1) {
+      bins[bestBinIdx].items.push(t);
+      bins[bestBinIdx].load += t.flowRate;
+      continue;
+    }
+
+    if (!allowSplit) {
+      let minLoad = Infinity;
+      for (let i = 0; i < n; i++) {
+        if (bins[i].load < minLoad) {
+          minLoad = bins[i].load;
+          bestBinIdx = i;
+        }
+      }
+      bins[bestBinIdx].items.push(t);
+      bins[bestBinIdx].load += t.flowRate;
+      continue;
+    }
+
+    // 跨機台餘額拆分：當單一目標流量大於單台剩餘容量時，自動由多台上游機台協同供給
+    let rem = t.flowRate;
+    while (rem > 0.001) {
+      let fitIdx = -1;
+      let minAvailFit = Infinity;
+      let maxAvailIdx = -1;
+      let maxAvail = 0;
+
+      for (let i = 0; i < n; i++) {
+        const avail = bins[i].capacity - bins[i].load;
+        if (avail > 0.001) {
+          if (avail >= rem - 0.001 && avail < minAvailFit) {
+            minAvailFit = avail;
+            fitIdx = i;
+          }
+          if (avail > maxAvail) {
+            maxAvail = avail;
+            maxAvailIdx = i;
+          }
+        }
+      }
+
+      if (fitIdx !== -1) {
+        bins[fitIdx].items.push({ ...t, flowRate: Number(rem.toFixed(4)) });
+        bins[fitIdx].load += rem;
+        rem = 0;
+      } else if (maxAvailIdx !== -1) {
+        bins[maxAvailIdx].items.push({ ...t, flowRate: Number(maxAvail.toFixed(4)) });
+        bins[maxAvailIdx].load += maxAvail;
+        rem -= maxAvail;
+      } else {
+        let minLoadIdx = 0;
+        for (let i = 1; i < n; i++) {
+          if (bins[i].load < bins[minLoadIdx].load) minLoadIdx = i;
+        }
+        bins[minLoadIdx].items.push({ ...t, flowRate: Number(rem.toFixed(4)) });
+        bins[minLoadIdx].load += rem;
+        rem = 0;
+      }
+    }
+  }
+
+  return bins.map(b => b.items);
+}
+
+/**
  * 固體物料下游路由引擎：
  * 1. 副產物直供：湊滿 0.20/s 直接拉線至目標設備之 in-base 底料端（零合流器）。
  * 2. 均分直供：所有下游需量相等（1:1 或 1:1:1）時，利用機台多輸出口均分物理，直連下游（零分流器）。
@@ -26,13 +139,18 @@ export function routeSolidOutputs(
   itemName: string,
   targets: SolidTargetSpec[],
   splitterCounter: { current: number },
-  spoilMap: Map<string, { product: string; time: number }>
+  spoilMap: Map<string, { product: string; time: number }>,
+  isCustomPlan: boolean = false
 ): { extraNodes: SandboxNodeData[]; connections: SandboxConnection[] } {
   const extraNodes: SandboxNodeData[] = [];
   const connections: SandboxConnection[] = [];
 
-  const byproductTargets = targets.filter(t => t.isByproduct);
-  const regularTargets = targets.filter(t => !t.isByproduct);
+  const allRates = targets.map(t => Number((t.flowRate || 0.2).toFixed(3)));
+  const allTargetsEqual = allRates.every(r => Math.abs(r - allRates[0]) < 0.001);
+  const unifyIntoSplitter = isCustomPlan && !allTargetsEqual && targets.some(t => t.isByproduct) && targets.some(t => !t.isByproduct);
+
+  const byproductTargets = unifyIntoSplitter ? [] : targets.filter(t => t.isByproduct);
+  const regularTargets = unifyIntoSplitter ? targets : targets.filter(t => !t.isByproduct);
 
   // 1. 副產物直供 (Rule: 直接拉線到重構機/烤箱 in-base，湊足 0.20/s)
   byproductTargets.forEach((t, bIdx) => {
@@ -161,7 +279,7 @@ export function routeSolidOutputs(
         inputs: [{ id: 'in-item', name: itemName, type: 'solid' }],
         outputs: ratios.map((r, idx) => ({
           id: `out-item-${idx + 1}`,
-          name: `${itemName} (${String.fromCharCode(65 + idx)})`,
+          name: `${itemName} (${String.fromCharCode(65 + idx)}: ${((r / sumRatios) * 100).toFixed(0)}%)`,
           type: 'solid',
           rateProvided: Number((totalFlow * r / sumRatios).toFixed(3))
         })),

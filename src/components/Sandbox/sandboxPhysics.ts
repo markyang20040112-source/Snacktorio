@@ -305,7 +305,10 @@ function evaluateInputPorts(
     const reqRate = p.rateRequired !== undefined ? p.rateRequired : defaultReq;
     p.rateReceived = Number(receivedRate.toFixed(2));
     const isTerm = node.machineName === '自動廚師機';
-    p.isDeficit = (isTerm ? (reqRate > 0 && receivedRate < reqRate - 0.005) : (reqRate > 0 && receivedRate <= 0.001)) || invalidConns.length > 0;
+    const expectedRatio = (!isFluid && isTerm && node.expectedEfficiency !== undefined && node.expectedEfficiency < 1.0)
+      ? node.expectedEfficiency
+      : 1.0;
+    p.isDeficit = (isTerm ? (reqRate > 0 && receivedRate < reqRate * expectedRatio - 0.005) : (reqRate > 0 && receivedRate <= 0.001)) || invalidConns.length > 0;
     const sat = invalidConns.length > 0 ? 0 : (reqRate > 0 ? (receivedRate >= reqRate - 0.005 ? 1.0 : Math.min(1.0, receivedRate / reqRate)) : 1.0);
     if (sat < minSat) {
       minSat = sat;
@@ -431,6 +434,10 @@ function evaluateMachineNode(
     node.efficiency = Number((minFluidSat * minSolidSat).toFixed(3));
     const solidNote = minSolidSat < 1.0 ? `，且 ${solid.missingName} 不足 (${(minSolidSat * 100).toFixed(0)}%)` : '';
     node.statusNote = `⚠️ 產能跟不上！流體欠壓 ${(minFluidSat * 100).toFixed(0)}% (${fluid.missingDetail})：週期拉長至 ${node.actualCycleTime}s${solidNote}`;
+  } else if (node.expectedEfficiency !== undefined && node.expectedEfficiency < 1.0 && minSolidSat >= node.expectedEfficiency - 0.005) {
+    node.actualCycleTime = node.baseCycleTime;
+    node.efficiency = Number(node.expectedEfficiency.toFixed(3));
+    node.statusNote = `正常運轉中 (規劃稼動率 ${(node.efficiency * 100).toFixed(0)}%)`;
   } else if (minSolidSat < 1.0) {
     node.actualCycleTime = node.baseCycleTime;
     node.efficiency = Number(minSolidSat.toFixed(3));
@@ -454,8 +461,11 @@ function evaluateMachineNode(
       p.rateProvided = 999;
       return;
     }
+    const effectiveSolidFactor = (node.expectedEfficiency !== undefined && node.expectedEfficiency < 1.0 && minSolidSat >= node.expectedEfficiency - 0.005)
+      ? node.efficiency
+      : minSolidSat;
     const actualOutRate = node.actualCycleTime > 0
-      ? (node.baseOutputCount / node.actualCycleTime) * minSolidSat
+      ? (node.baseOutputCount / node.actualCycleTime) * effectiveSolidFactor
       : 0;
     p.rateProvided = Number(actualOutRate.toFixed(3));
   });
