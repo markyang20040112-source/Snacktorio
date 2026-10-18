@@ -1,4 +1,4 @@
-import { SandboxBlueprint, SandboxNodeData, SandboxConnection } from '../components/Sandbox/sandboxTypes';
+import { SandboxBlueprint, SandboxNodeData, SandboxConnection, SandboxPlanConfig } from '../components/Sandbox/sandboxTypes';
 import { SyncConfig, Recipe } from '../types';
 import { syncDataToGitHub } from './githubSync';
 import { buildDishBlueprint } from './dishBlueprintGenerator';
@@ -6,10 +6,7 @@ import { getBuiltInBlueprints } from './builtInBlueprints';
 import { dataService } from './dataService';
 
 const STORAGE_KEY = 'snacktorio_sandbox_blueprints_v1';
-const DELETED_KEY = 'snacktorio_sandbox_deleted_builtins_v1';
-const BUILTIN_VERSION = '20261013_v23_dual_slot_byproduct_matching';
-const VERSION_KEY = 'snacktorio_sandbox_builtin_version';
-
+const MIGRATION_V2_KEY = 'snacktorio_sandbox_blueprints_v2_migrated';
 
 export const isOfficialDishBlueprint = (bp: SandboxBlueprint) =>
   bp.id.startsWith('bp_dish_') || bp.id.startsWith('bp_recipe_');
@@ -18,81 +15,59 @@ export const isOfficialTutorialBlueprint = (bp: SandboxBlueprint) =>
   bp.id === 'bp_starter_generator' || bp.id === 'bp_tutorial_power';
 
 class SandboxBlueprintService {
-  private getDeletedIds(): Set<string> {
+  /**
+   * 一次性清理舊版預設官方藍圖，將專案庫移轉為 100% 使用者自建專案
+   */
+  private ensureV2Migration() {
     try {
-      const saved = localStorage.getItem(DELETED_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) return new Set(parsed);
+      if (typeof localStorage === 'undefined') return;
+      const migrated = localStorage.getItem(MIGRATION_V2_KEY);
+      if (!migrated) {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            const userOnly = parsed.filter(bp =>
+              !isOfficialDishBlueprint(bp) &&
+              !isOfficialTutorialBlueprint(bp) &&
+              !bp.id.startsWith('bp_builtin_')
+            );
+            this.saveList(userOnly);
+          }
+        }
+        localStorage.setItem(MIGRATION_V2_KEY, 'true');
       }
-    } catch {}
-    return new Set();
-  }
-
-  private saveDeletedIds(ids: Set<string>) {
-    try {
-      localStorage.setItem(DELETED_KEY, JSON.stringify([...ids]));
-    } catch {}
+    } catch (e) {
+      console.error('Migration to v2 blueprints failed', e);
+    }
   }
 
   /**
-   * 取得完整內建/官方料理藍圖清單 (依目前資料庫執行期自動生成，含未來新登錄之料理)
+   * 取得完整內建/官方料理藍圖清單 (依目前資料庫執行期自動生成)
    */
   public getBuiltInAndDynamicBlueprints(): SandboxBlueprint[] {
     return getBuiltInBlueprints();
   }
 
   /**
-   * 取得所有儲存之產線專案 (自動合併官方全套食譜藍圖與使用者自訂/副本專案)
+   * 取得所有使用者儲存之產線專案 (純使用者自建與自訂專案)
    */
   public getAllBlueprints(): SandboxBlueprint[] {
-    const builtInList = this.getBuiltInAndDynamicBlueprints();
+    this.ensureV2Migration();
     try {
-      const savedVersion = localStorage.getItem(VERSION_KEY);
-      const isOutdatedVersion = savedVersion !== BUILTIN_VERSION;
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          const deletedIds = this.getDeletedIds();
-
-          if (isOutdatedVersion) {
-            // 版本升級：全面更新官方預設藍圖為最新版本 (修復物理產能問題)，同時完整保留使用者自創/副本專案
-            const builtInIds = new Set(builtInList.map(bp => bp.id));
-            const userCustomBlueprints = parsed.filter(bp => !builtInIds.has(bp.id));
-            const activeBuiltIns = builtInList.filter(bp => !deletedIds.has(bp.id));
-            const merged = [...userCustomBlueprints, ...activeBuiltIns];
-            this.saveList(merged);
-            localStorage.setItem(VERSION_KEY, BUILTIN_VERSION);
-            return merged;
+      if (typeof localStorage !== 'undefined') {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            return parsed;
           }
-
-          const savedIds = new Set(parsed.map(bp => bp.id));
-
-          // 自動補入使用者本地尚未擁有的官方預設藍圖 (且未被使用者主動刪除)
-          const missingBuiltIns = builtInList.filter(
-            bp => !savedIds.has(bp.id) && !deletedIds.has(bp.id)
-          );
-
-          if (missingBuiltIns.length > 0) {
-            // 合併：保留使用者自訂/修改專案在前方，官方預設補在後方
-            const merged = [...parsed, ...missingBuiltIns];
-            this.saveList(merged);
-            return merged;
-          }
-          return parsed;
         }
       }
     } catch (e) {
       console.error('無法讀取本機產線專案列表', e);
     }
-
-    // 初次載入或本地為空
-    this.saveList(builtInList);
-    try {
-      localStorage.setItem(VERSION_KEY, BUILTIN_VERSION);
-    } catch {}
-    return builtInList;
+    return [];
   }
 
 
@@ -138,6 +113,7 @@ class SandboxBlueprintService {
     zoom?: number;
     description?: string;
     existingId?: string;
+    planConfig?: SandboxPlanConfig;
   }): SandboxBlueprint {
     const currentList = this.getAllBlueprints();
     const now = new Date().toISOString();
@@ -156,6 +132,7 @@ class SandboxBlueprintService {
           connections: params.connections,
           pan: params.pan,
           zoom: params.zoom,
+          planConfig: params.planConfig ?? currentList[index].planConfig,
           stats
         };
         currentList[index] = updated;
@@ -175,6 +152,7 @@ class SandboxBlueprintService {
       connections: params.connections,
       pan: params.pan,
       zoom: params.zoom,
+      planConfig: params.planConfig,
       stats
     };
 
@@ -229,18 +207,12 @@ class SandboxBlueprintService {
   }
 
   /**
-   * 刪除專案 (若為官方預設專案則記錄已刪除，避免自動復活)
+   * 刪除專案
    */
   public deleteBlueprint(id: string): boolean {
     const currentList = this.getAllBlueprints();
     const filtered = currentList.filter(bp => bp.id !== id);
     if (filtered.length !== currentList.length) {
-      const builtInList = this.getBuiltInAndDynamicBlueprints();
-      if (builtInList.some(bp => bp.id === id)) {
-        const deletedIds = this.getDeletedIds();
-        deletedIds.add(id);
-        this.saveDeletedIds(deletedIds);
-      }
       this.saveList(filtered);
       return true;
     }
@@ -248,24 +220,10 @@ class SandboxBlueprintService {
   }
 
   /**
-   * 重置並恢復所有官方食譜藍圖庫 (同時安全保留所有使用者自創專案與副本)
+   * 重置專案庫 (保留使用者專案)
    */
   public restoreOfficialBlueprints(): SandboxBlueprint[] {
-    try {
-      localStorage.removeItem(DELETED_KEY);
-    } catch {}
-
-    const builtInList = this.getBuiltInAndDynamicBlueprints();
-    const currentList = this.getAllBlueprints();
-
-    // 找出使用者自訂/副本專案 (非官方 ID)
-    const builtInIds = new Set(builtInList.map(bp => bp.id));
-    const userCustomBlueprints = currentList.filter(bp => !builtInIds.has(bp.id));
-
-    // 合併：使用者專案在最前，官方全量食譜藍圖在後
-    const restored = [...userCustomBlueprints, ...builtInList];
-    this.saveList(restored);
-    return restored;
+    return this.getAllBlueprints();
   }
 
   /**

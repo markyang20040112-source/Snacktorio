@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { SandboxNodeData, SandboxConnection, PortDefinition, SandboxBlueprint } from './sandboxTypes';
+import { SandboxNodeData, SandboxConnection, PortDefinition, SandboxBlueprint, SandboxPlanConfig } from './sandboxTypes';
 import { simulateSandboxPhysics, isItemMatch, normalizeItemName } from './sandboxPhysics';
 import { SandboxNode } from './SandboxNode';
 import { SandboxBlueprintModal } from './SandboxBlueprintModal';
@@ -7,7 +7,8 @@ import {
   makeNode, calibrateNodeBaseRates, configureDishNodeRates, cloneSubgraph,
   sameNodesIgnoringPosition, saveCanvasToLocal, calculateFitView
 } from './sandboxNodeUtils';
-import { sandboxBlueprintService, isOfficialDishBlueprint } from '../../services/sandboxBlueprintService';
+import { sandboxBlueprintService } from '../../services/sandboxBlueprintService';
+import { buildPlantBlueprint } from '../../services/dishBlueprintGenerator';
 import { Machine, Item, IntermediateRecipe, Recipe } from '../../types';
 import { isScorchingDish } from '../../services/solver';
 import { SandboxCatalogSidebar, InfrastructureType } from './SandboxCatalogSidebar';
@@ -78,12 +79,10 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
   const [selectionBox, setSelectionBox] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
   const dragNodesStartPositionsRef = useRef<Record<string, { x: number; y: number }>>({});
 
-  // 終端料理預設出餐產能 (側欄型錄與新增廚師機共用)
-  const [defaultDishRateMin, setDefaultDishRateMin] = useState<number>(12);
-
   // 產線專案 (Blueprint) 狀態
   const [currentBlueprintId, setCurrentBlueprintId] = useState<string | null>(() => typeof localStorage !== 'undefined' ? localStorage.getItem('snacktorio_current_blueprint_id_v1') || null : null);
   const [currentBlueprintName, setCurrentBlueprintName] = useState<string>(() => typeof localStorage !== 'undefined' ? localStorage.getItem('snacktorio_current_blueprint_name_v1') || '未命名產線' : '未命名產線');
+  const [currentPlanConfig, setCurrentPlanConfig] = useState<SandboxPlanConfig | undefined>(undefined);
   const [isBlueprintModalOpen, setIsBlueprintModalOpen] = useState(false);
   const [quickSaveFeedback, setQuickSaveFeedback] = useState<string | null>(null);
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -210,13 +209,14 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
         connections,
         pan,
         zoom,
-        existingId: currentBlueprintId
+        existingId: currentBlueprintId,
+        planConfig: currentPlanConfig
       });
       flashFeedback(`已儲存「${updated.name}」！`);
     } else {
       setIsBlueprintModalOpen(true);
     }
-  }, [currentBlueprintId, currentBlueprintName, nodes, connections, pan, zoom]);
+  }, [currentBlueprintId, currentBlueprintName, currentPlanConfig, nodes, connections, pan, zoom, flashFeedback]);
 
   // 剪貼簿狀態 (支援選中機台或整廠產線複製貼上)
   const [clipboardData, setClipboardData] = useState<{ nodes: SandboxNodeData[]; connections: SandboxConnection[] } | null>(null);
@@ -293,18 +293,35 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
 
   // 載入專案 (清空並覆寫當前畫布，同時校準歷史殘留產能倍率)
   const handleLoadBlueprint = useCallback((bp: SandboxBlueprint) => {
-    const targetBp = isOfficialDishBlueprint(bp)
-      ? sandboxBlueprintService.getBuiltInAndDynamicBlueprints().find(b => b.id === bp.id) || bp
-      : bp;
-    const calibratedNodes = targetBp.nodes.map(n => calibrateNodeBaseRates(n, recipes, intermediate));
+    const calibratedNodes = bp.nodes.map(n => calibrateNodeBaseRates(n, recipes, intermediate));
     setNodes(calibratedNodes);
-    setConnections(targetBp.connections);
-    if (targetBp.pan) setPan(targetBp.pan);
-    if (targetBp.zoom) setZoom(targetBp.zoom);
-    setCurrentBlueprintId(targetBp.id);
-    setCurrentBlueprintName(targetBp.name);
-    flashFeedback(`已載入「${targetBp.name}」！`);
-  }, [recipes, intermediate]);
+    setConnections(bp.connections);
+    if (bp.pan) setPan(bp.pan);
+    if (bp.zoom) setZoom(bp.zoom);
+    setCurrentBlueprintId(bp.id);
+    setCurrentBlueprintName(bp.name);
+    setCurrentPlanConfig(bp.planConfig);
+    flashFeedback(`已載入「${bp.name}」！`);
+  }, [recipes, intermediate, flashFeedback]);
+
+  // 動態產線規劃生成
+  const handleGeneratePlant = useCallback((planConfig: SandboxPlanConfig, autoAudit: boolean = true) => {
+    try {
+      const blueprint = buildPlantBlueprint(planConfig, { recipes, intermediate });
+      setNodes(blueprint.nodes);
+      setConnections(blueprint.connections);
+      if (blueprint.pan) setPan(blueprint.pan);
+      if (blueprint.zoom) setZoom(blueprint.zoom);
+      setCurrentBlueprintId(null);
+      setCurrentBlueprintName(blueprint.name || '規劃產線');
+      setCurrentPlanConfig(planConfig);
+      flashFeedback(`已生成「${blueprint.name}」(${blueprint.nodes.length} 台設備)！`);
+      if (autoAudit) setIsDigitalTwinModalOpen(true);
+    } catch (e: any) {
+      console.error('Failed to generate plant blueprint', e);
+      alert(`產線生成失敗: ${e.message}`);
+    }
+  }, [recipes, intermediate, flashFeedback]);
 
   // 追加專案至當前畫布 (不覆寫現有機台，自動計算右側邊界平移)
   const handleAppendBlueprint = useCallback((bp: SandboxBlueprint) => {
@@ -440,7 +457,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     let finalNewNode = rawNode;
 
     if (isDish && recipeOrInter) {
-      finalNewNode = configureDishNodeRates(rawNode, defaultDishRateMin, recipeOrInter as Recipe, mach);
+      finalNewNode = configureDishNodeRates(rawNode, 12, recipeOrInter as Recipe, mach);
     }
 
     // 若為熾熱料理，自動加入胃復慘終端方塊並動態連動產能！
@@ -468,7 +485,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
             inputs: [],
             outputs: []
           });
-          const peptoNode = configureDishNodeRates(peptoRawNode, defaultDishRateMin, peptoRecipe, chefMach as Machine);
+          const peptoNode = configureDishNodeRates(peptoRawNode, 12, peptoRecipe, chefMach as Machine);
           setNodes(prev => syncAutoPeptoNodes([...prev, finalNewNode, peptoNode]));
           setSelectedNodeId(finalNewNode.id);
           return;
@@ -1165,15 +1182,9 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
     <div className="flex h-[calc(100vh-140px)] w-full overflow-hidden bg-[#050b0e] rounded-3xl border border-[#1c2e38] shadow-2xl relative select-none">
       {/* 1. 左側可折疊物資庫 (純資料庫驅動) */}
       <SandboxCatalogSidebar
-        machines={machines}
-        items={items}
-        intermediate={intermediate}
-        recipes={recipes}
-        defaultDishRateMin={defaultDishRateMin}
-        setDefaultDishRateMin={setDefaultDishRateMin}
-        handleAddMachineWithRecipe={handleAddMachineWithRecipe}
-        handleAddItemHarvester={handleAddItemHarvester}
-        handleAddInfrastructure={handleAddInfrastructure}
+        machines={machines} items={items} intermediate={intermediate} recipes={recipes}
+        handleAddMachineWithRecipe={handleAddMachineWithRecipe} handleAddItemHarvester={handleAddItemHarvester}
+        handleAddInfrastructure={handleAddInfrastructure} onGeneratePlant={handleGeneratePlant}
       />
 
       {/* 2. 中央無限畫布 (Canvas / Node Graph) */}
@@ -1188,17 +1199,12 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
       >
         {/* 畫布左上角浮動專案控制列 (產線專案/藍圖管理) */}
         <SandboxToolbar
-          currentBlueprintName={currentBlueprintName}
-          currentBlueprintId={currentBlueprintId}
-          isMarqueeMode={isMarqueeMode}
-          quickSaveFeedback={quickSaveFeedback}
-          isDigitalTwinHealthy={isDigitalTwinHealthy}
-          onQuickSave={handleQuickSave}
+          currentBlueprintName={currentBlueprintName} currentBlueprintId={currentBlueprintId}
+          isMarqueeMode={isMarqueeMode} quickSaveFeedback={quickSaveFeedback}
+          isDigitalTwinHealthy={isDigitalTwinHealthy} onQuickSave={handleQuickSave}
           onOpenBlueprints={() => setIsBlueprintModalOpen(true)}
           onOpenDigitalTwinModal={() => setIsDigitalTwinModalOpen(true)}
-          onCopy={handleCopy}
-          onPaste={handlePaste}
-          onToggleMarquee={() => setIsMarqueeMode(!isMarqueeMode)}
+          onCopy={handleCopy} onPaste={handlePaste} onToggleMarquee={() => setIsMarqueeMode(!isMarqueeMode)}
         />
 
         {/* 背景網格點 */}
@@ -1237,33 +1243,22 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
             connections={updatedConnections}
             connectingSource={connectingSource}
             getPortCoordinates={getPortCoordinates}
-            onDeleteConnection={handleDeleteConnection}
-            allNodes={updatedNodes}
-            nodeMap={nodeById}
-            hoveredConnId={hoveredConnId}
-            onHoverConnection={handleHoverConnection}
-            inspectedNodeId={inspectedNodeId}
-            isFocusDimActive={isFocusDimActive}
+            onDeleteConnection={handleDeleteConnection} allNodes={updatedNodes} nodeMap={nodeById}
+            hoveredConnId={hoveredConnId} onHoverConnection={handleHoverConnection}
+            inspectedNodeId={inspectedNodeId} isFocusDimActive={isFocusDimActive}
           />
 
           {/* 節點卡片層 */}
           <div className="pointer-events-auto">
             {updatedNodes.map(node => (
               <SandboxNode
-                key={node.id}
-                node={node}
+                key={node.id} node={node}
                 isSelected={selectedNodeIds.includes(node.id) || selectedNodeId === node.id}
-                glowMode={getNodeGlowMode(node.id)}
-                isDimmed={isNodeDimmed(node.id)}
-                onNodeMouseEnter={handleNodeMouseEnter}
-                onNodeMouseLeave={handleNodeMouseLeave}
-                onSelect={handleNodeSelect}
-                onDelete={handleDeleteNode}
-                onToggleMock={handleToggleMock}
-                onUpdateNode={handleUpdateNode}
-                onUpdateDishTargetRate={handleUpdateDishTargetRate}
-                onStartConnect={handleStartConnect}
-                onEndConnect={handleEndConnect}
+                glowMode={getNodeGlowMode(node.id)} isDimmed={isNodeDimmed(node.id)}
+                onNodeMouseEnter={handleNodeMouseEnter} onNodeMouseLeave={handleNodeMouseLeave}
+                onSelect={handleNodeSelect} onDelete={handleDeleteNode} onToggleMock={handleToggleMock}
+                onUpdateNode={handleUpdateNode} onUpdateDishTargetRate={handleUpdateDishTargetRate}
+                onStartConnect={handleStartConnect} onEndConnect={handleEndConnect}
               />
             ))}
           </div>
@@ -1294,8 +1289,7 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
           <button 
             onClick={() => {
               if (window.confirm('確定要清空畫布上的所有機台與管線嗎？')) {
-                setNodes([]);
-                setConnections([]);
+                setNodes([]); setConnections([]); setCurrentPlanConfig(undefined);
               }
             }}
             className="p-1 text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 rounded-lg transition-colors"
@@ -1313,23 +1307,22 @@ export const SandboxSimulator: React.FC<SandboxSimulatorProps> = ({
 
       {/* 產線專案庫管理彈窗 */}
       <SandboxBlueprintModal
-        isOpen={isBlueprintModalOpen}
-        onClose={() => setIsBlueprintModalOpen(false)}
-        currentNodes={nodes}
-        currentConnections={connections}
-        currentPan={pan}
-        currentZoom={zoom}
-        currentBlueprintId={currentBlueprintId}
-        onLoadBlueprint={handleLoadBlueprint}
-        onAppendBlueprint={handleAppendBlueprint}
-        onSaveCurrentSuccess={handleSaveCurrentSuccess}
+        isOpen={isBlueprintModalOpen} onClose={() => setIsBlueprintModalOpen(false)}
+        currentNodes={nodes} currentConnections={connections}
+        currentPan={pan} currentZoom={zoom} currentBlueprintId={currentBlueprintId}
+        currentPlanConfig={currentPlanConfig} onLoadBlueprint={handleLoadBlueprint}
+        onAppendBlueprint={handleAppendBlueprint} onSaveCurrentSuccess={handleSaveCurrentSuccess}
       />
 
       {/* 數位雙生閉環檢查與診斷卡彈窗 */}
       <DigitalTwinModal
-        isOpen={isDigitalTwinModalOpen}
-        onClose={() => setIsDigitalTwinModalOpen(false)}
+        isOpen={isDigitalTwinModalOpen} onClose={() => setIsDigitalTwinModalOpen(false)}
         currentDishName={currentDishName}
+        currentBlueprint={{
+          id: currentBlueprintId || 'canvas', name: currentBlueprintName, description: '', createdAt: '', updatedAt: '',
+          nodes, connections, pan, zoom, planConfig: currentPlanConfig,
+          stats: { machineCount: nodes.length, powerLoad: metrics.totalPowerLoad, mainDishes: [] }
+        }}
       />
     </div>
   );

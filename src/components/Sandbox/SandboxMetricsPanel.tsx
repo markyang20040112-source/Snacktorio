@@ -1,19 +1,59 @@
-import React from 'react';
-import { Zap, Users, Droplets, Sparkles } from 'lucide-react';
+import React, { useState } from 'react';
+import { Zap, Users, Droplets, Sparkles, ChevronRight, ChevronLeft } from 'lucide-react';
 import { SandboxMetrics } from './sandboxTypes';
 
 /** 右側即時物理監控儀表板 (電網、小妖精、流體盈虧、出餐效率) */
 export const SandboxMetricsPanel: React.FC<{ metrics: SandboxMetrics }> = ({ metrics }) => {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  if (isCollapsed) {
+    return (
+      <div className="w-12 border-l border-[#1c2e38] bg-[#0b1419]/95 backdrop-blur-xl flex flex-col items-center py-3 z-20 shrink-0 select-none">
+        <button
+          onClick={() => setIsCollapsed(false)}
+          className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-xl transition-colors mb-4"
+          title="展開即時物理監控"
+        >
+          <ChevronLeft className="w-4 h-4 text-amber-400" />
+        </button>
+
+        <div className="flex flex-col items-center space-y-3">
+          <div 
+            className={`w-3 h-3 rounded-full ${metrics.powerBalance >= 0 ? 'bg-emerald-400 shadow-sm shadow-emerald-400/50' : 'bg-rose-500 animate-ping'}`} 
+            title={metrics.powerBalance >= 0 ? `電網穩定 (+${metrics.powerBalance} FV/s)` : `嚴重跳電 (${metrics.powerBalance} FV/s)`}
+          />
+          <Zap className="w-3.5 h-3.5 text-amber-400/80" />
+          <div className="text-[10px] text-teal-300 font-mono font-bold bg-[#14232a] px-1 py-0.5 rounded border border-teal-500/30">
+            {metrics.machineCount}
+          </div>
+        </div>
+
+        <div className="mt-8 [writing-mode:vertical-rl] text-[11px] font-bold text-slate-400 tracking-widest">
+          全廠即時物理監控
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-80 border-l border-[#1c2e38] bg-[#0b1419]/95 backdrop-blur-xl flex flex-col z-20">
+    <div className="w-80 border-l border-[#1c2e38] bg-[#0b1419]/95 backdrop-blur-xl flex flex-col z-20 shrink-0">
       <div className="p-3.5 border-b border-[#1c2e38] flex items-center justify-between">
         <span className="text-xs font-bold text-slate-200 flex items-center space-x-1.5">
           <Zap className="w-4 h-4 text-amber-400" />
           <span>全廠即時物理監控</span>
         </span>
-        <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold bg-[#14232a] text-teal-300 border border-teal-500/30">
-          {metrics.machineCount} 台機
-        </span>
+        <div className="flex items-center space-x-1.5">
+          <span className="text-[10px] px-1.5 py-0.5 rounded font-mono font-bold bg-[#14232a] text-teal-300 border border-teal-500/30">
+            {metrics.machineCount} 台機
+          </span>
+          <button
+            onClick={() => setIsCollapsed(true)}
+            className="p-1 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors"
+            title="收起監控面板"
+          >
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3.5 space-y-4 text-xs">

@@ -44,11 +44,11 @@
 | `src/services/parallelPlanner.ts` | 多料理並聯純運算層（無 React）：`runParallelPlan`、`consolidatePlan` |
 | `src/services/dataService.ts` | JSON 載入 / localStorage 快取 / 匯出 |
 | `src/services/githubSync.ts` | Git Data API 單一原子 Commit 同步 5 份資料檔 + 沙盒藍圖庫（只推送自訂/修改過的藍圖；本機無藍圖時不推送該檔；無變更則略過） |
-| `src/services/dishBlueprintGenerator.ts` | `buildDishBlueprint`：由資料庫自動推導任一食譜之完整沙盒產線（新食譜自動適配，0 底料需求自動略過孤島收割機） |
+| `src/services/dishBlueprintGenerator.ts` | `buildDishBlueprint` / `buildPlantBlueprint`：動態推導產線藍圖（支援多料理並聯、任意非整數倍產量、發電/副產物策略切換） |
 | `src/services/builtInBlueprints.ts` | 官方料理藍圖執行期生成（依 `dataService.getRevision()` 快取）＋同步時剔除可重建藍圖 |
-| `src/services/sandboxBlueprintService.ts` | 沙盒專案庫存取（官方藍圖與本機自訂專案合併、刪除/恢復/匯入匯出） |
+| `src/services/sandboxBlueprintService.ts` | 沙盒專案庫存取（純使用者自建專案管理、v2 遷移清理預設藍圖、刪除/匯入匯出） |
 | `src/components/ParallelPlanner/` | `ParallelPlanner.tsx`（控制台）+ `FluidStation` / `PowerStation` / `ProcessTable` / `KpiSummary` 顯示元件 |
-| `src/components/Sandbox/` | `SandboxSimulator.tsx`（畫布狀態與互動）、`DigitalTwinModal.tsx`（數位雙生體檢診斷卡）、`sandboxPhysics.ts`（物理引擎）、`useSandboxAutoPan.ts`（邊緣自動推鏡頭）、`sandboxDevicePhysics.ts`（分流器與緩衝發酵物理）、`sandboxNodeUtils.ts`（`makeNode` 節點工廠、校準、子圖複製、存檔）、`SandboxNode.tsx`、`SandboxBlueprintModal.tsx`（專案庫）、顯示元件 `SandboxCatalogSidebar` / `SandboxMetricsPanel` / `SandboxToolbar` / `SandboxConnectionsLayer`、`sandboxTypes.ts` |
+| `src/components/Sandbox/` | `SandboxSimulator.tsx`（畫布狀態與互動）、`DigitalTwinModal.tsx`（數位雙生體檢診斷卡）、`SandboxPlannerTab.tsx`（動態產線生成）、`sandboxPhysics.ts`（物理引擎）、`useSandboxAutoPan.ts`（邊緣自動推鏡頭）、`sandboxDevicePhysics.ts`（分流器與緩衝發酵物理）、`sandboxNodeUtils.ts`（`makeNode` 節點工廠、校準、子圖複製、存檔）、`SandboxNode.tsx`、`SandboxBlueprintModal.tsx`（專案庫）、顯示元件 `SandboxCatalogSidebar` / `SandboxMetricsPanel` / `SandboxToolbar` / `SandboxConnectionsLayer`、`sandboxTypes.ts` |
 | `src/components/DataManager/` | 資料工作台各管理分頁與同步設定 |
 | `src/utils/itemTraits.ts` | 物品特性資料驅動判定：流體（食譜 `fluidType` 引用推導）、原料機台（`source`）、可發酵物品（`isPerishable`） |
 | `src/utils/actionVerbs.ts` | 工序動作動詞共用正則（solver 與 iconHelper 共用） |
@@ -102,6 +102,7 @@
 - [x] ★ 沙盒正交圓角走線 (零切穿方塊)、懸停發光流向動畫與 500ms 延遲焦點過濾實裝
 - [x] ★ 產線計算機與沙盒模擬器邏輯全面統一、副產物拓撲直連、全廠 42 道食譜 100% 稼動率滿載與自癒機台清零達成
 - [x] ★ D 組：沙盒與計算機基建（泵機台數、總耗電、發電熔爐 2:1:1、哥布林數）42 道料理 100% 對齊、全機台數值由 `machines.json` 驅動、數位雙生第一關三項基建對帳實裝
+- [x] ★ E 組：沙盒動態產線規劃生成器 (buildPlantBlueprint + SandboxPlannerTab)、非整數倍廚師機稼動率物理對齊、專案庫純自建重構 (移除 42 道預設專案)、即時物理監控面板收合
 - [ ] 依遊戲推進持續登錄後半段新島嶼與高階配方
 - [ ] 【冰塊 → 糊糊】糊糊未登錄（目前無食譜使用，使用者需要時自行登錄；`npm run check` 僅警告）
 
@@ -110,6 +111,7 @@
 ## 7. 近期決策摘要 (Recent Decisions)
 > 完整原文見 [`docs/CHANGELOG.md`](docs/CHANGELOG.md)。新紀錄請先追加詳細內容至 CHANGELOG 頂端，再於此更新摘要（保留最近約 10 筆）。
 
+* **2026-10-18｜E 組：沙盒動態產線規劃生成器、專案庫純自建重構與物理監控收合**：左側「✨ 產線規劃」分頁動態生成單/多料理產線藍圖（`buildPlantBlueprint`）；非整數倍廚師機稼動率物理與體檢模型實裝（尾部機台達標即 100% 合格）；專案庫清理預設 42 道藍圖轉為純使用者自建（支援單筆刪除與做法 1 先預覽後存檔）；右側全廠即時物理監控支援收合。
 * **2026-10-17｜D 組 Step 4（D8 + solver 流體修正）**：`digitalTwinAudit.ts` 第一關補入總耗電、泵機台數、發電熔爐數對帳；`solver.ts` 排除固體「水稻」誤判為水，並依 `intermediateRecipes.fluidType` 排除「炸哈瓦那魔椒」誤算入普通油。全廠 42 道料理在計算機與沙盒 100% 對齊（42/42 Healthy）。
 * **2026-10-17｜D 組 Step 3（D4 + D6）**：新增 `machineSpec.ts` 統一由 `machines.json` 讀取耗電與哥布林（修正轉化抽取泵哥布林 0➔1）；沙盒發電模組改用計算機超頻 2:1:1 配置（16 FV/s 熔爐 + 採煤機 + 供汙泥操縱機），42 道料理熔爐數與計算機完全一致。
 * **2026-10-17｜D 組 Step 2（D1 + D2 + D3）**：`dishBlueprintPower.ts` 改用 `sizeAutonomousPump` / `sizeVoidPump` 配置泵機階梯，供汙泥操縱機改讀 `machines.json`（1 FV / 1 隻）；`sandboxPhysics.ts` 超頻泵維持 1 FV / 1 隻。11 道超頻泵料理負載與哥布林回歸正確值，計算機 1008 案例不變。
@@ -120,6 +122,4 @@
 * **2026-10-13｜莎莎醬工序圖標解析修復**：廢除 `iconHelper.ts` 殘留的 `replace(/莎莎/g, '沙沙')`，統一以草字頭「莎」為單一事實來源並補齊直通別名。
 * **2026-10-13｜數位雙生閉環檢查機制 (Digital Twin Verification) 實裝**：實裝第一關靜態鏡像審計 (`runMirrorAudit`)、第二關 60 週期無 UI 物理快進 (`runHeadlessPhysicsAudit`) 與全廠 42 道大體檢 (`runFullPlantAudit`)；0 底料需求不再生成孤島收割機；新增診斷卡彈窗與工具列狀態徽章。
 * **2026-10-13｜多料理並聯規劃雙槽底料折抵全面打通**：抽離 `solveBipartiteByproductMatching`，單料理與多料理並聯 100% 共用二分圖背包演算法，支援跨產線碎屑（$\ge 0.049$/s）湊滿 0.20/s。
-
-* **2026-10-10｜核心超大檔案模組化拆分重構**：抽離 `sandboxDevicePhysics.ts` 與 `byproductMatching.ts`，大幅縮減 `solver.ts` 與 `sandboxPhysics.ts` 行數。
 

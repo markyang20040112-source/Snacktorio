@@ -103,7 +103,8 @@ export function runMirrorAudit(
 
   // 2. 全廠總耗電 vs 計算機總負載對帳
   const calcPowerLoad = Number((plan.totalPlantPowerLoad || 0).toFixed(2));
-  const sandboxPowerLoad = Number((blueprint.stats?.powerLoad || 0).toFixed(2));
+  const rawPowerLoad = blueprint.stats?.powerLoad ?? simulateSandboxPhysics(blueprint.nodes, blueprint.connections).metrics.totalPowerLoad;
+  const sandboxPowerLoad = Number((rawPowerLoad || 0).toFixed(2));
   const powerLoadMatched = Math.abs(calcPowerLoad - sandboxPowerLoad) < 0.01;
 
   if (powerLoadMatched) {
@@ -174,7 +175,10 @@ export function runMirrorAudit(
     const recNodes = blueprint.nodes.filter(n => n.title.includes(bt.targetProcess));
     const connFound = blueprint.connections.some(c =>
       donorNodes.some(dn => dn.id === c.fromNodeId) &&
-      recNodes.some(rn => rn.id === c.toNodeId)
+      (
+        recNodes.some(rn => rn.id === c.toNodeId) ||
+        blueprint.connections.some(c2 => c2.fromNodeId === c.toNodeId && recNodes.some(rn => rn.id === c2.toNodeId))
+      )
     );
 
     if (!connFound && donorNodes.length > 0 && recNodes.length > 0) {
@@ -238,19 +242,34 @@ export function runHeadlessPhysicsAudit(
 
   // 1. 終端自動廚師機稼動率
   const chefNodes = updatedNodes.filter(n => n.machineName === '自動廚師機');
-  const chefEfficiencies = chefNodes.map(n => n.efficiency);
-  const minChefEff = chefEfficiencies.length > 0 ? Math.min(...chefEfficiencies) : 1.0;
-  const chefEfficiencyPercent = Number((minChefEff * 100).toFixed(1));
+  const chefEffResults = chefNodes.map(n => {
+    const targetEff = n.expectedEfficiency ?? 1.0;
+    const met = n.efficiency >= targetEff - 0.005;
+    const ratio = targetEff > 0 ? Math.min(1.0, n.efficiency / targetEff) : 1.0;
+    return { node: n, targetEff, met, ratio };
+  });
+  const allChefsMet = chefEffResults.every(c => c.met);
+  const minRatio = chefEffResults.length > 0 ? Math.min(...chefEffResults.map(c => c.ratio)) : 1.0;
+  const chefEfficiencyPercent = Number((minRatio * 100).toFixed(1));
 
-  if (minChefEff >= 0.999) {
-    details.push(`終端出餐稼動率 100.0% 滿載（共 ${chefNodes.length} 台自動廚師機）`);
+  if (allChefsMet) {
+    const hasPartialChef = chefNodes.some(n => (n.expectedEfficiency ?? 1.0) < 0.999);
+    if (hasPartialChef) {
+      const effListStr = chefNodes.map(n => `${((n.expectedEfficiency ?? 1.0) * 100).toFixed(0)}%`).join('、');
+      details.push(`終端出餐 100% 達成規劃產量（共 ${chefNodes.length} 台自動廚師機，各台稼動率 [${effListStr}] 符合計算機標準）`);
+    } else {
+      details.push(`終端出餐稼動率 100.0% 滿載（共 ${chefNodes.length} 台自動廚師機）`);
+    }
   } else {
-    details.push(`⚠️ 自動廚師機稼動率未吃滿：僅 ${chefEfficiencyPercent}%`);
-    const starvedChef = chefNodes.find(n => n.efficiency < 0.999);
+    details.push(`⚠️ 自動廚師機稼動率未達規劃目標：僅 ${chefEfficiencyPercent}%`);
+    const starvedInfo = chefEffResults.find(c => !c.met);
+    const starvedChef = starvedInfo?.node;
+    const targetPct = ((starvedInfo?.targetEff ?? 1.0) * 100).toFixed(0);
+    const actualPct = starvedChef ? (starvedChef.efficiency * 100).toFixed(1) : '0';
     faults.push({
       code: 'ERR_CHEF_STARVATION',
       title: '自動廚師機欠壓斷流',
-      message: `【${starvedChef?.title || '自動廚師機'}】稼動率僅 ${chefEfficiencyPercent}%：${starvedChef?.statusNote || '物料不足'}`,
+      message: `【${starvedChef?.title || '自動廚師機'}】稼動率僅 ${actualPct}%（規劃要求 ${targetPct}%）：${starvedChef?.statusNote || '物料不足'}`,
       remedy: '檢查主產線物料輸送帶是否有斷流或混管稀釋。',
       nodeId: starvedChef?.id
     });
@@ -297,10 +316,14 @@ export function runHeadlessPhysicsAudit(
     }
   }
 
-  // 4. 欠壓節點檢測 (0 < efficiency < 99.9%)
+  // 4. 欠壓節點檢測 (0 < efficiency < targetEff)
   // 依據《二元健康狀態判定》：中間設備因離散整數特性向上取整未吃滿是合法預期的「產能餘裕」，不發 ERR_RATE_PENALTY
   const deficitNodes = updatedNodes
-    .filter(n => n.type === 'machine' && n.efficiency > 0 && n.efficiency < 0.999 && !n.id.startsWith('heal-'))
+    .filter(n => {
+      if (n.type !== 'machine' || n.id.startsWith('heal-')) return false;
+      const targetEff = n.expectedEfficiency ?? 1.0;
+      return n.efficiency > 0 && n.efficiency < targetEff - 0.005;
+    })
     .map(n => ({
       id: n.id,
       title: n.title,
@@ -312,7 +335,7 @@ export function runHeadlessPhysicsAudit(
     details.push(`產線整數餘裕：共 ${deficitNodes.length} 台中間設備隨需運轉 (稼動率介於 ${Math.min(...deficitNodes.map(d => d.efficiency))}% ~ ${Math.max(...deficitNodes.map(d => d.efficiency))}%)`);
   }
 
-  const passed = minChefEff >= 0.999 && healedNodes.length === 0 && stoppageNodes.length === 0;
+  const passed = allChefsMet && healedNodes.length === 0 && stoppageNodes.length === 0;
 
   return {
     report: {
@@ -433,6 +456,91 @@ export function runFullPlantAudit(recipesList?: Recipe[]): FullPlantAuditReport 
     healthyCount,
     faultyCount,
     results,
+    executionTimeMs
+  };
+}
+
+/**
+ * 依畫布藍圖執行動態數位雙生體檢 (Mirror + Headless Physics)
+ * 支援多料理並聯、任意產量 (如 18 份/分)、二級超頻或常規發電等任意動態拓撲
+ */
+export function runBlueprintAudit(
+  blueprint: SandboxBlueprint,
+  context?: {
+    recipes?: Recipe[];
+  }
+): DigitalTwinReport {
+  const startTime = performance.now();
+  const recipes = context?.recipes || dataService.getRecipes();
+
+  let plannedDishes: { id: string; dishName: string; rateMin: number }[] = [];
+  let powerMode: 'regular' | 'overclock' = 'overclock';
+  let feedingStrategy: 'dedicated' | 'recycle' = 'recycle';
+
+  if (blueprint.planConfig && blueprint.planConfig.plannedDishes && blueprint.planConfig.plannedDishes.length > 0) {
+    plannedDishes = blueprint.planConfig.plannedDishes.map((d, idx) => ({
+      id: `dish-${idx}`,
+      dishName: d.dishName,
+      rateMin: d.rateMin
+    }));
+    powerMode = blueprint.planConfig.powerMode;
+    feedingStrategy = blueprint.planConfig.feedingStrategy;
+  } else {
+    // 依畫布節點推導
+    const chefNodes = blueprint.nodes.filter(n => n.machineName === '自動廚師機' && !(n as any).isAutoPepto);
+    const dishMap = new Map<string, number>();
+    chefNodes.forEach(c => {
+      const rName = c.recipeName || c.title || '';
+      if (rName) {
+        const rate = c.targetRatePerMin || (c.expectedEfficiency ?? 1.0) * 12;
+        dishMap.set(rName, (dishMap.get(rName) || 0) + rate);
+      }
+    });
+    plannedDishes = Array.from(dishMap.entries()).map(([dishName, rateMin], idx) => ({
+      id: `dish-${idx}`,
+      dishName,
+      rateMin
+    }));
+    if (plannedDishes.length === 0 && recipes.length > 0) {
+      plannedDishes = [{ id: 'dish-0', dishName: recipes[0].name, rateMin: 12 }];
+    }
+    const hasRegularFurnace = blueprint.nodes.some(n => n.type === 'generator' && (n as any).powerMode === 'regular');
+    if (hasRegularFurnace) powerMode = 'regular';
+    const hasDedicated = blueprint.nodes.some(n => n.id.startsWith('base-feeder-') || n.id.startsWith('feeder-'));
+    if (hasDedicated) feedingStrategy = 'dedicated';
+  }
+
+  // 1. 計算機理論推導
+  const plan = runParallelPlan(
+    plannedDishes,
+    powerMode,
+    feedingStrategy,
+    recipes
+  );
+
+  // 2. 第一關：鏡像一致性審計
+  const { report: stage1Report, faults: stage1Faults } = runMirrorAudit(plan.consolidated, blueprint);
+
+  // 3. 第二關：動態物理快進體檢 (60 週期)
+  const { report: stage2Report, faults: stage2Faults } = runHeadlessPhysicsAudit(blueprint, 60);
+
+  const allFaults = [...stage1Faults, ...stage2Faults];
+  const isHealthy = stage1Report.passed && stage2Report.passed && allFaults.length === 0;
+
+  const executionTimeMs = Number((performance.now() - startTime).toFixed(2));
+
+  const titleName = plannedDishes.length === 1
+    ? `${plannedDishes[0].dishName} (${plannedDishes[0].rateMin} 份/分)`
+    : plannedDishes.length > 1
+      ? plannedDishes.map(d => `${d.dishName} ${d.rateMin}/分`).join(' + ')
+      : (blueprint.name || '自訂產線');
+
+  return {
+    dishName: titleName,
+    isHealthy,
+    stage1: stage1Report,
+    stage2: stage2Report,
+    faults: allFaults,
     executionTimeMs
   };
 }

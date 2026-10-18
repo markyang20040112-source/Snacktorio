@@ -3,6 +3,22 @@
 > 本檔案收錄自 `PROJECT_STATUS.md` 移出之完整歷史決策紀錄（原文逐字保留，未做任何改寫）。
 > 最新條目置於最上方；新的詳細紀錄請追加於「最新紀錄」區塊頂端，`PROJECT_STATUS.md` 僅保留精簡摘要。
 
+* **2026-10-18｜E 組：沙盒動態產線規劃生成器、專案庫純自建重構與物理監控收合（零破壞升級）**：
+  - **動態產線規劃生成器 (`buildPlantBlueprint` + `SandboxPlannerTab.tsx`)**：
+    1. 左側欄第 4 分頁升級為「✨ 產線規劃」，徹底取代舊版 42 道靜態食譜放置。支援使用者任意選取單道或多道料理並聯規劃（「＋ 新增並聯料理」）、自訂出餐目標產量（12、18、24、36、60 快捷鍵或任意非整數倍產量），並動態檢測熾熱屬性提示自動配對【胃復慘】。
+    2. 支援全廠基建策略切換：預設「⚡ 二級超頻 (16 FV/s) 發電」與「♻️ 副產物折抵」；亦可自由切換為「🔥 常規燃煤 (4 FV/s)」與「🌾 專屬直供」。
+    3. 雙行動按鈕：做法 1「🚀 生成產線並體檢」（在畫布生成產線後立即開啟數位雙生體檢）與「📐 僅生成至畫布」，完全不自動寫入專案庫，使用者滿意後可自行決定是否存入專案庫。
+  - **非整數倍廚師機稼動率物理與體檢模型 (E1 + E2 + E3)**：
+    1. `sandboxTypes.ts` 新增 `expectedEfficiency?: number` 與 `SandboxPlanConfig` 介面；`sandboxPhysics.ts` 讓非整數倍之尾部廚師機（如 1.5 台的第 2 台）在滿足目標稼動率（如 50%）時判定為健康運轉且非欠壓狀態。
+    2. `digitalTwinAudit.ts` 重構 `runMirrorAudit`（支援經過中轉分流器兩跳之副產物折抵對帳、欠缺 `stats.powerLoad` 時以物理模擬補位）與 `runHeadlessPhysicsAudit`（廚師機稼動率對齊 `expectedEfficiency` 檢核，各台達標即判定 100% 滿載合格），並新增 `runBlueprintAudit` 動態審計當前自訂產線。
+    3. `DigitalTwinModal.tsx` 預設優先體檢當前畫布動態產線，並保留第二分頁全廠 42 道食譜巡檢功能。
+  - **專案庫純自建重構 (E4)**：
+    1. `sandboxBlueprintService.ts` 移除預設注入的 42 道官方料理藍圖，增加 `snacktorio_sandbox_blueprints_v2_migrated` 一次性遷移機制清理舊版 `bp_dish_*` / `bp_auto_*` / `bp_builtin_*`，專案庫回歸 100% 純使用者自建。
+    2. `SandboxBlueprintModal.tsx` 移除「載入 42 道官方藍圖」等按鈕，支援單筆刪除專案與空狀態視覺導引；儲存藍圖時完整保留 `planConfig`。
+  - **右側全廠即時物理監控支援收合 (E6)**：
+    1. `SandboxMetricsPanel.tsx` 支援展開（w-80）與收合（w-12 窄條狀態），收合狀態保留即時電網燈號與出餐料理數徽章，維持操作畫布最大視野。
+  - 驗證：`npm run check` 通過（solver 1008 / sandbox 378 案例回歸指紋 100% 一致），`npm run build` 通過，全檔案行數符合規範。
+
 * **2026-10-17｜D 組 Step 4（D8 + solver.ts 流體判定修正）：健康檢查補入總耗電/泵機數/熔爐數對帳、修正水稻與炸哈瓦那魔椒流體誤判（使用者核准更新基準）**：
   - D8（`digitalTwinAudit.ts`、`DigitalTwinModal.tsx`）：於 `runMirrorAudit` 第一關靜態鏡像審計新增「全廠總耗電 vs 計算機總負載 (`ERR_POWER_LOAD_MISMATCH`)」、「全廠泵機台數 vs 計算機泵機總數 (`ERR_PUMP_COUNT_MISMATCH`)」、「發電熔爐數 vs 計算機熔爐數 (`ERR_FURNACE_COUNT_MISMATCH`)」三項強制對帳，並於彈窗同步顯示。
   - `solver.ts` 兩處流體誤判修正（經使用者授權）：① 讀取 `calculatorDb.materials` 計算液體 BOM 時跳過 `m.type === '固體'`，排除固體「水稻」因含「水」字被誤計入液體水（修正【罪人炒飯】、【混亂日式炒飯】、【爆烈雞肉飯】多算 1 台幽靈水泵，以及【骨味炸米團】、【撒旦紅燴飯】、【驚嚇醃姜】理論水需量）；② 計算油炸鍋／煮鍋環境流體節點數時改依 `intermediateRecipes.json` 同機台工序之 `fluidType` 判斷是否為環境 `'油'` / `'水'`，排除【惡魔鷹身女妖】中用「致命莎莎醬」炸的「炸哈瓦那魔椒」被誤算入普通油需求（普通油需求由 `3.0 ➔ 2.0 fl/s`，超頻油泵改為常規油泵，同時消除 3 處硬編碼名稱）。

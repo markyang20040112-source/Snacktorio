@@ -1,12 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { SandboxBlueprint, SandboxNodeData, SandboxConnection } from './sandboxTypes';
-import { 
-  sandboxBlueprintService, 
-  isOfficialDishBlueprint, 
-  isOfficialTutorialBlueprint 
-} from '../../services/sandboxBlueprintService';
+import { SandboxBlueprint, SandboxNodeData, SandboxConnection, SandboxPlanConfig } from './sandboxTypes';
+import { sandboxBlueprintService } from '../../services/sandboxBlueprintService';
 import { SyncConfig } from '../../types';
-import { dataService } from '../../services/dataService';
 import {
   FolderKanban,
   Plus,
@@ -26,7 +21,6 @@ import {
   ExternalLink,
   X,
   ArrowRight,
-  RotateCcw,
   FilePlus
 } from 'lucide-react';
 
@@ -38,6 +32,7 @@ interface SandboxBlueprintModalProps {
   currentPan: { x: number; y: number };
   currentZoom: number;
   currentBlueprintId: string | null;
+  currentPlanConfig?: SandboxPlanConfig;
   onLoadBlueprint: (bp: SandboxBlueprint) => void;
   onAppendBlueprint?: (bp: SandboxBlueprint) => void;
   onSaveCurrentSuccess: (bp: SandboxBlueprint) => void;
@@ -51,13 +46,13 @@ export const SandboxBlueprintModal: React.FC<SandboxBlueprintModalProps> = ({
   currentPan,
   currentZoom,
   currentBlueprintId,
+  currentPlanConfig,
   onLoadBlueprint,
   onAppendBlueprint,
   onSaveCurrentSuccess
 }) => {
   const [blueprints, setBlueprints] = useState<SandboxBlueprint[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<'ALL' | 'OFFICIAL' | 'CUSTOM'>('ALL');
   
   // 新建/另存為專案狀態
   const [isSavingNew, setIsSavingNew] = useState(false);
@@ -109,7 +104,8 @@ export const SandboxBlueprintModal: React.FC<SandboxBlueprintModalProps> = ({
       nodes: currentNodes,
       connections: currentConnections,
       pan: currentPan,
-      zoom: currentZoom
+      zoom: currentZoom,
+      planConfig: currentPlanConfig
     });
 
     setIsSavingNew(false);
@@ -129,7 +125,8 @@ export const SandboxBlueprintModal: React.FC<SandboxBlueprintModalProps> = ({
         connections: currentConnections,
         pan: currentPan,
         zoom: currentZoom,
-        existingId: bp.id
+        existingId: bp.id,
+        planConfig: currentPlanConfig ?? bp.planConfig
       });
       refreshList();
       onSaveCurrentSuccess(updated);
@@ -218,16 +215,10 @@ export const SandboxBlueprintModal: React.FC<SandboxBlueprintModalProps> = ({
     }
   };
 
-  const officialCount = blueprints.filter(bp => isOfficialDishBlueprint(bp) || isOfficialTutorialBlueprint(bp)).length;
-  const customCount = blueprints.length - officialCount;
-
   // 篩選專案列表
   const filteredBlueprints = blueprints.filter(bp => {
-    const isOfficial = isOfficialDishBlueprint(bp) || isOfficialTutorialBlueprint(bp);
-    if (categoryFilter === 'OFFICIAL' && !isOfficial) return false;
-    if (categoryFilter === 'CUSTOM' && isOfficial) return false;
-
-    const q = searchQuery.toLowerCase();
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return true;
     const matchName = bp.name.toLowerCase().includes(q);
     const matchDesc = bp.description?.toLowerCase().includes(q) ?? false;
     const matchDishes = bp.stats?.mainDishes.some(d => d.toLowerCase().includes(q)) ?? false;
@@ -278,7 +269,7 @@ export const SandboxBlueprintModal: React.FC<SandboxBlueprintModalProps> = ({
                 }
                 const blankBp: SandboxBlueprint = {
                   id: `bp_custom_${Date.now()}`,
-                  name: `未命名空白專案 ${customCount + 1}`,
+                  name: `未命名空白專案 ${blueprints.length + 1}`,
                   description: '空白畫布，自由發揮設計',
                   createdAt: new Date().toISOString(),
                   updatedAt: new Date().toISOString(),
@@ -365,19 +356,6 @@ export const SandboxBlueprintModal: React.FC<SandboxBlueprintModalProps> = ({
             </button>
 
             {/* 恢復/載入官方全量食譜 */}
-            <button
-              onClick={() => {
-                const restored = sandboxBlueprintService.restoreOfficialBlueprints();
-                setBlueprints(restored);
-                setSyncStatus({ success: true, message: `✅ 已成功重置並載入全套官方食譜藍圖庫（共 ${restored.length} 套專案）！` });
-                setTimeout(() => setSyncStatus(null), 4000);
-              }}
-              className="flex items-center space-x-1 px-2.5 py-1.5 rounded-xl bg-purple-950/40 hover:bg-purple-900/60 text-purple-300 border border-purple-800/60 text-xs transition-colors"
-              title={`載入全套 ${dataService.getRecipes().length} 道官方食譜產線專案（安全保留您的自創專案）`}
-            >
-              <RotateCcw className="w-3.5 h-3.5 text-purple-400" />
-              <span>載入官方食譜</span>
-            </button>
           </div>
         </div>
 
@@ -511,57 +489,21 @@ export const SandboxBlueprintModal: React.FC<SandboxBlueprintModalProps> = ({
           </form>
         )}
 
-        {/* 5. 搜尋欄與分類篩選 */}
+        {/* 5. 搜尋欄 */}
         <div className="px-6 py-2.5 border-b border-[#1c2e38] bg-[#091014] flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center space-x-2 flex-1 min-w-[280px]">
-            <div className="relative w-64">
-              <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5" />
-              <input
-                type="text"
-                placeholder="搜尋專案名稱、菜餚或備註..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-1 bg-[#050b0e] border border-slate-800 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500/50"
-              />
-            </div>
-
-            {/* 分類篩選 Tab */}
-            <div className="flex items-center bg-[#050b0e] p-0.5 rounded-xl border border-slate-800 text-[11px] font-bold">
-              <button
-                onClick={() => setCategoryFilter('ALL')}
-                className={`px-2.5 py-1 rounded-lg transition-colors ${
-                  categoryFilter === 'ALL'
-                    ? 'bg-slate-800 text-slate-100 shadow'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                全部 ({blueprints.length})
-              </button>
-              <button
-                onClick={() => setCategoryFilter('OFFICIAL')}
-                className={`px-2.5 py-1 rounded-lg transition-colors ${
-                  categoryFilter === 'OFFICIAL'
-                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                    : 'text-slate-400 hover:text-emerald-300'
-                }`}
-              >
-                官方食譜 ({officialCount})
-              </button>
-              <button
-                onClick={() => setCategoryFilter('CUSTOM')}
-                className={`px-2.5 py-1 rounded-lg transition-colors ${
-                  categoryFilter === 'CUSTOM'
-                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                    : 'text-slate-400 hover:text-amber-300'
-                }`}
-              >
-                自訂專案 ({customCount})
-              </button>
-            </div>
+          <div className="relative w-72">
+            <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5" />
+            <input
+              type="text"
+              placeholder="搜尋專案名稱、菜餚或備註..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-8 pr-3 py-1 bg-[#050b0e] border border-slate-800 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500/50"
+            />
           </div>
 
-          <div className="text-[11px] text-slate-500">
-            共找到 {filteredBlueprints.length} 個專案
+          <div className="text-[11px] text-slate-400">
+            全部自建專案 ({filteredBlueprints.length} / {blueprints.length})
           </div>
         </div>
 
@@ -570,8 +512,10 @@ export const SandboxBlueprintModal: React.FC<SandboxBlueprintModalProps> = ({
           {filteredBlueprints.length === 0 ? (
             <div className="py-12 text-center text-slate-500 space-y-2">
               <FolderKanban className="w-10 h-10 mx-auto text-slate-600 stroke-[1.5]" />
-              <div className="text-sm font-medium">尚無符合搜尋的產線專案</div>
-              <div className="text-xs text-slate-600">點擊上方「將當前畫布存為新專案」隨時記錄您的設計！</div>
+              <div className="text-sm font-medium">尚無儲存的產線專案</div>
+              <div className="text-xs text-slate-500">
+                您可以在左側「產線規劃」生成產線後點擊「將當前畫布存為新專案」，或點擊上方「➕ 新增空白專案」。
+              </div>
             </div>
           ) : (
             filteredBlueprints.map(bp => {
@@ -625,13 +569,9 @@ export const SandboxBlueprintModal: React.FC<SandboxBlueprintModalProps> = ({
                             <span className="font-bold text-sm text-slate-100 hover:text-cyan-300 transition-colors">
                               {bp.name}
                             </span>
-                            {isOfficialDishBlueprint(bp) ? (
-                              <span className="text-[10px] px-2 py-0.2 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-bold">
-                                官方食譜
-                              </span>
-                            ) : isOfficialTutorialBlueprint(bp) ? (
-                              <span className="text-[10px] px-2 py-0.2 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/30 font-bold">
-                                官方教學
+                            {bp.planConfig?.plannedDishes && bp.planConfig.plannedDishes.length > 0 ? (
+                              <span className="text-[10px] px-2 py-0.2 rounded-full bg-teal-500/15 text-teal-300 border border-teal-500/30 font-bold">
+                                產線規劃
                               </span>
                             ) : (
                               <span className="text-[10px] px-2 py-0.2 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-bold">

@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Plus, Search, Sparkles, Layers, Flame, Pickaxe, GitFork, Hourglass, Droplets, Zap } from 'lucide-react';
+import { Plus, Search, Layers, Flame, Pickaxe, GitFork, Hourglass, Droplets, Zap } from 'lucide-react';
 import { Machine, Item, IntermediateRecipe, Recipe } from '../../types';
-import { isScorchingDish } from '../../services/solver';
 import { ItemIcon } from '../Common/ItemIcon';
 import { rawSourceMachine, perishableItems } from '../../utils/itemTraits';
+
+import { SandboxPlannerTab } from './SandboxPlannerTab';
+import { SandboxPlanConfig } from './sandboxTypes';
 
 export type InfrastructureType = 'generator' | 'pump' | 'environment_pool' | 'splitter' | 'buffer_decay';
 
@@ -12,11 +14,10 @@ interface SandboxCatalogSidebarProps {
   items: Item[];
   intermediate: IntermediateRecipe[];
   recipes: Recipe[];
-  defaultDishRateMin: number;
-  setDefaultDishRateMin: (rate: number) => void;
   handleAddMachineWithRecipe: (mach: Machine, recipeOrInter?: IntermediateRecipe | Recipe) => void;
   handleAddItemHarvester: (item: Item) => void;
   handleAddInfrastructure: (type: InfrastructureType, subtype?: string) => void;
+  onGeneratePlant: (config: SandboxPlanConfig, autoAudit?: boolean) => void;
 }
 
 /** 左側可折疊物資庫 (純資料庫驅動，自適應未來任何新配方)：點擊卡片即放置到畫布 */
@@ -25,11 +26,10 @@ export const SandboxCatalogSidebar: React.FC<SandboxCatalogSidebarProps> = ({
   items,
   intermediate,
   recipes,
-  defaultDishRateMin,
-  setDefaultDishRateMin,
   handleAddMachineWithRecipe,
   handleAddItemHarvester,
-  handleAddInfrastructure
+  handleAddInfrastructure,
+  onGeneratePlant
 }) => {
   const [activeCatalogTab, setActiveCatalogTab] = useState<'machines' | 'fluids' | 'items' | 'recipes'>('machines');
   const [itemsFilter, setItemsFilter] = useState<'all' | 'miner' | 'harvester' | 'reconstructor'>('all');
@@ -93,23 +93,25 @@ export const SandboxCatalogSidebar: React.FC<SandboxCatalogSidebarProps> = ({
               onClick={() => setActiveCatalogTab('recipes')}
               className={`py-1.5 rounded-lg transition-colors text-center ${activeCatalogTab === 'recipes' ? 'bg-purple-500/20 text-purple-300' : 'text-slate-400 hover:text-slate-200'}`}
             >
-              終端食譜
+              ✨ 產線規劃
             </button>
           </div>
 
-          {/* 搜尋欄 */}
-          <div className="p-2 border-b border-[#1c2e38]">
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5" />
-              <input
-                type="text"
-                placeholder="搜尋設備、配方或原料..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-1.5 bg-[#070e12] border border-slate-800 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500/50"
-              />
+          {/* 搜尋欄 (僅在中間工序、自然採集、流體/能源分頁顯示) */}
+          {activeCatalogTab !== 'recipes' && (
+            <div className="p-2 border-b border-[#1c2e38]">
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5" />
+                <input
+                  type="text"
+                  placeholder="搜尋設備、配方或原料..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-8 pr-3 py-1.5 bg-[#070e12] border border-slate-800 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500/50"
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {/* 物資列表卡片區 (點擊即放置到畫布) */}
           <div className="flex-1 overflow-y-auto p-2 space-y-2 text-xs">
@@ -403,97 +405,19 @@ export const SandboxCatalogSidebar: React.FC<SandboxCatalogSidebarProps> = ({
               </div>
             )}
 
-            {/* 分頁 3: 終端料理自動廚師機 */}
+            {/* 分頁 4: ✨ 產線規劃與動態生成 */}
             {activeCatalogTab === 'recipes' && (
-              <div className="space-y-3">
-                {/* 全域料理出餐目標設定 */}
-                <div className="p-2.5 rounded-xl bg-slate-900/90 border border-amber-900/50 space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-bold text-amber-300 flex items-center space-x-1">
-                      <Flame className="w-3.5 h-3.5 text-amber-400" />
-                      <span>預設料理出餐目標</span>
-                    </span>
-                    <span className="font-mono text-slate-300 font-bold">
-                      {defaultDishRateMin} 份/分
-                    </span>
-                  </div>
-
-                  <div className="flex items-center space-x-1">
-                    {[12, 24, 36].map(rate => (
-                      <button
-                        key={rate}
-                        onClick={() => setDefaultDishRateMin(rate)}
-                        className={`flex-1 py-1 rounded-lg text-[10px] font-mono transition-colors ${
-                          defaultDishRateMin === rate
-                            ? 'bg-amber-500/30 text-amber-300 font-bold border border-amber-500/50'
-                            : 'bg-slate-950 text-slate-400 hover:text-slate-200 border border-slate-800'
-                        }`}
-                        title={`設定預設出餐目標為 ${rate} 份/分 (${(rate / 12).toFixed(1)} 台廚師機需求)`}
-                      >
-                        {rate} 份/分
-                      </button>
-                    ))}
-                    <div className="flex items-center bg-slate-950 px-2 py-1 rounded-lg border border-slate-800 w-20">
-                      <input
-                        type="number"
-                        min="1"
-                        value={defaultDishRateMin}
-                        onChange={(e) => setDefaultDishRateMin(Math.max(1, Number(e.target.value) || 12))}
-                        className="w-full bg-transparent text-[10px] font-mono text-amber-200 outline-none text-center"
-                        title="自訂出餐目標"
-                      />
-                      <span className="text-[9px] text-slate-500 ml-0.5">/分</span>
-                    </div>
-                  </div>
-                  <div className="text-[9px] text-slate-500">
-                    💡 放置料理時直接以此產能為基準；若為熾熱料理將自動連動【胃復慘】。
-                  </div>
-                </div>
-
-                <div className="text-[10px] font-bold text-slate-500 px-1 uppercase tracking-wider flex items-center justify-between">
-                  <span>終端組裝料理 ({recipes.filter(r => r.name.includes(searchQuery)).length})</span>
-                  <Sparkles className="w-3 h-3 text-amber-400" />
-                </div>
-                {recipes
-                  .filter(r => r.name.includes(searchQuery))
-                  .map(r => {
-                    const mach = machines.find(m => m.name === '自動廚師機') || { name: '自動廚師機', power: 1.0, goblins: 3 };
-                    const isScorching = isScorchingDish(r.name, items, recipes);
-                    return (
-                      <div
-                        key={r.name}
-                        onClick={() => handleAddMachineWithRecipe(mach as Machine, r)}
-                        className="flex items-center justify-between p-2 rounded-xl bg-[#0e171c] hover:bg-[#14222a] border border-slate-800/80 hover:border-amber-500/50 cursor-pointer transition-all group"
-                      >
-                        <div className="flex items-center space-x-2 truncate">
-                          <ItemIcon name="自動廚師機" size="sm" />
-                          <div className="truncate">
-                            <div className="flex items-center space-x-1.5 truncate">
-                              <span className="font-bold text-slate-200 truncate group-hover:text-amber-300 transition-colors">
-                                {r.name}
-                              </span>
-                              {isScorching && (
-                                <span className="text-[9px] px-1 py-0.2 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 font-mono font-bold shrink-0" title="熾熱菜餚：點擊將自動配對【胃復慘】">
-                                  🌶️ 熾熱
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-[10px] text-slate-500 flex items-center space-x-1 mt-0.5">
-                              <span>出餐 {defaultDishRateMin} 份/分</span>
-                              {r.island && (
-                                <>
-                                  <span>·</span>
-                                  <span>{r.island}</span>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        <Plus className="w-4 h-4 text-slate-500 group-hover:text-amber-400 shrink-0" />
-                      </div>
-                    );
-                  })}
-              </div>
+              <SandboxPlannerTab
+                recipes={recipes}
+                intermediate={intermediate}
+                machines={machines}
+                items={items}
+                onGeneratePlant={onGeneratePlant}
+                onAddBlankChef={() => {
+                  const chefMach = machines.find(m => m.name === '自動廚師機');
+                  if (chefMach) handleAddMachineWithRecipe(chefMach);
+                }}
+              />
             )}
           </div>
         </>

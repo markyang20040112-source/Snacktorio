@@ -6,22 +6,26 @@ import {
 import { 
   runDigitalTwinVerification, 
   runFullPlantAudit, 
+  runBlueprintAudit,
   DigitalTwinReport, 
   FullPlantAuditReport 
 } from '../../services/digitalTwinAudit';
 import { dataService } from '../../services/dataService';
 import { Recipe } from '../../types';
+import { SandboxBlueprint } from './sandboxTypes';
 
 interface DigitalTwinModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentDishName?: string;
+  currentBlueprint?: SandboxBlueprint;
 }
 
 export const DigitalTwinModal: React.FC<DigitalTwinModalProps> = ({
   isOpen,
   onClose,
-  currentDishName
+  currentDishName,
+  currentBlueprint
 }) => {
   const [activeTab, setActiveTab] = useState<'current' | 'fullPlant'>('current');
   const [selectedDishName, setSelectedDishName] = useState<string>('');
@@ -38,11 +42,29 @@ export const DigitalTwinModal: React.FC<DigitalTwinModalProps> = ({
         ? currentDishName
         : (allRecipes[0]?.name || '');
       setSelectedDishName(targetDish);
-      if (targetDish) {
+
+      if (currentBlueprint && currentBlueprint.nodes.length > 0) {
+        runAuditForBlueprint(currentBlueprint, allRecipes);
+      } else if (targetDish) {
         runAuditForDish(targetDish, allRecipes);
       }
     }
-  }, [isOpen, currentDishName]);
+  }, [isOpen, currentDishName, currentBlueprint]);
+
+  const runAuditForBlueprint = (bp: SandboxBlueprint, allRecipes?: Recipe[]) => {
+    setIsRunning(true);
+    const recs = allRecipes || recipes;
+    setTimeout(() => {
+      try {
+        const rep = runBlueprintAudit(bp, { recipes: recs });
+        setReport(rep);
+      } catch (e) {
+        console.error('Digital Twin Audit Error:', e);
+      } finally {
+        setIsRunning(false);
+      }
+    }, 0);
+  };
 
   // 體檢為重度同步運算：先讓 isRunning 載入狀態繪製，再於下一個 macrotask 執行
   const runAuditForDish = (dishName: string, allRecipes?: Recipe[]) => {
@@ -126,7 +148,7 @@ export const DigitalTwinModal: React.FC<DigitalTwinModalProps> = ({
               }`}
             >
               <Activity className="w-3.5 h-3.5" />
-              <span>當前產線體檢 ({selectedDishName})</span>
+              <span>當前產線體檢 ({report?.dishName || selectedDishName})</span>
             </button>
             <button
               onClick={() => {
@@ -152,7 +174,13 @@ export const DigitalTwinModal: React.FC<DigitalTwinModalProps> = ({
           <div className="flex items-center space-x-2">
             {activeTab === 'current' ? (
               <button
-                onClick={() => runAuditForDish(selectedDishName)}
+                onClick={() => {
+                  if (currentBlueprint && currentBlueprint.nodes.length > 0) {
+                    runAuditForBlueprint(currentBlueprint);
+                  } else {
+                    runAuditForDish(selectedDishName);
+                  }
+                }}
                 disabled={isRunning}
                 className="px-2.5 py-1.5 bg-[#14232a] hover:bg-[#1a2d36] text-slate-300 rounded-xl border border-slate-700/60 flex items-center space-x-1 transition-colors disabled:opacity-50"
               >
