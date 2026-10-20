@@ -111,6 +111,7 @@
 ## 7. 近期決策摘要 (Recent Decisions)
 > 完整原文見 [`docs/CHANGELOG.md`](docs/CHANGELOG.md)。新紀錄請先追加詳細內容至 CHANGELOG 頂端，再於此更新摘要（保留最近約 10 筆）。
 
+* **2026-10-20｜並聯規劃注入機原料扣減、專線工序整併、多對一分流孤島修復與實裝孤島機台檢驗**：全廠環境池恆為 1 台注入機並扣除超額原料需求，修復並聯共用注入機原料機（如採收辣椒）重複生成而懸空；專線名稱動態規範化整併消除重複奶酪專線機台；修復 `partitionTargetsToSuppliers` 裝箱分流在多上游供單一下游時未分配目標造成懸空；`sandboxPhysics.ts` 實裝零輸入機台未接線背壓阻斷閒置（稼動率 0%）；`digitalTwinAudit.ts` 雙階實裝 `ERR_ORPHAN_MACHINE_DETECTED` 孤島機台檢核與彈窗輸出接線狀態；全廠 88 組藍圖 0 孤島機台達成。`npm run check` 與 `npm run build` 通過。
 * **2026-10-18｜並聯規劃廚師機液體路由與電網負載同步修復、移除42道食譜巡檢**：修復 `dishBlueprintGenerator.ts` 終端廚師機未依 `dishName` 篩選導致多料理共用攪拌機錯接飢餓；修復 `plantInfrastructure.ts` 超頻發電熔爐進位時操縱機負載未同步至 `totalLoad` 造成 1 FV/s 差距；`DigitalTwinModal.tsx` 徹底移除已退役的 42 道巡檢分頁（372 行）。`npm run check` 通過。
 * **2026-10-18｜E 組：沙盒動態產線規劃生成器、專案庫純自建重構與物理監控收合**：左側「✨ 產線規劃」分頁動態生成單/多料理產線藍圖（`buildPlantBlueprint`）；非整數倍廚師機稼動率物理與體檢模型實裝（尾部機台達標即 100% 合格）；專案庫清理預設 42 道藍圖轉為純使用者自建（支援單筆刪除與做法 1 先預覽後存檔）；右側全廠即時物理監控支援收合。
 * **2026-10-17｜D 組 Step 4（D8 + solver 流體修正）**：`digitalTwinAudit.ts` 第一關補入總耗電、泵機台數、發電熔爐數對帳；`solver.ts` 排除固體「水稻」誤判為水，並依 `intermediateRecipes.fluidType` 排除「炸哈瓦那魔椒」誤算入普通油。全廠 42 道料理在計算機與沙盒 100% 對齊（42/42 Healthy）。

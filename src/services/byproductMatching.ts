@@ -59,8 +59,10 @@ export function isBaseConsumerProcess(
   intermediateRecipes: IntermediateRecipe[]
 ): boolean {
   if (p.machine === '物質操縱機') return true;
-  const matchingInter = intermediateRecipes.find(r => r.name === p.processName || p.processName.includes(r.name));
-  if (matchingInter && matchingInter.inputs?.some(inp => isBasePlaceholder(inp.name))) return true;
+  if (p.machine === '烤箱') {
+    const matchingInter = intermediateRecipes.find(r => r.machine === p.machine && (r.name === p.processName || p.processName.includes(r.name)));
+    return matchingInter?.inputs?.some(inp => isBasePlaceholder(inp.name)) ?? false;
+  }
   return false;
 }
 

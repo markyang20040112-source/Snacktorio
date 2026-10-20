@@ -201,7 +201,7 @@ export const DigitalTwinModal: React.FC<DigitalTwinModalProps> = ({
                   </span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 text-xs font-mono">
+                <div className="grid grid-cols-3 gap-3 text-xs font-mono">
                   <div className="bg-[#121f28] p-3 rounded-xl border border-slate-800">
                     <div className="text-[10px] text-slate-400 mb-1">加工/出餐機台數量對帳</div>
                     <div className="flex items-baseline space-x-2">
@@ -217,12 +217,29 @@ export const DigitalTwinModal: React.FC<DigitalTwinModalProps> = ({
                       {report.stage1.byproductOffsetsMatched ? (
                         <span className="text-emerald-400 flex items-center space-x-1">
                           <CheckCircle2 className="w-3.5 h-3.5 inline mr-1" />
-                          拓撲直供連線 100% 吻合
+                          副產物直供 100% 吻合
                         </span>
                       ) : (
                         <span className="text-rose-400 flex items-center space-x-1">
                           <AlertTriangle className="w-3.5 h-3.5 inline mr-1" />
                           存在未直連副產物折抵
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="bg-[#121f28] p-3 rounded-xl border border-slate-800">
+                    <div className="text-[10px] text-slate-400 mb-1">設備輸出接線狀態</div>
+                    <div className="text-sm font-bold text-slate-200 mt-1">
+                      {report.stage1.orphanMachinesMatched ? (
+                        <span className="text-emerald-400 flex items-center space-x-1">
+                          <CheckCircle2 className="w-3.5 h-3.5 inline mr-1" />
+                          全機台 100% 完整接線
+                        </span>
+                      ) : (
+                        <span className="text-rose-400 flex items-center space-x-1">
+                          <AlertTriangle className="w-3.5 h-3.5 inline mr-1" />
+                          存在孤島未接線機台
                         </span>
                       )}
                     </div>

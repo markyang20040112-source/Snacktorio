@@ -21,10 +21,9 @@ export function partitionTargetsToSuppliers<T extends { flowRate: number; isBypr
 ): T[][] {
   const n = fromNodes.length;
   if (n <= 1) return [targets];
-  if (!allowSplit && targets.length <= 1) {
-    const res: T[][] = Array.from({ length: n }, () => []);
-    res[0] = targets;
-    return res;
+  if (targets.length <= 1) {
+    if (targets.length === 0) return Array.from({ length: n }, () => []);
+    return Array.from({ length: n }, () => [targets[0]]);
   }
 
   const bins: { capacity: number; load: number; items: T[] }[] = fromNodes.map(fn => {
@@ -33,7 +32,6 @@ export function partitionTargetsToSuppliers<T extends { flowRate: number; isBypr
   });
 
   if (
-    allowSplit &&
     targets.length === n &&
     !targets.some(t => t.isByproduct) &&
     targets.every((t, i) => t.flowRate <= bins[i].capacity + 0.005)
@@ -117,6 +115,12 @@ export function partitionTargetsToSuppliers<T extends { flowRate: number; isBypr
         bins[minLoadIdx].load += rem;
         rem = 0;
       }
+    }
+  }
+
+  for (let i = 0; i < n; i++) {
+    if (bins[i].items.length === 0 && targets.length > 0) {
+      bins[i].items.push(targets[i % targets.length]);
     }
   }
 

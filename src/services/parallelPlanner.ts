@@ -27,6 +27,21 @@ function consolidatePlan(
   intermediateRecipes: IntermediateRecipe[],
   items: Item[] = dataService.getItems()
 ) {
+  // 建立專線工序規範化映射：若同機台、同基礎工序名且流向同一下游設備，則將無專線標籤之工序映射至專線名稱
+  const dedicatedNameMap = new Map<string, string>();
+  individualResults.forEach(item => {
+    if (!item.calc) return;
+    item.calc.processes.forEach((p: ProcessNode) => {
+      if (p.processName.includes('(') && p.processName.includes(')')) {
+        const baseName = p.processName.replace(/\(.*?\)/, '').trim();
+        const targetMach = (p.downstreamTargets?.[0] as any)?.machine || (p.downstreamTargets?.[0] as any)?.targets?.[0]?.machine;
+        if (targetMach) {
+          dedicatedNameMap.set(`${p.machine}\u0000${baseName}\u0000${targetMach}`, p.processName);
+        }
+      }
+    });
+  });
+
   const processMap = new Map<string, ConsolidatedProcessRecord>();
 
   individualResults.forEach(item => {
@@ -34,9 +49,14 @@ function consolidatePlan(
 
     // 1. Regular process nodes
     item.calc.processes.forEach((p: ProcessNode) => {
-      if (!processMap.has(p.processName)) {
-        processMap.set(p.processName, {
-          processName: p.processName,
+      const baseName = p.processName.replace(/\(.*?\)/, '').trim();
+      const targetMach = (p.downstreamTargets?.[0] as any)?.machine || (p.downstreamTargets?.[0] as any)?.targets?.[0]?.machine;
+      const mappedKey = targetMach ? dedicatedNameMap.get(`${p.machine}\u0000${baseName}\u0000${targetMach}`) : undefined;
+      const procKey = mappedKey || p.processName;
+
+      if (!processMap.has(procKey)) {
+        processMap.set(procKey, {
+          processName: procKey,
           machine: p.machine,
           baseRate: p.baseRate || 0.2,
           baseRateDisplay: p.baseRateDisplay || (p.baseRate ? formatFractionOrDecimal(p.baseRate) : '0.20/s'),
@@ -53,7 +73,7 @@ function consolidatePlan(
           feederRoles: []
         });
       }
-      const record = processMap.get(p.processName)!;
+      const record = processMap.get(procKey)!;
       record.dishDemands.push({
         dishName: item.dishName,
         demand: p.demandRate,
@@ -147,6 +167,45 @@ function consolidatePlan(
     processMap.set(feederKey, feederRecord);
   }
 
+  // 注入機環境設施原料整併法則：全廠環境池恆為 1 台注入機，其原料消耗量全廠恆為 1 台 (0.2/s)
+  Array.from(processMap.values()).forEach(record => {
+    if (record.machine === '注入機') {
+      const injRecipe = intermediateRecipes.find(r => r.machine === record.machine && (r.name === record.processName || record.processName.includes(r.name)));
+      if (injRecipe && injRecipe.inputs) {
+        for (const inp of injRecipe.inputs) {
+          if (!inp.name || inp.name === '無' || inp.count <= 0) continue;
+          const supplierProc = Array.from(processMap.values()).find(p =>
+            p.processName.includes(inp.name) || p.processName === inp.name
+          );
+          if (supplierProc) {
+            let injTargetTotalRate = 0;
+            let keptTarget: DownstreamTarget | null = null;
+            supplierProc.downstreamTargets.forEach(dt => {
+              dt.targets = dt.targets.filter(t => {
+                if (t.processName === record.processName) {
+                  injTargetTotalRate += (t.flowRate || 0.2);
+                  if (!keptTarget) {
+                    keptTarget = t;
+                    t.flowRate = 0.2;
+                    return true;
+                  }
+                  return false;
+                }
+                return true;
+              });
+            });
+
+            const excessRate = Math.max(0, injTargetTotalRate - 0.2);
+            if (excessRate > 0) {
+              const excessMachines = excessRate / 0.2;
+              supplierProc.totalDemandRate = Math.max(0, supplierProc.totalDemandRate - excessMachines);
+            }
+          }
+        }
+      }
+    }
+  });
+
   const list = Array.from(processMap.values()).map(record => {
     // 注入機環境設施並聯整併法則：全廠共用同一片轉化池，並聯時整併為 1 台環境轉化機，節省其餘重複台數
     const parallelRounded = record.machine === '注入機' ? 1 : Math.ceil(record.totalDemandRate);
@@ -237,7 +296,6 @@ function consolidatePlan(
     if (!item.calc) return;
     totalWaterDemand += item.calc.fluids.water.demand;
     totalOilDemand += item.calc.fluids.oil.demand;
-    totalProcessVoid += item.calc.fluids.voidFluid.breakdown.processVoid;
     item.calc.fluids.transformations.forEach(t => {
       const existing = allTransformations.find(x => x.fluid === t.fluid);
       if (existing) {
@@ -262,6 +320,10 @@ function consolidatePlan(
 
   totalWaterDemand = Number(totalWaterDemand.toFixed(2));
   totalOilDemand = Number(totalOilDemand.toFixed(2));
+  // 全廠製程虛空需量：由整併後實際物質操縱機台數動態結算 (每台 1.0 fl/s)
+  totalProcessVoid = list
+    .filter(p => p.machine === '物質操縱機' && !p.isBaseFeeder)
+    .reduce((sum, p) => sum + p.parallelRounded, 0) * 1.0;
   totalProcessVoid = Number(totalProcessVoid.toFixed(2));
 
   // 全廠基建結算（與單料理求解共用 settlePlantInfrastructure；totalMainPower 已含底料收割機）

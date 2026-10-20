@@ -198,9 +198,9 @@ export function getProcessInputItems(
   const cleanP = stripped.replace('皮', '');
 
   if (p.processName.includes('麵糊')) {
-    const hasSnake = dishProcesses.some(dp => dp.processName.includes('蛇蛋'));
-    const eggName = hasSnake ? '蛇蛋' : '蜘蛛蛋';
-    return [{ name: '骨粉', count: 1, isFluid: false }, { name: eggName, count: 1, isFluid: false }];
+    const dishList = (p as any).dishDemands?.length ? (p as any).dishDemands.map((d: any) => d.dishName) : [dishName];
+    const hasSnake = dishProcesses.some(dp => dp.processName.includes('蛇蛋') && (!(dp as any).dishDemands?.length || (dp as any).dishDemands.some((dem: any) => dishList.includes(dem.dishName))));
+    return [{ name: '骨粉', count: 1, isFluid: false }, { name: hasSnake ? '蛇蛋' : '蜘蛛蛋', count: 1, isFluid: false }];
   }
 
   let candidates = intermediateRecipes.filter(r => 

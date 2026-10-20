@@ -14,7 +14,8 @@ export type DiagnosticCode =
   | 'ERR_POWER_LOAD_MISMATCH'
   | 'ERR_PUMP_COUNT_MISMATCH'
   | 'ERR_FURNACE_COUNT_MISMATCH'
-  | 'ERR_BYPRODUCT_WIRING_MISMATCH';
+  | 'ERR_BYPRODUCT_WIRING_MISMATCH'
+  | 'ERR_ORPHAN_MACHINE_DETECTED';
 
 export interface DigitalTwinFault {
   code: DiagnosticCode;
@@ -39,6 +40,7 @@ export interface Stage1MirrorReport {
   sandboxFurnaceCount: number;
   furnaceCountMatched: boolean;
   byproductOffsetsMatched: boolean;
+  orphanMachinesMatched: boolean;
   details: string[];
 }
 
@@ -198,7 +200,34 @@ export function runMirrorAudit(
     details.push('副產物折抵對帳：本產線無副產物折抵');
   }
 
-  const passed = machineCountMatched && powerLoadMatched && pumpCountMatched && furnaceCountMatched && byproductOffsetsMatched;
+  // 6. 拓撲孤島與懸空機台檢驗 (Orphan Machine Audit)
+  let orphanMachinesMatched = true;
+  const orphanNodes: SandboxNodeData[] = [];
+  for (const node of blueprint.nodes) {
+    const isTerminal = node.machineName === '自動廚師機' || node.type === 'generator' || node.id.startsWith('furnace');
+    if (!isTerminal) {
+      const hasOut = blueprint.connections.some(c => c.fromNodeId === node.id);
+      if (!hasOut) {
+        orphanMachinesMatched = false;
+        orphanNodes.push(node);
+        faults.push({
+          code: 'ERR_ORPHAN_MACHINE_DETECTED',
+          title: '拓撲接線嚴重異常：存在孤島未接線設備',
+          message: `機台【${node.title}】(${node.machineName}) 在產線中處於懸空孤島狀態，輸出端未連接任何下游設備！`,
+          remedy: '檢查物料下游路由與輸送帶接線，確保所有上游機台皆有下游承接。',
+          nodeId: node.id
+        });
+      }
+    }
+  }
+
+  if (orphanNodes.length > 0) {
+    details.push(`孤島檢核失敗：偵測到 ${orphanNodes.length} 台未接線懸空機台`);
+  } else {
+    details.push('孤島檢核：全機台輸出拓撲 100% 完整接線');
+  }
+
+  const passed = machineCountMatched && powerLoadMatched && pumpCountMatched && furnaceCountMatched && byproductOffsetsMatched && orphanMachinesMatched;
 
   return {
     report: {
@@ -216,6 +245,7 @@ export function runMirrorAudit(
       sandboxFurnaceCount,
       furnaceCountMatched,
       byproductOffsetsMatched,
+      orphanMachinesMatched,
       details
     },
     faults
@@ -297,7 +327,15 @@ export function runHeadlessPhysicsAudit(
   if (stoppageNodes.length > 0) {
     details.push(`⚠️ 存在 0% 停機設備：${stoppageNodes.join('、')}`);
     const firstStopNode = updatedNodes.find(n => stoppageNodes.includes(n.title));
-    if (firstStopNode?.machineName === '物質操縱機') {
+    if (firstStopNode?.statusNote?.includes('未接線')) {
+      faults.push({
+        code: 'ERR_ORPHAN_MACHINE_DETECTED',
+        title: `機台輸出未接線閒置：${firstStopNode?.title}`,
+        message: `【${firstStopNode?.title}】因輸出端完全未接線而閒置停機！`,
+        remedy: '檢查物料下游路由與輸送帶接線。',
+        nodeId: firstStopNode?.id
+      });
+    } else if (firstStopNode?.machineName === '物質操縱機') {
       faults.push({
         code: 'ERR_PROGENITOR_DEADLOCK',
         title: '物質操縱機 0% 停機 (祖源死鎖/斷料)',
@@ -388,6 +426,7 @@ export function runDigitalTwinVerification(
         sandboxFurnaceCount: 0,
         furnaceCountMatched: false,
         byproductOffsetsMatched: false,
+        orphanMachinesMatched: false,
         details: ['找不到該料理食譜']
       },
       stage2: { passed: false, chefEfficiency: 0, healedNodeCount: 0, deficitNodeCount: 0, cyclesRun: 0, stoppageNodes: [], deficitNodes: [], details: ['未執行物理模擬'] },

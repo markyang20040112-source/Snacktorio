@@ -562,6 +562,18 @@ export function simulateSandboxPhysics(
 
       // 2. 若設備為零輸入節點 (如採掘機、收割機、環境池)
       if (node.inputs.length === 0) {
+        // 輸出未接線判定：若採掘機、收割機無任何輸出連線，判定為未接線閒置 (稼動率 0%)
+        const hasOutConns = connList.some(c => c.fromNodeId === node.id);
+        if ((node.machineName === '收割機' || node.machineName === '採掘機') && !hasOutConns) {
+          node.fluidSaturation = 0;
+          node.solidSaturation = 0;
+          node.efficiency = 0;
+          node.actualCycleTime = node.baseCycleTime;
+          node.statusNote = '⚠️ 輸出未接線 (閒置中)';
+          node.outputs.forEach(p => { p.rateProvided = 0; });
+          return;
+        }
+
         node.fluidSaturation = 1.0;
         node.solidSaturation = 1.0;
         node.efficiency = 1.0;
